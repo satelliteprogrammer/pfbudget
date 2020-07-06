@@ -1,6 +1,7 @@
 from decimal import Decimal
 import csv
 import datetime
+import matplotlib.pyplot as plt
 import sys
 
 
@@ -39,6 +40,9 @@ class MonthlyTransactions:
             "Travel",
             "Miscellaneous",
         ]
+        self.expense_categories = (
+            fixed_expenses_categories + variable_expenses_categories
+        )
 
         self.income_per_cat = dict.fromkeys(income_categories, 0)
         self.fixed_expenses_per_cat = dict.fromkeys(fixed_expenses_categories, 0)
@@ -47,6 +51,12 @@ class MonthlyTransactions:
         self.investments = 0
 
         self.separate_categories(self.transactions)
+
+        self.expenses_per_cat = {
+            **self.income_per_cat,
+            **self.fixed_expenses_per_cat,
+            **self.variable_expenses_per_cat,
+        }
 
     def separate_categories(self, transactions):
         for transaction in transactions:
@@ -236,9 +246,6 @@ if __name__ == "__main__":
     write_transactions("transactions_ordered.csv", transactions)
 
     monthly_transactions = list()
-    monthly_categories = list()
-    incomes = list()
-    expenses = list()
     for month in range(1, 7):
         month_transactions = MonthlyTransactions(
             month, get_month_transactions(transactions, month)
@@ -247,8 +254,43 @@ if __name__ == "__main__":
 
         print(month_transactions)
 
+    x = range(1, 7)
+    y_income = [float(month.income()) for month in monthly_transactions]
+    y_fixed_expenses = [float(month.fixed_expenses()) for month in monthly_transactions]
+    y_variable_expenses = [
+        float(month.variable_expenses()) for month in monthly_transactions
+    ]
+
+    y = []
+    labels = monthly_transactions[0].expense_categories
+    for label in labels:
+        category = []
+        for month in monthly_transactions:
+            category.append(float(month.expenses_per_cat[label]))
+        y.append(category)
+
+    print(y)
+    no_negatives = False
+    while not no_negatives:
+        no_negatives = True
+        for category in y:
+            for month in range(0, 6):
+                if category[month] < 0:
+                    category[month - 1] += category[month]
+                    category[month] = 0
+                    no_negatives = False
+
+    print(y)
+    print(labels)
+
+    plt.plot(x, y_income, label="Income")
+    plt.stackplot(x, y, labels=labels)
+    plt.legend(loc="upper left")
+    plt.show()
+
     total_income = sum(month.income() for month in monthly_transactions)
     total_expenses = sum(month.expenses() for month in monthly_transactions)
+
     if total_income - total_expenses > 0:
         print(f"\nWe're {total_income - total_expenses} richer!")
     else:
