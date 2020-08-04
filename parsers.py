@@ -1,17 +1,36 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
+from transaction import Transaction
 
 
 class Parser:
-    @staticmethod
-    def get_transactions(file, encoding, sep="\t"):
-        with open(file, newline="", encoding=encoding) as f:
-            transactions = [line.rstrip().split(sep) for line in f]
-
-        return transactions
-
-    def parse(self, file, encoding="utf-8"):
+    def parse(self, file):
         pass
+
+    @staticmethod
+    def parse_csv(file: Path, append=False):
+        name = file.stem.split("_")
+        try:
+            bank, _ = name[0], int(name[1])
+        except ValueError:
+            _, bank = int(name[0]), name[1]
+
+        p = dict(
+            Bank1=Bank1,
+            Bank2=Bank2,
+            Bank2CC=Bank2CC,
+            BANK3=Bank3,
+        )
+
+        try:
+            parser = p[bank]()
+        except KeyError as e:
+            print(f"{e} {bank} parser doesnt exist. Cant parse {name}")
+            return
+
+        transactions = parser.parse(file)
+        return transactions
 
 
 class Bank1(Parser):
@@ -22,18 +41,29 @@ class Bank1(Parser):
     separator: ;
     starting line: 5
     date format: %d/%m/%Y
+
+    The reading order is reversed to go from earlier to latest.
     """
 
-    def parse(self, file, encoding="utf-8"):
-        transactions = []
+    encoding = "utf-8"
+    separator = ";"
 
-        for transaction in self.get_transactions(file, encoding, sep=";")[5:]:
+    def parse(self, file):
+        transactions = []
+        reader = [
+            line.rstrip().split(self.separator)
+            for line in open(file, encoding=self.encoding)
+        ][5:]
+
+        for transaction in reversed(reader):
             transaction = [field.rstrip() for field in transaction]
             date = datetime.strptime(transaction[1], "%d/%m/%Y").date()
             description = " ".join(transaction[3].split())
             value = Decimal(transaction[4])
 
-            transactions.append([date.isoformat(), description, "Bank1", value])
+            transactions.append(
+                Transaction(date.isoformat(), description, "Bank1", value)
+            )
 
         return transactions
 
@@ -46,18 +76,19 @@ class Bank2(Parser):
     separator: tab
     date format: %d/%m/%Y
     decimal separator: ,
-
-    Bank 2 also has an associated credit card, for which the transaction value
-    has to be negated.
     """
 
-    def __init__(self, cc=False):
-        self.cc = cc
+    encoding = "utf-8"
+    separator = "\t"
 
-    def parse(self, file, encoding="utf-8"):
+    def parse(self, file):
         transactions = []
+        reader = [
+            line.rstrip().split(self.separator)
+            for line in open(file, encoding=self.encoding)
+        ]
 
-        for transaction in self.get_transactions(file, encoding):
+        for transaction in reader:
             date = datetime.strptime(transaction[0], "%d/%m/%Y").date()
             description = transaction[2]
             try:
@@ -66,13 +97,48 @@ class Bank2(Parser):
                 transaction[3] = transaction[3].replace(",", "")
                 value = Decimal(transaction[3])
 
-            if not self.cc:
-                card = "Bank2"
-            else:
-                value = -value
-                card = "Bank2 CC"
+            transactions.append(
+                Transaction(date.isoformat(), description, "Bank2", value)
+            )
 
-            transactions.append([date.isoformat(), description, card, value])
+        return transactions
+
+
+class Bank2CC(Parser):
+    """Bank 2 credit card parser
+
+    Bank 2 credit card transcripts have the following properties:
+    encoding: utf-8
+    separator: tab
+    date format: %d/%m/%Y
+    decimal separator: ,
+    """
+
+    encoding = "utf-8"
+    separator = "\t"
+
+    def parse(self, file):
+        transactions = []
+        reader = [
+            line.rstrip().split(self.separator)
+            for line in open(file, encoding=self.encoding)
+        ]
+
+        for transaction in reader:
+            date = datetime.strptime(transaction[0], "%d/%m/%Y").date()
+            description = transaction[2]
+            try:
+                value = Decimal(transaction[3])
+            except InvalidOperation:
+                transaction[3] = transaction[3].replace(",", "")
+                value = -Decimal(transaction[3])
+
+            if value > 0:
+                date = datetime.strptime(transaction[1], "%d/%m/%Y").date()
+
+            transactions.append(
+                Transaction(date.isoformat(), description, "Bank2CC", value)
+            )
 
         return transactions
 
@@ -90,13 +156,20 @@ class Bank3(Parser):
     thousands separator: .
 
     Bank 3 has credits in a different column from debits. These also have to be
-    negated.
+    negated. The reading order is reversed to go from earlier to latest.
     """
 
-    def parse(self, file, encoding="utf-8"):
-        transactions = []
+    encoding = "windows-1252"
+    separator = ","
 
-        for transaction in self.get_transactions(file, encoding, sep=";")[7:-1]:
+    def parse(self, file):
+        transactions = []
+        reader = [
+            line.rstrip().split(self.separator)
+            for line in open(file, encoding=self.encoding)
+        ][7:-1]
+
+        for transaction in reversed(reader):
             transaction = [field.rstrip() for field in transaction]
             date = datetime.strptime(transaction[1], "%d-%m-%Y").date()
             description = transaction[2]
@@ -107,6 +180,8 @@ class Bank3(Parser):
                 t = transaction[4].replace(".", "").replace(",", ".")
                 value = Decimal(t)
 
-            transactions.append([date.isoformat(), description, "Bank3", value])
+            transactions.append(
+                Transaction(date.isoformat(), description, "Bank3", value)
+            )
 
         return transactions
