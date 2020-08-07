@@ -4,7 +4,7 @@ import pickle
 import sys
 
 from categories import Categories
-from transaction import Transaction as Tr, TransactionError
+from transaction import Transaction as Tr, TransactionError, Transactions
 from parsers import Parser
 
 
@@ -90,7 +90,7 @@ def initialize(raw_dir, data_dir, restart=False):
 
 
 def manual_categorization(trs):
-    trs = Tr.sort_by_bank(trs)
+    trs.sort_by_bank()
     for i, transaction in enumerate(trs):
         if not transaction.category:
             category = input(f"{transaction} category: ")
@@ -108,7 +108,7 @@ if __name__ == "__main__":
 
     datafiles = initialize(".raw", "data", restart=False)
 
-    transactions = list()
+    transactions = Transactions()
     for file in datafiles.values():
         transactions.extend(file)
     transactions.sort()
@@ -119,12 +119,12 @@ if __name__ == "__main__":
     #         if transaction.category in reprocess:
     #             transaction.category = ''
 
-    Categories.categorize(transactions)
-
-    manual_categorization(transactions)
-
-    for f, file in datafiles.items():
-        file_transactions = [t for t in transactions if t in file]
-        Tr.write_transactions(Path("data") / f, file_transactions)
-
+    # Categories.categorize(transactions)
+    #
+    # manual_categorization(transactions)
+    #
+    # for f, file in datafiles.items():
+    #     file_transactions = [t for t in transactions if t in file]
+    #     Tr.write_transactions(Path("data") / f, file_transactions)
+    #
     Tr.write_transactions("transactions.csv", transactions)

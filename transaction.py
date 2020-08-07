@@ -1,3 +1,4 @@
+from categories import Categories
 from csv import reader, writer
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -89,4 +90,62 @@ class Transaction:
         return self.date >= other.date
 
     def __repr__(self):
-        return f"{self.date} {self.description} {self.value}€ from {self.bank} ({self.category})"
+        return "{} {} {}€ ({})".format(
+            self.date.strftime("%d/%m/%y"), self.category, self.value, self.bank
+        )
+
+
+class Transactions(list):
+    def sort_by_bank(self):
+        self.sort(key=lambda k: k.bank)
+
+    def get_transactions_by_year(self, start=None, end=None):
+        if not start:
+            start = self[0].date
+        if not end:
+            end = self[-1].date
+
+        years = dict()
+        for year in range(start.year, end.year + 1):
+            years[year] = Transactions(
+                t for t in self if start <= t.date <= end and t.date.year == year
+            )
+
+        return years
+
+    def get_transactions_by_month(self, start=None, end=None):
+        if not start:
+            start = self[0].date
+        if not end:
+            end = self[-1].date
+
+        months = dict()
+        for year, year_transactions in self.get_transactions_by_year(
+            start, end
+        ).items():
+            for month in range(1, 13):
+                key = "_".join([str(year), str(month)])
+                months[key] = Transactions(
+                    t for t in year_transactions if t.date.month == month
+                )
+
+        # trims last unused months
+        trim = 1
+        for transactions in reversed(months.values()):
+            if transactions:
+                break
+            else:
+                trim += 1
+        while trim := trim - 1:
+            months.popitem()
+
+        return months
+
+    def get_transactions_by_category(self):
+        categories = {cat: [] for cat in Categories.get_categories_names()}
+        for transaction in self:
+            try:
+                categories[transaction.category].append(transaction)
+            except AttributeError:
+                categories[transaction.category] = [transaction]
+        return categories
