@@ -10,6 +10,9 @@ class Categories:
     range = ()
 
     def search(self, t):
+        if not self.regex:
+            return False
+
         if self.banks:
             return any(
                 pattern.search(t.description.lower())
@@ -33,20 +36,13 @@ class Categories:
 
     @classmethod
     def categorize(cls, transactions):
-
-        income_categories = [
-            Income1().name,
-            Income2().name,
-            Income3().name,
-        ]
-
         null_matches = Null().search_all(transactions)
         travel_matches = Travel().search_all(
             transactions, date(2019, 12, 23), date(2020, 1, 2)
         )
 
         for i, transaction in enumerate(transactions):
-            for category in cls.get_categories():
+            for category in [cat() for cat in cls.get_categories()]:
                 if category.search(transaction):
                     if not transaction.category:
                         transaction.category = category.name
@@ -71,7 +67,7 @@ class Categories:
                                 new_category = input("? ")
 
             if transaction in travel_matches and transaction.category not in [
-                *income_categories,
+                *cls.get_income_categories(),
             ]:
                 transaction.category = Travel().name
             if transaction in null_matches:
@@ -79,7 +75,41 @@ class Categories:
 
     @classmethod
     def get_categories(cls):
-        return [category() for category in cls.__subclasses__()]
+        return cls.__subclasses__()
+
+    @classmethod
+    def get_categories_names(cls):
+        return [cat.name for cat in cls.get_categories()]
+
+    @classmethod
+    def get_income_categories(cls):
+        return [cat.name for cat in cls.get_categories() if "Income" in cat.name]
+
+    @classmethod
+    def get_fixed_expenses(cls):
+        return [
+            Utilities.name,
+            Commute.name,
+        ]
+
+    @classmethod
+    def get_variable_expenses(cls):
+        return [Groceries.name]
+
+    @classmethod
+    def get_discretionary_expenses(cls):
+        return [
+            cat.name
+            for cat in cls.get_categories()
+            if cat.name
+            not in [
+                *cls.get_income_categories(),
+                *cls.get_fixed_expenses(),
+                *cls.get_variable_expenses(),
+                Investment.name,
+                Null.name,
+            ]
+        ]
 
 
 class Income1(Categories):
