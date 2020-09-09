@@ -40,11 +40,14 @@ def initialize(raw_dir, data_dir, restart=False):
             logging.debug("no .raw.pickle found")
 
     updated_trs, update = dict(), False
-    prompt = " has been modified since last update. Do you want to update the data files? (Yes/No)"
+    prompt = " has been modified since last update. Do you want to update the data files? (Yes/Update/No)"
     for rf in Path(raw_dir).iterdir():
         if rf.name in rfs and rfs[rf.name][0] == rf.stat().st_mtime:
             logging.debug(f"{rf.name} hasn't been modified since last access")
-        elif rf.name not in rfs or input(f"{rf.name}" + prompt).lower() == "yes":
+        elif (
+            rf.name not in rfs
+            or (answer := input(f"{rf.name}" + prompt).lower()) == "yes"
+        ):
             trs = Parser.parse_csv(rf)
             updated_trs[rf.name] = trs
             try:
@@ -53,6 +56,11 @@ def initialize(raw_dir, data_dir, restart=False):
                 rfs[rf.name] = [rf.stat().st_mtime, []]
             update = True
             logging.info(f"{rf.name} parsed")
+        elif answer == "update":
+            rfs[rf.name][0] = rf.stat().st_mtime
+            update = True
+        else:  # prompt = no
+            update = True
 
     if update:
         for rf_name, updated_trs in updated_trs.items():
@@ -66,7 +74,8 @@ def initialize(raw_dir, data_dir, restart=False):
                     rem_trs = [tr for tr in rfs[rf_name][1] if tr not in trs]
 
                     if new_trs:
-                        dfs[filename].extend(new_trs).sort()
+                        dfs[filename].extend(new_trs)
+                        dfs[filename].sort()
 
                     for rem in rem_trs:
                         dfs[filename].remove(rem)
@@ -95,7 +104,7 @@ def manual_categorization(trs):
     trs.sort_by_bank()
     for i, transaction in enumerate(trs):
         if not transaction.category:
-            category = input(f"{transaction} category: ")
+            category = input(f"{transaction.desc()} category: ")
             if category == "stop":
                 break
             if category:
@@ -106,9 +115,9 @@ def manual_categorization(trs):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
 
-    datafiles = initialize(".raw", "data", restart=False)
+    datafiles = initialize("raw", "data", restart=False)
 
     transactions = Transactions()
     for file in datafiles.values():
@@ -121,15 +130,15 @@ if __name__ == "__main__":
     #         if transaction.category in reprocess:
     #             transaction.category = ''
 
-    # Categories.categorize(transactions)
-    #
-    # manual_categorization(transactions)
-    #
-    # for f, file in datafiles.items():
-    #     file_transactions = [t for t in transactions if t in file]
-    #     Tr.write_transactions(Path("data") / f, file_transactions)
-    #
-    Tr.write_transactions("transactions.csv", transactions)
+    if False:
+        Categories.categorize(transactions)
+        manual_categorization(transactions)
+
+        for f, file in datafiles.items():
+            file_transactions = [t for t in transactions if t in file]
+            Tr.write_transactions(Path("data") / f, file_transactions)
+
+        Tr.write_transactions("transactions.csv", transactions)
 
     monthly_transactions = transactions.get_transactions_by_month(
         start=date(2020, 1, 1), end=date(2020, 8, 31)

@@ -37,7 +37,7 @@ class Transaction:
     def read_transactions(file, encoding="utf-8"):
         with open(file, newline="", encoding=encoding) as f:
             r = reader(f, delimiter="\t")
-            transactions = [Transaction(row) for row in r]
+            transactions = [Transaction(row) for row in r if row and row[0][0] != "#"]
         return transactions
 
     @staticmethod
@@ -88,6 +88,11 @@ class Transaction:
 
     def __ge__(self, other):
         return self.date >= other.date
+
+    def desc(self):
+        return "{} {} {}€ ({})".format(
+            self.date.strftime("%d/%m/%y"), self.description, self.value, self.bank
+        )
 
     def __repr__(self):
         return "{} {} {}€ ({})".format(

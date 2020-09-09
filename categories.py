@@ -52,7 +52,7 @@ class Categories:
                         and transaction.category != Travel().name
                     ):
                         new_category = input(
-                            f"{transaction} already has a {transaction.category} assigned. Would you like "
+                            f"{transaction.desc()} already has a {transaction.category} assigned. Would you like "
                             f"to change it to {category.name}? (Y/N) "
                         )
                         correct_answer = False
