@@ -40,6 +40,9 @@ class Categories:
         travel_matches = Travel().search_all(
             transactions, date(2019, 12, 23), date(2020, 1, 2)
         )
+        travel_matches.extend(
+            Travel().search_all(transactions, date(2020, 7, 1), date(2020, 7, 30))
+        )
 
         for i, transaction in enumerate(transactions):
             for category in [cat() for cat in cls.get_categories()]:
