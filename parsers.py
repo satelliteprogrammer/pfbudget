@@ -74,7 +74,7 @@ class Bank2(Parser):
     Bank 2 transcripts have the following properties:
     encoding: utf-8
     separator: tab
-    date format: %d/%m/%Y
+    date format: %d/%m/%Y or %d-%m-%Y
     decimal separator: ,
     """
 
@@ -89,13 +89,18 @@ class Bank2(Parser):
         ]
 
         for transaction in reader:
-            date = datetime.strptime(transaction[0], "%d/%m/%Y").date()
-            description = transaction[2]
             try:
-                value = Decimal(transaction[3])
-            except InvalidOperation:
-                transaction[3] = transaction[3].replace(",", "")
-                value = Decimal(transaction[3])
+                date = datetime.strptime(transaction[0], "%d/%m/%Y").date()
+            except ValueError:  # date can differ due to locales
+                date = datetime.strptime(transaction[0], "%d-%m-%Y").date()
+            description = transaction[2]
+
+            # works for US and EU locales (5,000.00 and 5 000,00)
+            value = list(transaction[3].replace("\xa0", ""))  # non-breaking space
+            value[-3] = "."
+            value = "".join(value)
+            value = value.replace(",", "")
+            value = Decimal(value)
 
             transactions.append(
                 Transaction(date.isoformat(), description, "Bank2", value)
@@ -110,7 +115,7 @@ class Bank2CC(Parser):
     Bank 2 credit card transcripts have the following properties:
     encoding: utf-8
     separator: tab
-    date format: %d/%m/%Y
+    date format: %d/%m/%Y or %d-%m-%Y
     decimal separator: ,
     """
 
@@ -125,13 +130,18 @@ class Bank2CC(Parser):
         ]
 
         for transaction in reader:
-            date = datetime.strptime(transaction[0], "%d/%m/%Y").date()
-            description = transaction[2]
             try:
-                value = Decimal(transaction[3])
-            except InvalidOperation:
-                transaction[3] = transaction[3].replace(",", "")
-                value = -Decimal(transaction[3])
+                date = datetime.strptime(transaction[0], "%d/%m/%Y").date()
+            except ValueError:  # date can differ due to locales
+                date = datetime.strptime(transaction[0], "%d-%m-%Y").date()
+            description = transaction[2]
+
+            # works for US and EU locales (5,000.00 and 5 000,00)
+            value = list(transaction[3].replace("\xa0", ""))  # non-breaking space
+            value[-3] = "."
+            value = "".join(value)
+            value = value.replace(",", "")
+            value = Decimal(value)
 
             if value > 0:
                 date = datetime.strptime(transaction[1], "%d/%m/%Y").date()
