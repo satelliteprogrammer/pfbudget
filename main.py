@@ -141,7 +141,7 @@ if __name__ == "__main__":
         Tr.write_transactions("transactions.csv", transactions)
 
     monthly_transactions = transactions.get_transactions_by_month(
-        start=date(2020, 1, 1), end=date(2020, 8, 31)
+        start=date(2020, 1, 1), end=date(2020, 11, 30)
     )
     monthly_transactions_by_cat = []
     for month_transactions in monthly_transactions.values():
