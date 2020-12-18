@@ -1,8 +1,8 @@
-from categories import Categories
 from csv import reader, writer
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
+from .categories import Categories
 
 class TransactionError(Exception):
     pass

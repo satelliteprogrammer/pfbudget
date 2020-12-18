@@ -4,9 +4,10 @@ import logging
 import matplotlib.pyplot as plt
 import pickle
 import sys
-from categories import Categories
-from transaction import Transaction as Tr, TransactionError, Transactions
-from parsers import Parser
+
+from pfbudget.categories import Categories
+from pfbudget.transactions import Transaction as Tr, TransactionError, Transactions
+from pfbudget.parsers import Parser
 
 
 def get_transactions(data_dir):

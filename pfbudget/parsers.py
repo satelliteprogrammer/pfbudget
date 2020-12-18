@@ -1,7 +1,8 @@
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from transaction import Transaction
+
+from .transactions import Transaction
 
 
 class Parser:
