@@ -1,14 +1,24 @@
 from datetime import date
 from pathlib import Path
-import logging
+import argparse
 import matplotlib.pyplot as plt
 import pickle
-import sys
 
 from initializer import initialize
 from categories import Categories
 from transaction import Transaction as Tr, TransactionError, Transactions
 from parsers import Parser
+
+
+p = ".pfbudget.pickle"
+
+
+class PfBudgetInitialized(Exception):
+    pass
+
+
+class PfBudgetNotInitialized(Exception):
+    pass
 
 
 def manual_categorization(trs):
@@ -25,8 +35,88 @@ def manual_categorization(trs):
     trs.sort()
 
 
+def init(args):
+    """init function
+
+    Creates .pfbudget.pickle which stores the internal state of the program for later use. Parses all raw directory
+    into data directory.
+
+    args.raw -- raw dir
+    args.data -- data dir
+    """
+    if not Path(p).is_file():
+        s = {"filename": p, "raw_dir": args.raw, "data_dir": args.data, "data": []}
+        with open(p, "wb") as f:
+            pickle.dump(s, f)
+        parse(args)
+    else:
+        raise PfBudgetInitialized()
+
+
+def restart(args):
+    """restart function
+
+    Deletes .pfbudget.pickle and creates new one. Parses all raw directory into data directory. New dirs can be passed
+    as arguments, otherwise uses previous values
+
+    args.raw -- raw dir
+    args.data -- data dir
+    """
+    if Path(p).is_file():
+        s = pickle.load(open(p, "rb"))
+        raw_dir = s["raw_dir"] if not args.raw else args.raw
+        data_dir = s["data_dir"] if not args.data else args.data
+
+        s = {"filename": p, "raw_dir": raw_dir, "data_dir": data_dir, "data": []}
+        pickle.dump(s, open(p, "wb"))
+        parse(args)
+    else:
+        raise PfBudgetNotInitialized()
+
+
+def parse(args):
+    """parse function
+
+    Extracts from .pfbudget.pickle the already read files and parses the remaining. args will be None if called from
+    command line and gathered from the pickle.
+
+    args.raw -- raw dir
+    args.data -- data dir
+    """
+    if not args:
+        s = pickle.load(open(p, "rb"))
+        raw_dir = s["raw_dir"]
+        data_dir = s["data_dir"]
+    else:
+        raw_dir = args.raw
+        data_dir = args.data
+
+    pass
+
+
 if __name__ == "__main__":
-    # logging.basicConfig(level=logging.DEBUG)
+    parser = argparse.ArgumentParser(description="does cool finance stuff")
+    parser.add_argument("-q", "--quiet", help="quiet")
+    subparsers = parser.add_subparsers(help="sub-command help")
+
+    p_init = subparsers.add_parser("init", help="init help")
+    p_restart = subparsers.add_parser("restart", help="restart help")
+    p_parse = subparsers.add_parser("parse", help="parse help")
+    p_graph = subparsers.add_parser("graph", help="graph help")
+    p_report = subparsers.add_parser("report", help="report help")
+
+    p_init.add_argument("raw", help="the raw data dir")
+    p_init.add_argument("data", help="the parsed data dir")
+    p_init.set_defaults(func=init)
+
+    p_restart.add_argument("--raw", help="new raw data dir")
+    p_restart.add_argument("--data", help="new parsed data dir")
+    p_restart.set_defaults(func=restart)
+
+    p_parse.set_defaults(func=parse)
+
+    args = parser.parse_args()
+    args.func(args)
 
     datafiles = initialize("raw", "data", restart=False)
 
