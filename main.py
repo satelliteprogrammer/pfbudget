@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import pickle
 
 from initializer import initialize
-from categories import Categories
-from transaction import Transaction as Tr, TransactionError, Transactions
-from parsers import Parser
+from pfbudget.categories import Categories
+from pfbudget.transactions import Transaction as Tr, TransactionError, Transactions
+from pfbudget.parsers import Parser
 
 
 p = ".pfbudget.pickle"
