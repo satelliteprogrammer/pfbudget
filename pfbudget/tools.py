@@ -4,7 +4,7 @@ import datetime as dt
 import pickle
 import shutil
 
-from .categories import Categories, Null, Travel
+from .categories import Categories, Null, Travel, get_categories
 from .transactions import (
     Transaction,
     load_transactions,
@@ -255,7 +255,7 @@ def manual_categorization(state: PFState, transactions: list):
             category = input(f"{transaction.desc()} category: ")
             if category == "quit":
                 return
-            if category not in Categories.get_categories_names():
+            if category not in get_categories():
                 print("category doesn't exist")
                 continue
             else:

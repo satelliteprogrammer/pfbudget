@@ -1,12 +1,9 @@
 from pathlib import Path
 import argparse
 import datetime as dt
-import matplotlib.pyplot as plt
-import pickle
-import sys
-from pfbudget.categories import Categories
+
+from pfbudget.graph import monthly
 from pfbudget.transactions import load_transactions, save_transactions
-from pfbudget.parsers import Parser
 import pfbudget.tools as tools
 
 
@@ -21,11 +18,15 @@ class PfBudgetNotInitialized(Exception):
     pass
 
 
+class DataFileMissing(Exception):
+    pass
+
+
 def init(state, args):
     """init function
 
-    Creates .pfbudget.pickle which stores the internal state of the program for later use. Parses all raw directory
-    into data directory.
+    Creates state file which stores the internal state of the program for later use.
+    Calls parse, that parses all raw directory into data directory.
 
     args.raw -- raw dir
     args.data -- data dir
@@ -50,8 +51,8 @@ def init(state, args):
 def restart(state, args):
     """restart function
 
-    Deletes .pfbudget.pickle and creates new one. Parses all raw directory into data directory. New dirs can be passed
-    as arguments, otherwise uses previous values
+    Deletes state and creates new one. Parses all raw directory into data directory.
+    New dirs can be passed as arguments, otherwise uses previous values.
 
     args.raw -- raw dir
     args.data -- data dir
@@ -61,8 +62,7 @@ def restart(state, args):
             try:
                 (Path(state.data_dir) / fn).unlink()
             except FileNotFoundError:
-                print("missing {}".format(Path(state.data_dir) / fn))
-                sys.exit(-1)
+                raise DataFileMissing("missing {}".format(Path(state.data_dir) / fn))
 
         if args.raw:
             state.raw_dir = args.raw
@@ -91,8 +91,8 @@ def backup(state, args):
 def parse(state, args):
     """parse function
 
-    Extracts from .pfbudget.pickle the already read files and parses the remaining. args will be None if called from
-    command line and gathered from the pickle.
+    Extracts from .pfbudget.pickle the already read files and parses the remaining.
+    args will be None if called from command line and gathered from the pickle.
 
     args.raw -- raw dir
     args.data -- data dir
@@ -141,7 +141,10 @@ def vacation(state, args):
 
 def status(state, args):
     print(state)
-    sys.exit(0)
+
+
+def graph(state, args):
+    monthly(state, start=dt.date(2020, 1, 1), end=dt.date(2020, 12, 31))
 
 
 if __name__ == "__main__":
@@ -197,105 +200,20 @@ if __name__ == "__main__":
     p_backup.set_defaults(func=backup)
     p_parse.set_defaults(func=parse)
     p_vacation.set_defaults(func=vacation)
-    p_report.set_defaults(func=categorize)
     p_status.set_defaults(func=status)
+    p_graph.set_defaults(func=graph)
 
     state = tools.pfstate(p)
     state.filename = p
     args = parser.parse_args()
     args.func(state, args)
 
-    transactions = load_transactions(state.data_dir)
+    # income = [sum(t.value for cat, transactions in months.items() for t in transactions
+    #                     if cat in get_income_categories()) for months in monthly_transactions_by_cat]
 
-    # reprocess = [Education().name]
-    # for i, transaction in enumerate(transactions):
-    #     for category in Categories.get_categories():
-    #         if transaction.category in reprocess:
-    #             transaction.category = ''
+    # expenses = []
+    # for category in expense_categories:
+    #     expense_value = [-sum(t.value for t in month[category]) for month in monthly_transactions_by_cat]
+    #     expenses.extend(expense_value)
 
-    monthly_transactions = transactions.get_transactions_by_month(
-        start=dt.date(2020, 1, 1), end=dt.date(2020, 12, 31)
-    )
-    monthly_transactions_by_cat = []
-    for month_transactions in monthly_transactions.values():
-        cat = month_transactions.get_transactions_by_category()
-        monthly_transactions_by_cat.append(cat)
-
-    for month, month_transactions in zip(
-        monthly_transactions.keys(), monthly_transactions_by_cat
-    ):
-        nulls = sum(t.value for t in month_transactions["Null"])
-        if nulls != 0:
-            print(f"{month} {nulls}")
-
-    expense_categories = [
-        *Categories.get_fixed_expenses(),
-        *Categories.get_variable_expenses(),
-        *Categories.get_discretionary_expenses(),
-    ]
-
-    if True:
-        t = list(monthly_transactions.keys())
-        income = [
-            float(
-                sum(
-                    t.value
-                    for cat, transactions in months.items()
-                    for t in transactions
-                    if cat in Categories.get_income_categories()
-                )
-            )
-            for months in monthly_transactions_by_cat
-        ]
-        # income = []
-        # for months in monthly_transactions_by_cat:
-        #     for cat, transactions in months.items():
-        #         if cat in Categories.get_income_categories():
-        #             income.append(sum(transactions))
-
-        expenses = []
-        for category in expense_categories:
-            expense_value = [
-                -float(sum(t.value for t in month[category]))
-                for month in monthly_transactions_by_cat
-            ]
-            expenses.append(expense_value)
-        # expenses = [transactions for months in monthly_transactions_by_cat for cat, transactions in months.items()
-        #             if cat not in Categories.get_income_categories() and transactions]
-        for expense in expenses:
-            for i, month in reversed(list(enumerate(t))):
-                if expense[i] < 0:
-                    if i - 1 < 0:
-                        break
-                    else:
-                        expense[i - 1] += expense[i]
-                        expense[i] = 0
-
-        plt.plot(t, income, label="Income")
-        plt.stackplot(t, expenses, labels=expense_categories)
-        plt.legend(bbox_to_anchor=(1, 1), loc="upper left")
-        plt.show()
-
-    income = [
-        sum(
-            t.value
-            for cat, transactions in months.items()
-            for t in transactions
-            if cat in Categories.get_income_categories()
-        )
-        for months in monthly_transactions_by_cat
-    ]
-
-    expenses = []
-    for category in expense_categories:
-        expense_value = [
-            -sum(t.value for t in month[category])
-            for month in monthly_transactions_by_cat
-        ]
-        expenses.extend(expense_value)
-
-    print(
-        "Income: {}, Expenses: {}, Net = {}".format(
-            sum(income), sum(expenses), sum(income) - sum(expenses)
-        )
-    )
+    # print("Income: {}, Expenses: {}, Net = {}"".format(sum(income), sum(expenses), sum(income) - sum(expenses)))
