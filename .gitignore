@@ -146,5 +146,4 @@ dmypy.json
 ### Default user directories
 data/
 raw/
-*.pickle
-transactions.csv
+.pfbudget

@@ -1,23 +1,26 @@
 from csv import reader, writer
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 from .categories import Categories
+
+COMMENT_TOKEN = "#"
+
 
 class TransactionError(Exception):
     pass
 
 
 class Transaction:
-    date = None
-    description = ""
-    bank = ""
-    value = 0
-    category = ""
+    def __init__(self, *args, file=None):
+        self.date = None
+        self.description = ""
+        self.bank = ""
+        self.value = 0
+        self.category = ""
 
-    def __init__(self, *args):
         arg = args[0] if len(args) == 1 else list(args)
-
         try:
             self.date = date.fromisoformat(arg[0])
             self.description = " ".join(arg[1].split())
@@ -30,21 +33,15 @@ class Transaction:
             print(f"{args}")
             raise TransactionError
 
+        self.year = self.date.year
+        self.month = self.date.month
+        self.day = self.date.day
+
+        self.file = file
+        self.modified = False
+
     def to_csv(self):
         return [self.date, self.description, self.bank, self.value, self.category]
-
-    @staticmethod
-    def read_transactions(file, encoding="utf-8"):
-        with open(file, newline="", encoding=encoding) as f:
-            r = reader(f, delimiter="\t")
-            transactions = [Transaction(row) for row in r if row and row[0][0] != "#"]
-        return transactions
-
-    @staticmethod
-    def write_transactions(file, transactions, append=False, encoding="utf-8"):
-        with open(file, "a" if append else "w", newline="", encoding=encoding) as f:
-            w = writer(f, delimiter="\t")
-            w.writerows([transaction.to_csv() for transaction in transactions])
 
     @staticmethod
     def get_repeated_transactions(transactions):
@@ -60,6 +57,15 @@ class Transaction:
     def sort_by_bank(transactions):
         transactions.sort(key=lambda k: k.bank)
         return transactions
+
+    @property
+    def category(self):
+        return self._category
+
+    @category.setter
+    def category(self, v):
+        self.modified = True
+        self._category = v
 
     def __eq__(self, other):
         return (
@@ -154,3 +160,46 @@ class Transactions(list):
             except AttributeError:
                 categories[transaction.category] = [transaction]
         return categories
+
+
+def load_transactions(data_dir) -> Transactions:
+    transactions = Transactions()
+    for df in Path(data_dir).iterdir():
+        try:
+            trs = read_transactions(df)
+        except TransactionError as e:
+            print(f"{e} -> datafile {df}")
+            raise TransactionError
+        transactions.extend(trs)
+
+    transactions.sort()
+    return transactions
+
+
+def save_transactions(data_dir, transactions):
+    files2write = set(t.file if t.modified else None for t in transactions)
+    files2write.discard(None)
+    for f in files2write:
+        trs = [t for t in transactions if t.file == f]
+        write_transactions(f, trs)
+
+
+def read_transactions(filename, encoding="utf-8"):
+    try:
+        with open(filename, newline="", encoding=encoding) as f:
+            r = reader(f, delimiter="\t")
+            transactions = [
+                Transaction(row, file=filename)
+                for row in r
+                if row and row[0][0] != COMMENT_TOKEN
+            ]
+    except FileNotFoundError:
+        transactions = []
+
+    return transactions
+
+
+def write_transactions(file, transactions, append=False, encoding="utf-8"):
+    with open(file, "a" if append else "w", newline="", encoding=encoding) as f:
+        w = writer(f, delimiter="\t")
+        w.writerows([transaction.to_csv() for transaction in transactions])

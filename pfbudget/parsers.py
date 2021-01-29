@@ -5,33 +5,33 @@ from pathlib import Path
 from .transactions import Transaction
 
 
+def parse_data(file: Path, append=False):
+    name = file.stem.split("_")
+    try:
+        bank, _ = name[0], int(name[1])
+    except ValueError:
+        _, bank = int(name[0]), name[1]
+
+    p = dict(
+        Bank1=Bank1,
+        Bank2=Bank2,
+        Bank2CC=Bank2CC,
+        BANK3=Bank3,
+    )
+
+    try:
+        parser = p[bank]()
+    except KeyError as e:
+        print(f"{e} {bank} parser doesnt exist. Cant parse {name}")
+        return
+
+    transactions = parser.parse(file)
+    return transactions
+
+
 class Parser:
     def parse(self, file):
         pass
-
-    @staticmethod
-    def parse_csv(file: Path, append=False):
-        name = file.stem.split("_")
-        try:
-            bank, _ = name[0], int(name[1])
-        except ValueError:
-            _, bank = int(name[0]), name[1]
-
-        p = dict(
-            Bank1=Bank1,
-            Bank2=Bank2,
-            Bank2CC=Bank2CC,
-            BANK3=Bank3,
-        )
-
-        try:
-            parser = p[bank]()
-        except KeyError as e:
-            print(f"{e} {bank} parser doesnt exist. Cant parse {name}")
-            return
-
-        transactions = parser.parse(file)
-        return transactions
 
 
 class Bank1(Parser):

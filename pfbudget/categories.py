@@ -35,48 +35,6 @@ class Categories:
             return any(pattern.search(t.description.lower()) for pattern in self.regex)
 
     @classmethod
-    def categorize(cls, transactions):
-        null_matches = Null().search_all(transactions)
-        travel_matches = Travel().search_all(
-            transactions, date(2019, 12, 23), date(2020, 1, 2)
-        )
-        travel_matches.extend(
-            Travel().search_all(transactions, date(2020, 7, 1), date(2020, 7, 30))
-        )
-
-        for i, transaction in enumerate(transactions):
-            for category in [cat() for cat in cls.get_categories()]:
-                if category.search(transaction):
-                    if not transaction.category:
-                        transaction.category = category.name
-                        transactions[i] = transaction
-                    elif (
-                        transaction.category != category.name
-                        and transaction.category != Travel().name
-                    ):
-                        new_category = input(
-                            f"{transaction.desc()} already has a {transaction.category} assigned. Would you like "
-                            f"to change it to {category.name}? (Y/N) "
-                        )
-                        correct_answer = False
-                        while not correct_answer:
-                            if new_category.lower() == "y":
-                                transaction.category = category.name
-                                transactions[i] = transaction
-                                correct_answer = True
-                            elif new_category.lower() == "n":
-                                correct_answer = True
-                            else:
-                                new_category = input("? ")
-
-            if transaction in travel_matches and transaction.category not in [
-                *cls.get_income_categories(),
-            ]:
-                transaction.category = Travel().name
-            if transaction in null_matches:
-                transaction.category = Null().name
-
-    @classmethod
     def get_categories(cls):
         return cls.__subclasses__()
 
@@ -234,6 +192,10 @@ class Pets(Categories):
 class Travel(Categories):
     name = "Travel"
     regex = [c("ryanair"), c("easyjet"), c("airbnb")]
+    not_in_travel = [
+        *Categories.get_income_categories(),
+        Utilities.name,
+    ]
 
     @staticmethod
     def search_all(transactions, start, end):
