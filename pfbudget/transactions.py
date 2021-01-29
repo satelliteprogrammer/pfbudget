@@ -1,9 +1,10 @@
 from csv import reader, writer
 from datetime import date
+from dateutil.rrule import rrule, MONTHLY, YEARLY
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from .categories import Categories
+from .categories import get_categories
 
 COMMENT_TOKEN = "#"
 
@@ -124,42 +125,58 @@ class Transactions(list):
 
         return years
 
-    def get_transactions_by_month(self, start=None, end=None):
-        if not start:
-            start = self[0].date
-        if not end:
-            end = self[-1].date
 
-        months = dict()
-        for year, year_transactions in self.get_transactions_by_year(
-            start, end
-        ).items():
-            for month in range(1, 13):
-                key = "_".join([str(year), str(month)])
-                months[key] = Transactions(
-                    t for t in year_transactions if t.date.month == month
-                )
+def daterange(start, end, period):
+    if period == "year":
+        r = [d.strftime("%Y") for d in rrule(YEARLY, dtstart=start, until=end)]
+    elif period == "month":
+        r = [d.strftime("%b %Y") for d in rrule(MONTHLY, dtstart=start, until=end)]
+    else:
+        raise TransactionError("wrong time period")
+    return r
 
-        # trims last unused months
-        trim = 1
-        for transactions in reversed(months.values()):
-            if transactions:
-                break
-            else:
-                trim += 1
-        while trim := trim - 1:
-            months.popitem()
 
-        return months
+def by_year(transactions, start=None, end=None) -> dict:
+    start = start if start else transactions[0].date
+    end = end if end else transactions[-1].date
 
-    def get_transactions_by_category(self):
-        categories = {cat: [] for cat in Categories.get_categories_names()}
-        for transaction in self:
-            try:
-                categories[transaction.category].append(transaction)
-            except AttributeError:
-                categories[transaction.category] = [transaction]
-        return categories
+    yearly_transactions = dict.fromkeys(daterange(start, end, "year"), None)
+    for t in [t for t in transactions if t.date >= start and t.date <= end]:
+        try:
+            yearly_transactions[t.date.strftime("%Y")].append(t)
+        except AttributeError:
+            yearly_transactions[t.date.strftime("%Y")] = [t]
+        except KeyError:
+            raise TransactionError("date invalid")
+
+    return yearly_transactions
+
+
+def by_month(transactions, start=None, end=None) -> dict:
+    start = start if start else transactions[0].date
+    end = end if end else transactions[-1].date
+
+    monthly_transactions = dict.fromkeys(daterange(start, end, "month"), None)
+    for t in [t for t in transactions if t.date >= start and t.date <= end]:
+        try:
+            monthly_transactions[t.date.strftime("%b %Y")].append(t)
+        except AttributeError:
+            monthly_transactions[t.date.strftime("%b %Y")] = [t]
+        except KeyError:
+            raise TransactionError("date invalid")
+
+    return monthly_transactions
+
+
+def by_category(transactions) -> dict:
+    transactions_by_category = dict.fromkeys(get_categories(), None)
+    for transaction in transactions:
+        try:
+            transactions_by_category[transaction.category].append(transaction)
+        except AttributeError:
+            transactions_by_category[transaction.category] = [transaction]
+
+    return transactions_by_category
 
 
 def load_transactions(data_dir) -> Transactions:
@@ -184,7 +201,7 @@ def save_transactions(data_dir, transactions):
         write_transactions(f, trs)
 
 
-def read_transactions(filename, encoding="utf-8"):
+def read_transactions(filename, encoding="utf-8") -> list:
     try:
         with open(filename, newline="", encoding=encoding) as f:
             r = reader(f, delimiter="\t")

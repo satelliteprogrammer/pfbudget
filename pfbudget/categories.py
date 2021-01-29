@@ -38,39 +38,36 @@ class Categories:
     def get_categories(cls):
         return cls.__subclasses__()
 
-    @classmethod
-    def get_categories_names(cls):
-        return [cat.name for cat in cls.get_categories()]
 
-    @classmethod
-    def get_income_categories(cls):
-        return [cat.name for cat in cls.get_categories() if "Income" in cat.name]
+def get_categories():
+    return [cat.name for cat in Categories.get_categories()]
 
-    @classmethod
-    def get_fixed_expenses(cls):
-        return [
-            Utilities.name,
-            Commute.name,
+
+def get_income_categories():
+    return [cat for cat in get_categories() if "Income" in cat]
+
+
+def get_fixed_expenses():
+    return [Utilities.name, Commute.name]
+
+
+def get_required_expenses():
+    return [Groceries.name]
+
+
+def get_discretionary_expenses():
+    return [
+        cat
+        for cat in get_categories()
+        if cat
+        not in [
+            *get_income_categories(),
+            *get_fixed_expenses(),
+            *get_required_expenses(),
+            Investment.name,
+            Null.name,
         ]
-
-    @classmethod
-    def get_variable_expenses(cls):
-        return [Groceries.name]
-
-    @classmethod
-    def get_discretionary_expenses(cls):
-        return [
-            cat.name
-            for cat in cls.get_categories()
-            if cat.name
-            not in [
-                *cls.get_income_categories(),
-                *cls.get_fixed_expenses(),
-                *cls.get_variable_expenses(),
-                Investment.name,
-                Null.name,
-            ]
-        ]
+    ]
 
 
 class Income1(Categories):
@@ -193,7 +190,7 @@ class Travel(Categories):
     name = "Travel"
     regex = [c("ryanair"), c("easyjet"), c("airbnb")]
     not_in_travel = [
-        *Categories.get_income_categories(),
+        *get_income_categories(),
         Utilities.name,
     ]
 
