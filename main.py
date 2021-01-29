@@ -1,16 +1,16 @@
-from datetime import date
 from pathlib import Path
 import argparse
+import datetime as dt
 import matplotlib.pyplot as plt
 import pickle
-
-from initializer import initialize
+import sys
 from pfbudget.categories import Categories
-from pfbudget.transactions import Transaction as Tr, TransactionError, Transactions
+from pfbudget.transactions import load_transactions, save_transactions
 from pfbudget.parsers import Parser
+import pfbudget.tools as tools
 
 
-p = ".pfbudget.pickle"
+p = ".pfbudget/state"
 
 
 class PfBudgetInitialized(Exception):
@@ -21,21 +21,7 @@ class PfBudgetNotInitialized(Exception):
     pass
 
 
-def manual_categorization(trs):
-    trs.sort_by_bank()
-    for i, transaction in enumerate(trs):
-        if not transaction.category:
-            category = input(f"{transaction.desc()} category: ")
-            if category == "stop":
-                break
-            if category:
-                transaction.category = category
-                trs[i] = transaction
-
-    trs.sort()
-
-
-def init(args):
+def init(state, args):
     """init function
 
     Creates .pfbudget.pickle which stores the internal state of the program for later use. Parses all raw directory
@@ -44,16 +30,24 @@ def init(args):
     args.raw -- raw dir
     args.data -- data dir
     """
-    if not Path(p).is_file():
-        s = {"filename": p, "raw_dir": args.raw, "data_dir": args.data, "data": []}
-        with open(p, "wb") as f:
-            pickle.dump(s, f)
-        parse(args)
+    if not state:
+        s = dict(
+            filename=p,
+            raw_dir=args.raw,
+            data_dir=args.data,
+            raw_files=[],
+            data_files=[],
+            vacations=[],
+            last_backup="",
+            last_datadir_backup="",
+        )
+        state = tools.pfstate(p, s)
+        parse(state, args)
     else:
         raise PfBudgetInitialized()
 
 
-def restart(args):
+def restart(state, args):
     """restart function
 
     Deletes .pfbudget.pickle and creates new one. Parses all raw directory into data directory. New dirs can be passed
@@ -62,19 +56,39 @@ def restart(args):
     args.raw -- raw dir
     args.data -- data dir
     """
-    if Path(p).is_file():
-        s = pickle.load(open(p, "rb"))
-        raw_dir = s["raw_dir"] if not args.raw else args.raw
-        data_dir = s["data_dir"] if not args.data else args.data
+    if state is not None:
+        for fn in state.data_files:
+            try:
+                (Path(state.data_dir) / fn).unlink()
+            except FileNotFoundError:
+                print("missing {}".format(Path(state.data_dir) / fn))
+                sys.exit(-1)
 
-        s = {"filename": p, "raw_dir": raw_dir, "data_dir": data_dir, "data": []}
-        pickle.dump(s, open(p, "wb"))
-        parse(args)
+        if args.raw:
+            state.raw_dir = args.raw
+        if args.data:
+            state.data_dir = args.data
+        state.raw_files = []
+        state.data_files = []
+        parse(state, args)
     else:
         raise PfBudgetNotInitialized()
 
 
-def parse(args):
+def backup(state, args):
+    """backup function
+
+    Saves all transactions on transactions_#.csv
+    """
+    if args.option == "single":
+        tools.backup(state)
+    elif args.option == "all":
+        tools.full_backup(state)
+    elif args.option == "restore":
+        tools.restore(state)
+
+
+def parse(state, args):
     """parse function
 
     Extracts from .pfbudget.pickle the already read files and parses the remaining. args will be None if called from
@@ -83,27 +97,71 @@ def parse(args):
     args.raw -- raw dir
     args.data -- data dir
     """
-    if not args:
-        s = pickle.load(open(p, "rb"))
-        raw_dir = s["raw_dir"]
-        data_dir = s["data_dir"]
-    else:
-        raw_dir = args.raw
-        data_dir = args.data
+    raw_dir = args.raw if hasattr(args, "raw") else None
+    data_dir = args.data if hasattr(args, "data") else None
 
-    pass
+    tools.parser(state, raw_dir, data_dir)
+    categorize(state, args)
+
+
+def categorize(state, args):
+    """categorize function
+
+    Automatically categorizes transactions based on the regex of each Category
+    """
+    transactions = load_transactions(state.data_dir)
+    missing = tools.auto_categorization(state, transactions)
+    if missing:
+        tools.manual_categorization(state, transactions)
+    save_transactions(state.data_dir, transactions)
+
+
+def vacation(state, args):
+    """vacation function
+
+    Adds vacations to the pfstate
+    date(2019, 12, 23), date(2020, 1, 2)
+    date(2020, 7, 1), date(2020, 7, 30)
+    """
+    print(args)
+    if args.option == "list":
+        print(state.vacations)
+    elif args.option == "remove":
+        vacations = state.vacations
+        del state.vacations[args.pos[0]]
+        state.vacations = vacations
+    elif args.option == "add":
+        start = dt.datetime.strptime(args.start[0], "%Y/%m/%d").date()
+        end = dt.datetime.strptime(args.end[0], "%Y/%m/%d").date()
+
+        vacations = state.vacations
+        vacations.append((start, end))
+        state.vacations = vacations
+
+
+def status(state, args):
+    print(state)
+    sys.exit(0)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="does cool finance stuff")
     parser.add_argument("-q", "--quiet", help="quiet")
-    subparsers = parser.add_subparsers(help="sub-command help")
+
+    subparsers = parser.add_subparsers(
+        dest="task", required=True, help="sub-command help"
+    )
 
     p_init = subparsers.add_parser("init", help="init help")
     p_restart = subparsers.add_parser("restart", help="restart help")
+    p_backup = subparsers.add_parser("backup", help="backup help")
     p_parse = subparsers.add_parser("parse", help="parse help")
+    p_vacation = subparsers.add_parser(
+        "vacation", help="vacation help format: [YYYY/MM/DD]"
+    )
     p_graph = subparsers.add_parser("graph", help="graph help")
     p_report = subparsers.add_parser("report", help="report help")
+    p_status = subparsers.add_parser("status", help="status help")
 
     p_init.add_argument("raw", help="the raw data dir")
     p_init.add_argument("data", help="the parsed data dir")
@@ -113,17 +171,41 @@ if __name__ == "__main__":
     p_restart.add_argument("--data", help="new parsed data dir")
     p_restart.set_defaults(func=restart)
 
+    p_backup.add_argument(
+        "option",
+        type=str,
+        choices=["single", "all", "restore"],
+        nargs="?",
+        default="single",
+        help="backup option help",
+    )
+
+    subparser_vacation = p_vacation.add_subparsers(
+        dest="option", required=True, help="vacation suboption help"
+    )
+    p_vacation_add = subparser_vacation.add_parser("add", help="add help")
+    p_vacation_add.add_argument(
+        "start", type=str, nargs=1, help="new vacation start date"
+    )
+    p_vacation_add.add_argument("end", type=str, nargs=1, help="new vacation end date")
+    p_vacation_list = subparser_vacation.add_parser("list", help="list help")
+    p_vacation_remove = subparser_vacation.add_parser("remove", help="remove help")
+    p_vacation_remove.add_argument(
+        "pos", help="position of vacation to remove", type=int, nargs=1
+    )
+
+    p_backup.set_defaults(func=backup)
     p_parse.set_defaults(func=parse)
+    p_vacation.set_defaults(func=vacation)
+    p_report.set_defaults(func=categorize)
+    p_status.set_defaults(func=status)
 
+    state = tools.pfstate(p)
+    state.filename = p
     args = parser.parse_args()
-    args.func(args)
+    args.func(state, args)
 
-    datafiles = initialize("raw", "data", restart=False)
-
-    transactions = Transactions()
-    for file in datafiles.values():
-        transactions.extend(file)
-    transactions.sort()
+    transactions = load_transactions(state.data_dir)
 
     # reprocess = [Education().name]
     # for i, transaction in enumerate(transactions):
@@ -131,18 +213,8 @@ if __name__ == "__main__":
     #         if transaction.category in reprocess:
     #             transaction.category = ''
 
-    if False:
-        Categories.categorize(transactions)
-        manual_categorization(transactions)
-
-        for f, file in datafiles.items():
-            file_transactions = [t for t in transactions if t in file]
-            Tr.write_transactions(Path("data") / f, file_transactions)
-
-        Tr.write_transactions("transactions.csv", transactions)
-
     monthly_transactions = transactions.get_transactions_by_month(
-        start=date(2019, 1, 1), end=date(2020, 11, 30)
+        start=dt.date(2020, 1, 1), end=dt.date(2020, 12, 31)
     )
     monthly_transactions_by_cat = []
     for month_transactions in monthly_transactions.values():
