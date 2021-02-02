@@ -54,11 +54,6 @@ class Transaction:
                 repeated.append(t)
         return repeated
 
-    @staticmethod
-    def sort_by_bank(transactions):
-        transactions.sort(key=lambda k: k.bank)
-        return transactions
-
     @property
     def category(self):
         return self._category
