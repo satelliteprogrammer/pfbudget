@@ -102,23 +102,8 @@ class Transaction:
         )
 
 
-class Transactions(list):
-    def sort_by_bank(self):
-        self.sort(key=lambda k: k.bank)
-
-    def get_transactions_by_year(self, start=None, end=None):
-        if not start:
-            start = self[0].date
-        if not end:
-            end = self[-1].date
-
-        years = dict()
-        for year in range(start.year, end.year + 1):
-            years[year] = Transactions(
-                t for t in self if start <= t.date <= end and t.date.year == year
-            )
-
-        return years
+def sort_by_bank(transactions: list):
+    transactions.sort(key=lambda k: k.bank)
 
 
 def daterange(start, end, period):
@@ -187,8 +172,8 @@ def by_month_and_category(transactions, start, end) -> dict:
     return monthly_transactions_by_categories
 
 
-def load_transactions(data_dir) -> Transactions:
-    transactions = Transactions()
+def load_transactions(data_dir) -> list:
+    transactions = []
     for df in Path(data_dir).iterdir():
         try:
             trs = read_transactions(df)
