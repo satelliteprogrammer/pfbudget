@@ -48,11 +48,15 @@ def get_income_categories():
 
 
 def get_fixed_expenses():
-    return [Utilities.name, Commute.name]
+    return [Utilities.name]
 
 
 def get_required_expenses():
-    return [Groceries.name]
+    return [Groceries.name, Commute.name]
+
+
+def get_health_expenses():
+    return [Medical.name]
 
 
 def get_discretionary_expenses():
@@ -64,6 +68,7 @@ def get_discretionary_expenses():
             *get_income_categories(),
             *get_fixed_expenses(),
             *get_required_expenses(),
+            *get_health_expenses(),
             Investment.name,
             Null.name,
         ]
@@ -212,3 +217,8 @@ class Investment(Categories):
     name = "Investment"
     regex = [c("subscrition")]
     banks = ["BankC"]
+
+
+class Medical(Categories):
+    name = "Medical"
+    regex = [c("hospital", "pharmacy")]

@@ -127,6 +127,9 @@ class Transactions(list):
 
 
 def daterange(start, end, period):
+    if not start or not end:
+        raise TransactionError("daterange requires start and end")
+
     if period == "year":
         r = [d.strftime("%Y") for d in rrule(YEARLY, dtstart=start, until=end)]
     elif period == "month":
@@ -177,6 +180,16 @@ def by_category(transactions) -> dict:
             transactions_by_category[transaction.category] = [transaction]
 
     return transactions_by_category
+
+
+def by_month_and_category(transactions, start, end) -> dict:
+    monthly_transactions_by_categories = {}
+
+    monthly_transactions = by_month(transactions, start, end)
+    for month, transactions in monthly_transactions.items():
+        monthly_transactions_by_categories[month] = by_category(transactions)
+
+    return monthly_transactions_by_categories
 
 
 def load_transactions(data_dir) -> Transactions:
