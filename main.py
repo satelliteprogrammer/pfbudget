@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import datetime as dt
 
-from pfbudget.graph import monthly
+from pfbudget.graph import average, discrete, monthly
 from pfbudget.transactions import load_transactions, save_transactions
 import pfbudget.tools as tools
 
@@ -123,7 +123,6 @@ def vacation(state, args):
     date(2019, 12, 23), date(2020, 1, 2)
     date(2020, 7, 1), date(2020, 7, 30)
     """
-    print(args)
     if args.option == "list":
         print(state.vacations)
     elif args.option == "remove":
@@ -144,7 +143,10 @@ def status(state, args):
 
 
 def graph(state, args):
-    monthly(state, start=dt.date(2020, 1, 1), end=dt.date(2020, 12, 31))
+    if args.option == "monthly":
+        monthly(state, args.start, args.end)
+    elif args.option == "discrete":
+        discrete(state, args.start, args.end)
 
 
 if __name__ == "__main__":
@@ -168,11 +170,9 @@ if __name__ == "__main__":
 
     p_init.add_argument("raw", help="the raw data dir")
     p_init.add_argument("data", help="the parsed data dir")
-    p_init.set_defaults(func=init)
 
     p_restart.add_argument("--raw", help="new raw data dir")
     p_restart.add_argument("--data", help="new parsed data dir")
-    p_restart.set_defaults(func=restart)
 
     p_backup.add_argument(
         "option",
@@ -197,6 +197,19 @@ if __name__ == "__main__":
         "pos", help="position of vacation to remove", type=int, nargs=1
     )
 
+    p_graph.add_argument(
+        "option",
+        type=str,
+        choices=["monthly", "discrete"],
+        nargs="?",
+        default="monthly",
+        help="graph option help",
+    )
+    p_graph.add_argument("start", type=str, nargs="?", help="graph start date")
+    p_graph.add_argument("end", type=str, nargs="?", help="graph end date")
+
+    p_init.set_defaults(func=init)
+    p_restart.set_defaults(func=restart)
     p_backup.set_defaults(func=backup)
     p_parse.set_defaults(func=parse)
     p_vacation.set_defaults(func=vacation)
