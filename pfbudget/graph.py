@@ -148,6 +148,7 @@ def discrete(state, start, end):
         labels=["Fixed", "Required", "Health", *get_discretionary_expenses()],
     )
     plt.legend(loc="upper left")
+    plt.grid()
     plt.show()
 
 
