@@ -153,13 +153,25 @@ def by_month(transactions, start=None, end=None) -> dict:
 
 def by_category(transactions) -> dict:
     transactions_by_category = dict.fromkeys(get_categories(), None)
-    for transaction in transactions:
-        try:
-            transactions_by_category[transaction.category].append(transaction)
-        except AttributeError:
-            transactions_by_category[transaction.category] = [transaction]
+
+    if transactions:
+        for transaction in transactions:
+            try:
+                transactions_by_category[transaction.category].append(transaction)
+            except AttributeError:
+                transactions_by_category[transaction.category] = [transaction]
 
     return transactions_by_category
+
+
+def by_year_and_category(transactions, start, end) -> dict:
+    yearly_transactions_by_category = {}
+
+    yearly_transactions = by_year(transactions, start, end)
+    for year, transactions in yearly_transactions.items():
+        yearly_transactions_by_category[year] = by_category(transactions)
+
+    return yearly_transactions_by_category
 
 
 def by_month_and_category(transactions, start, end) -> dict:

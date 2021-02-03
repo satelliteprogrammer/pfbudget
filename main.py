@@ -4,6 +4,7 @@ import datetime as dt
 
 from pfbudget.graph import average, discrete, monthly
 from pfbudget.transactions import load_transactions, save_transactions
+import pfbudget.report as report
 import pfbudget.tools as tools
 
 
@@ -143,10 +144,31 @@ def status(state, args):
 
 
 def graph(state, args):
+    start, end = None, None
+    if args.start or args.interval:
+        start = dt.datetime.strptime(args.start[0], "%Y/%m/%d").date()
+
+    if args.end or args.interval:
+        end = dt.datetime.strptime(args.end[0], "%Y/%m/%d").date()
+
+    if args.interval:
+        start = dt.datetime.strptime(args.interval[0], "%Y/%m/%d").date()
+        end = dt.datetime.strptime(args.interval[1], "%Y/%m/%d").date()
+
+    if args.year:
+        start = dt.datetime.strptime(args.year[0], "%Y").date()
+        end = dt.datetime.strptime(
+            str(int(args.year[0]) + 1), "%Y"
+        ).date() - dt.timedelta(days=1)
+
     if args.option == "monthly":
-        monthly(state, args.start, args.end)
+        monthly(state, start, end)
     elif args.option == "discrete":
-        discrete(state, args.start, args.end)
+        discrete(state, start, end)
+
+
+def f_report(state, args):
+    report.net(state)
 
 
 if __name__ == "__main__":
@@ -205,8 +227,13 @@ if __name__ == "__main__":
         default="monthly",
         help="graph option help",
     )
-    p_graph.add_argument("start", type=str, nargs="?", help="graph start date")
-    p_graph.add_argument("end", type=str, nargs="?", help="graph end date")
+    p_graph_interval = p_graph.add_mutually_exclusive_group()
+    p_graph_interval.add_argument(
+        "--interval", type=str, nargs=2, help="graph interval", metavar=("START", "END")
+    )
+    p_graph_interval.add_argument("--start", type=str, nargs=1, help="graph start date")
+    p_graph_interval.add_argument("--end", type=str, nargs=1, help="graph end date")
+    p_graph_interval.add_argument("--year", type=str, nargs=1, help="graph year")
 
     p_init.set_defaults(func=init)
     p_restart.set_defaults(func=restart)
@@ -215,6 +242,7 @@ if __name__ == "__main__":
     p_vacation.set_defaults(func=vacation)
     p_status.set_defaults(func=status)
     p_graph.set_defaults(func=graph)
+    p_report.set_defaults(func=f_report)
 
     state = tools.pfstate(p)
     state.filename = p
