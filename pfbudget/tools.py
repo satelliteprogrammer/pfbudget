@@ -1,6 +1,7 @@
 from pathlib import Path
 import csv
 import datetime as dt
+import os
 import pickle
 import shutil
 
@@ -14,14 +15,23 @@ from .transactions import (
 from .parsers import parse_data
 
 
+DIR = ".pfbudget/"
+STATE_FILE = DIR + "state"
+BACKUP_DIR = DIR + "backup/"
+
+
 def get_filename(t: Transaction):
     return "{}_{}.csv".format(t.year, t.bank)
 
 
 class PFState:
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename: str, *args, **kwargs):
         if Path(filename).is_file():
             raise FileExistsError("PFState already exists")
+
+        if not Path(filename).parent.is_dir():
+            Path(filename).parent.mkdir(parents=True)
+            (Path(filename).parent / "backup/").mkdir(parents=True)
 
         self.filename = filename
         for d in args:
@@ -30,7 +40,11 @@ class PFState:
         for k in kwargs:
             setattr(self, k, kwargs[k])
 
-        self._save()
+        if not Path(self.raw_dir).is_dir():
+            Path(self.raw_dir).mkdir(parents=True)
+
+        if not Path(self.data_dir).is_dir():
+            Path(self.data_dir).mkdir(parents=True)
 
     @property
     def filename(self):
@@ -153,7 +167,7 @@ def pfstate(filename, *args, **kwargs):
 def backup(state: PFState):
     transactions = load_transactions(state.data_dir)
     filename = (
-        ".pfbudget/backups/"
+        BACKUP_DIR
         + "transactions_"
         + dt.datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
         + ".csv"
@@ -164,7 +178,7 @@ def backup(state: PFState):
 
 
 def full_backup(state: PFState):
-    filename = ".pfbudget/backups/" + dt.datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+    filename = BACKUP_DIR + dt.datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
     shutil.copytree(state.data_dir, Path(filename))
 
     state.last_datadir_backup = filename

@@ -8,9 +8,6 @@ import pfbudget.report as report
 import pfbudget.tools as tools
 
 
-p = ".pfbudget/state"
-
-
 class PfBudgetInitialized(Exception):
     pass
 
@@ -34,7 +31,7 @@ def init(state, args):
     """
     if not state:
         s = dict(
-            filename=p,
+            filename=tools.STATE_FILE,
             raw_dir=args.raw,
             data_dir=args.data,
             raw_files=[],
@@ -43,8 +40,15 @@ def init(state, args):
             last_backup="",
             last_datadir_backup="",
         )
-        state = tools.pfstate(p, s)
-        parse(state, args)
+        try:
+            state = tools.pfstate(tools.STATE_FILE, s)
+            parse(state, args)
+        except Exception as e:
+            print(e)
+            if Path(tools.STATE_FILE).is_file():
+                print(f"Deleting {tools.STATE_FILE}")
+                Path(tools.STATE_FILE).unlink()
+
     else:
         raise PfBudgetInitialized()
 
@@ -244,17 +248,6 @@ if __name__ == "__main__":
     p_graph.set_defaults(func=graph)
     p_report.set_defaults(func=f_report)
 
-    state = tools.pfstate(p)
-    state.filename = p
+    state = tools.pfstate(tools.STATE_FILE)
     args = parser.parse_args()
     args.func(state, args)
-
-    # income = [sum(t.value for cat, transactions in months.items() for t in transactions
-    #                     if cat in get_income_categories()) for months in monthly_transactions_by_cat]
-
-    # expenses = []
-    # for category in expense_categories:
-    #     expense_value = [-sum(t.value for t in month[category]) for month in monthly_transactions_by_cat]
-    #     expenses.extend(expense_value)
-
-    # print("Income: {}, Expenses: {}, Net = {}"".format(sum(income), sum(expenses), sum(income) - sum(expenses)))
