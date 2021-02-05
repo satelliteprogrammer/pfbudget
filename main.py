@@ -21,13 +21,17 @@ class DataFileMissing(Exception):
 
 
 def init(state, args):
-    """init function
+    """Initialization
 
-    Creates state file which stores the internal state of the program for later use.
-    Calls parse, that parses all raw directory into data directory.
+    Creates the state file which stores the internal state of the program
+    for later use.
+    Calls parse, that parses all raw files into the data directory.
 
-    args.raw -- raw dir
-    args.data -- data dir
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
+    Raises:
+        PfBudgetInitialized: Raised when there's already an initialized state
     """
     if not state:
         s = dict(
@@ -50,17 +54,23 @@ def init(state, args):
                 Path(tools.STATE_FILE).unlink()
 
     else:
-        raise PfBudgetInitialized()
+        raise PfBudgetInitialized(f"{Path(tools.STATE)} already exists")
 
 
 def restart(state, args):
-    """restart function
+    """Restart
 
-    Deletes state and creates new one. Parses all raw directory into data directory.
-    New dirs can be passed as arguments, otherwise uses previous values.
+    Deletes state and creates a new one.
+    Parses all raw files into the data directory. New dirs can be passed as
+    arguments, otherwise uses previous values.
 
-    args.raw -- raw dir
-    args.data -- data dir
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
+
+    Raises:
+        DataFileMissing: Missing data files from those listed in state
+        PfBudgetNotInitialized: Raised when no state has been initialized yet
     """
     if state is not None:
         for fn in state.data_files:
@@ -77,13 +87,17 @@ def restart(state, args):
         state.data_files = []
         parse(state, args)
     else:
-        raise PfBudgetNotInitialized()
+        raise PfBudgetNotInitialized(f"{Path(tools.STATE)} doesn't exist")
 
 
 def backup(state, args):
-    """backup function
+    """Backup
 
     Saves all transactions on transactions_#.csv
+
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
     """
     if args.option == "single":
         tools.backup(state)
@@ -94,13 +108,14 @@ def backup(state, args):
 
 
 def parse(state, args):
-    """parse function
+    """Parser
 
-    Extracts from .pfbudget.pickle the already read files and parses the remaining.
-    args will be None if called from command line and gathered from the pickle.
+    Parses the contents of the raw directory into the data files, and
+    categorizes the transactions
 
-    args.raw -- raw dir
-    args.data -- data dir
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
     """
     raw_dir = args.raw if hasattr(args, "raw") else None
     data_dir = args.data if hasattr(args, "data") else None
@@ -110,9 +125,14 @@ def parse(state, args):
 
 
 def categorize(state, args):
-    """categorize function
+    """Categorization
 
-    Automatically categorizes transactions based on the regex of each Category
+    Automatically categorizes transactions based on the regex of each
+    category. Manually present the remaining to the user
+
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
     """
     transactions = load_transactions(state.data_dir)
     missing = tools.auto_categorization(state, transactions)
@@ -122,11 +142,13 @@ def categorize(state, args):
 
 
 def vacation(state, args):
-    """vacation function
+    """Vacations
 
     Adds vacations to the pfstate
-    date(2019, 12, 23), date(2020, 1, 2)
-    date(2020, 7, 1), date(2020, 7, 30)
+
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
     """
     if args.option == "list":
         print(state.vacations)
@@ -144,10 +166,26 @@ def vacation(state, args):
 
 
 def status(state, args):
+    """Status
+
+    Prints the state file
+
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
+    """
     print(state)
 
 
 def graph(state, args):
+    """Graph
+
+    Plots the transactions over a period of time
+
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
+    """
     start, end = None, None
     if args.start or args.interval:
         start = dt.datetime.strptime(args.start[0], "%Y/%m/%d").date()
@@ -172,6 +210,14 @@ def graph(state, args):
 
 
 def f_report(state, args):
+    """Report
+
+    Prints a detailed report of the transactions over a period of time
+
+    Args:
+        state (PFState): Internal state of the program
+        args (dict): argparse variables
+    """
     report.net(state)
 
 

@@ -264,13 +264,18 @@ def auto_categorization(state: PFState, transactions: list) -> bool:
 
 
 def manual_categorization(state: PFState, transactions: list):
+    print(
+        "Please categorize the following transactions. If you want to exit, write 'quit'"
+    )
     for transaction in transactions:
         while not transaction.category:
             category = input(f"{transaction.desc()} category: ")
             if category == "quit":
                 return
             if category not in get_categories():
-                print("category doesn't exist")
+                print(
+                    f"Category {category} doesn't exist. Please use one of {get_categories()}"
+                )
                 continue
             else:
                 transaction.category = category
