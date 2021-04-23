@@ -69,6 +69,7 @@ def monthly(state, start, end):
             )
         )
 
+    plt.figure(figsize=(30, 10))
     plt.plot(daterange(start, end, "month"), income, label="Income")
     plt.stackplot(
         daterange(start, end, "month"),
@@ -79,7 +80,8 @@ def monthly(state, start, end):
         labels=["Fixed", "Required", "Health", "Discretionary"],
     )
     plt.legend(loc="upper left")
-    plt.show()
+    plt.tight_layout()
+    plt.savefig("graph.png")
 
 
 def discrete(state, start, end):
@@ -138,6 +140,7 @@ def discrete(state, start, end):
     # transposing discretionary
     discretionary = list(map(list, zip(*discretionary)))
 
+    plt.figure(figsize=(30, 10))
     plt.plot(daterange(start, end, "month"), income, label="Income")
     plt.stackplot(
         daterange(start, end, "month"),
@@ -149,7 +152,8 @@ def discrete(state, start, end):
     )
     plt.legend(loc="upper left")
     plt.grid()
-    plt.show()
+    plt.tight_layout()
+    plt.savefig("graph.png")
 
 
 def average(state, start, end):
@@ -219,6 +223,7 @@ def average(state, start, end):
 
     print(avg_discretionary)
 
+    plt.figure(figsize=(30, 10))
     plt.plot(daterange(start, end, "month"), l_avg_income, label=f"Income {avg_income}")
     plt.stackplot(
         daterange(start, end, "month"),
@@ -237,4 +242,8 @@ def average(state, start, end):
         ],
     )
     plt.legend(bbox_to_anchor=(1, 1), loc="upper left")
-    plt.show()
+    plt.tight_layout()
+    plt.savefig(
+        "graph.png",
+        dpi=600,
+    )
