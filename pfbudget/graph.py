@@ -1,4 +1,3 @@
-from dateutil.rrule import MONTHLY, YEARLY
 import matplotlib.pyplot as plt
 
 from .categories import (
@@ -8,13 +7,7 @@ from .categories import (
     get_health_expenses,
     get_discretionary_expenses,
 )
-from .transactions import (
-    load_transactions,
-    daterange,
-    by_category,
-    by_month,
-    by_month_and_category,
-)
+from .transactions import load_transactions, daterange, by_month_and_category
 
 
 def monthly(state, start, end):

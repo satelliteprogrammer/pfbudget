@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import datetime as dt
 
-from .graph import average, discrete, monthly
+from .graph import discrete, monthly
 from .state import pfstate
 from .transactions import load_transactions, save_transactions
 from . import report
@@ -63,7 +63,7 @@ def get_argparser():
         "start", type=str, nargs=1, help="new vacation start date"
     )
     p_vacation_add.add_argument("end", type=str, nargs=1, help="new vacation end date")
-    p_vacation_list = subparser_vacation.add_parser("list", help="list help")
+    _ = subparser_vacation.add_parser("list", help="list help")
     p_vacation_remove = subparser_vacation.add_parser("remove", help="remove help")
     p_vacation_remove.add_argument(
         "pos", help="position of vacation to remove", type=int, nargs=1
