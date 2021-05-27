@@ -2,8 +2,11 @@ import sqlite3
 
 import logging
 import logging.config
+import pathlib
 
 
+if not pathlib.Path("logs").is_dir():
+    pathlib.Path("logs").mkdir()
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("pfbudget.transactions")
 
@@ -34,6 +37,36 @@ UPDATE_CATEGORY = """
 UPDATE transactions
 SET category = (?)
 WHERE date = (?) AND description = (?) AND bank = (?) AND value = (?)
+"""
+
+DUPLICATED_TRANSACTIONS = """
+SELECT COUNT(*), date, description, bank, value
+FROM transactions
+GROUP BY date, description, bank, value
+HAVING COUNT(*) > 1
+"""
+
+SORTED_TRANSACTIONS = """
+SELECT *
+FROM transactions
+ORDER BY (?)
+"""
+
+SELECT_TRANSACTIONS_BETWEEN_DATES = """
+SELECT *
+FROM transactions
+WHERE date BETWEEN (?) AND (?)
+"""
+
+SELECT_TRANSACTIONS_BY_CATEGORY = """
+SELECT *
+FROM transactions
+WHERE category = (?)
+"""
+
+SELECT_TRANSACTION_BY_PERIOD = """
+SELECT EXTRACT((?) FROM date) AS (?), date, description, bank, value
+FROM transactions
 """
 
 
@@ -70,7 +103,10 @@ class Connection:
                 else:
                     cur = self.connection.execute(query)
                     logger.debug(f"[{self.db_name}] < {query}")
-                return cur.fetchall()
+
+                if ret := cur.fetchall():
+                    logger.debug(f"[{self.db_name}] > {ret}")
+                return ret
         except sqlite3.Error:
             logger.exception(f"Error while executing [{self.db_name}] < {query}")
 
@@ -105,3 +141,27 @@ class Connection:
     def update_category(self, transaction):
         logger.info(f"Update {transaction} category")
         self.__execute(UPDATE_CATEGORY, (transaction[4], *transaction[:4]))
+
+    def get_duplicated_transactions(self):
+        logger.info("Get duplicated transactions")
+        return self.__execute(DUPLICATED_TRANSACTIONS)
+
+    def get_sorted_transactions(self, key):
+        logger.info(f"Get transactions sorted by {key}")
+        return self.__execute(SORTED_TRANSACTIONS, key)
+
+    def get_daterange(self, start, end):
+        logger.info(f"Get transactions from {start} to {end}")
+        return self.__execute(SELECT_TRANSACTIONS_BETWEEN_DATES, (start, end))
+
+    def get_category(self, value):
+        logger.info(f"Get transaction where category = {value}")
+        return self.__execute(SELECT_TRANSACTIONS_BY_CATEGORY, (value,))
+
+    def get_by_period(self, period):
+        logger.info(f"Get transactions by {period}")
+        return self.__execute(SELECT_TRANSACTION_BY_PERIOD, period)
+
+    def query(self, query, params=None):
+        logger.info(f"Executing {query} with params={params}")
+        return self.__execute(query, params)
