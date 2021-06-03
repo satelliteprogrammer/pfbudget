@@ -1,9 +1,9 @@
-import sqlite3
-
+import csv
+import datetime
 import logging
 import logging.config
 import pathlib
-
+import sqlite3
 
 if not pathlib.Path("logs").is_dir():
     pathlib.Path("logs").mkdir()
@@ -87,16 +87,10 @@ FROM transactions
 class DBManager:
     """SQLite DB connection manager"""
 
+    __EXPORT_DIR = "export"
+
     def __init__(self, db):
         self.db = db
-
-        self.__create_tables(
-            (
-                ("transactions", CREATE_TRANSACTIONS_TABLE),
-                ("vacations", CREATE_VACATIONS_TABLE),
-                ("backups", CREATE_BACKUPS_TABLE),
-            )
-        )
 
     def __execute(self, query, params=None):
         ret = None
@@ -140,6 +134,19 @@ class DBManager:
             logger.info(f"Creating table if it doesn't exist {table_name}")
             self.__execute(query)
 
+    def query(self, query, params=None):
+        logger.info(f"Executing {query} with params={params}")
+        return self.__execute(query, params)
+
+    def init(self):
+        self.__create_tables(
+            (
+                ("transactions", CREATE_TRANSACTIONS_TABLE),
+                ("vacations", CREATE_VACATIONS_TABLE),
+                ("backups", CREATE_BACKUPS_TABLE),
+            )
+        )
+
     def select_all(self):
         logger.info(f"Reading all transactions from {self.db}")
         return self.__execute("SELECT * FROM transactions")
@@ -176,6 +183,13 @@ class DBManager:
         logger.info(f"Get transactions by {period}")
         return self.__execute(SELECT_TRANSACTION_BY_PERIOD, period)
 
-    def query(self, query, params=None):
-        logger.info(f"Executing {query} with params={params}")
-        return self.__execute(query, params)
+    def export(self):
+        filename = pathlib.Path(
+            "@".join([self.db, datetime.datetime.now().isoformat()])
+        ).with_suffix(".csv")
+        logger.info(f"Exporting {self.db} into {filename}")
+        transactions = self.select_all()
+        if not (dir := pathlib.Path(self.__EXPORT_DIR)).is_dir():
+            dir.mkdir()
+        with open(dir / filename, "w", newline="") as f:
+            csv.writer(f, delimiter="\t").writerows(transactions)
