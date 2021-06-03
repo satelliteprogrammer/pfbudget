@@ -1,0 +1,60 @@
+Banks:
+  - Bank1
+  - Bank2
+  - Bank3
+
+CreditCards:
+  - VISA
+  - MasterCard
+  - AmericanExpress
+
+default: &default
+  encoding: utf-8
+  separator: "\t"
+  date_fmt: "%Y-%m-%d"
+
+Bank1:
+  <<: *default
+  separator: ";"
+  date_fmt: "%d/%m/%Y"
+  start: 6
+  debit:
+    date: 1
+    text: 3
+    value: 4
+  additional_parser: true
+
+
+Bank2: &bank2
+  <<: *default
+  date_fmt: "%d/%m/%Y"
+  debit:
+    date: 0
+    text: 2
+    value: 3
+  VISA:
+    <<: *bank2
+    debit:
+      date: 0
+      text: 2
+      value: 3
+    credit:
+      date: 1
+      text: 2
+      value: 3
+
+Bank3:
+  encoding: windows-1252
+  separator: ","
+  date_fmt: "%d-%m-%Y"
+  start: 8
+  end: -1
+  debit:
+    date: 1
+    text: 2
+    value: 3
+    negate: true
+  credit:
+    date: 0
+    text: 2
+    value: 4

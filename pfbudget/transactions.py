@@ -23,10 +23,16 @@ class Transaction:
 
         arg = args[0] if len(args) == 1 else list(args)
         try:
-            self.date = date.fromisoformat(arg[0])
+            if type(arg[0]) is date:
+                self.date = arg[0]
+            else:
+                self.date = date.fromisoformat(arg[0])
             self.description = " ".join(arg[1].split())
             self.bank = arg[2]
-            self.value = Decimal(arg[3])
+            if type(arg[3]) is float:
+                self.value = arg[3]
+            else:
+                self.value = Decimal(args[3])
             self.category = arg[4]
         except IndexError:
             pass

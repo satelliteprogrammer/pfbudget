@@ -3,7 +3,7 @@
 parsing -> categorize -> analyze (predict)
 
 ## Parsing
-Parses bank extracts, based on parsers.py functions, to SQLite db.
+Parses bank extracts, based on parsers.yaml, to a SQLite database.
 
 ## Categorize
 Categorizes transactions based on categories.py filters.
