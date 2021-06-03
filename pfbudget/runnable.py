@@ -4,6 +4,7 @@ import datetime as dt
 
 from .database import DBManager
 from .graph import discrete, monthly
+from .parsers import parse_data
 from .transactions import load_transactions, save_transactions
 from . import report
 from . import tools
@@ -45,7 +46,13 @@ def argparser():
     p_export = subparsers.add_parser("export", help="export help")
     p_export.set_defaults(func=lambda args: DBManager(args.db).export())
 
+    """
+    Parsing
+    """
     p_parse = subparsers.add_parser("parse", help="parse help")
+    p_parse.add_argument("path", nargs="+", type=str)
+    p_parse.add_argument("--bank", nargs=1, type=str)
+    p_parse.set_defaults(func=parse)
 
     # p_restart = subparsers.add_parser("restart", help="restart help")
     p_vacation = subparsers.add_parser(
@@ -91,7 +98,6 @@ def argparser():
     p_graph_interval.add_argument("--end", type=str, nargs=1, help="graph end date")
     p_graph_interval.add_argument("--year", type=str, nargs=1, help="graph year")
 
-    p_parse.set_defaults(func=parse)
     # p_restart.set_defaults(func=restart)
     p_vacation.set_defaults(func=vacation)
     p_status.set_defaults(func=status)
@@ -134,7 +140,7 @@ def restart(state, args):
         raise PfBudgetNotInitialized(f"{Path(tools.STATE_FILE)} doesn't exist")
 
 
-def parse(state, args):
+def parse(args):
     """Parser
 
     Parses the contents of the raw directory into the data files, and
@@ -144,11 +150,17 @@ def parse(state, args):
         state (PFState): Internal state of the program
         args (dict): argparse variables
     """
-    raw_dir = args.raw if hasattr(args, "raw") else None
-    data_dir = args.data if hasattr(args, "data") else None
-
-    tools.parser(state, raw_dir, data_dir)
-    categorize(state, args)
+    for path in args.path:
+        if (dir := Path(path)).is_dir():
+            for file in dir.iterdir():
+                parse_data(file, args.bank)
+        elif Path(path).is_file():
+            trs = parse_data(path, args.bank)
+        else:
+            raise FileNotFoundError
+    # tools.parser(state, raw_dir, data_dir)
+    # categorize(state, args)
+    print("\n".join([t.desc() for t in trs]))
 
 
 def categorize(state, args):
