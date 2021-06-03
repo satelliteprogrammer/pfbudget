@@ -2,11 +2,13 @@ from pathlib import Path
 import argparse
 import datetime as dt
 
+from .database import DBManager
 from .graph import discrete, monthly
-from .state import pfstate
 from .transactions import load_transactions, save_transactions
 from . import report
 from . import tools
+
+DEFAULT_DB = "data.db"
 
 
 class PfBudgetInitialized(Exception):
@@ -21,18 +23,31 @@ class DataFileMissing(Exception):
     pass
 
 
-def get_argparser():
+def argparser():
     parser = argparse.ArgumentParser(description="does cool finance stuff")
+    parser.add_argument("--db", help="select current database", default=DEFAULT_DB)
     parser.add_argument("-q", "--quiet", help="quiet")
+    parser.add_argument("--version")
 
     subparsers = parser.add_subparsers(
-        dest="task", required=True, help="sub-command help"
+        dest="command", required=True, help="sub-command help"
     )
 
+    """
+    Init
+    """
     p_init = subparsers.add_parser("init", help="init help")
-    p_restart = subparsers.add_parser("restart", help="restart help")
-    p_backup = subparsers.add_parser("backup", help="backup help")
+    p_init.set_defaults(func=lambda args: DBManager(args.db))
+
+    """
+    Exporting
+    """
+    p_export = subparsers.add_parser("export", help="export help")
+    p_export.set_defaults(func=lambda args: DBManager(args.db).export())
+
     p_parse = subparsers.add_parser("parse", help="parse help")
+
+    # p_restart = subparsers.add_parser("restart", help="restart help")
     p_vacation = subparsers.add_parser(
         "vacation", help="vacation help format: [YYYY/MM/DD]"
     )
@@ -40,20 +55,11 @@ def get_argparser():
     p_report = subparsers.add_parser("report", help="report help")
     p_status = subparsers.add_parser("status", help="status help")
 
-    p_init.add_argument("raw", help="the raw data dir")
-    p_init.add_argument("data", help="the parsed data dir")
+    # p_restart.add_argument("--raw", help="new raw data dir")
+    # p_restart.add_argument("--data", help="new parsed data dir")
 
-    p_restart.add_argument("--raw", help="new raw data dir")
-    p_restart.add_argument("--data", help="new parsed data dir")
-
-    p_backup.add_argument(
-        "option",
-        type=str,
-        choices=["single", "all", "restore"],
-        nargs="?",
-        default="single",
-        help="backup option help",
-    )
+    # p_export.add_argument("option", type=str, choices=["single", "all", "restore"], nargs="?", default="single",
+    #                       help="backup option help")
 
     subparser_vacation = p_vacation.add_subparsers(
         dest="option", required=True, help="vacation suboption help"
@@ -85,53 +91,14 @@ def get_argparser():
     p_graph_interval.add_argument("--end", type=str, nargs=1, help="graph end date")
     p_graph_interval.add_argument("--year", type=str, nargs=1, help="graph year")
 
-    p_init.set_defaults(func=init)
-    p_restart.set_defaults(func=restart)
-    p_backup.set_defaults(func=backup)
     p_parse.set_defaults(func=parse)
+    # p_restart.set_defaults(func=restart)
     p_vacation.set_defaults(func=vacation)
     p_status.set_defaults(func=status)
     p_graph.set_defaults(func=graph)
     p_report.set_defaults(func=f_report)
 
     return parser
-
-
-def init(state, args):
-    """Initialization
-
-    Creates the state file which stores the internal state of the program
-    for later use.
-    Calls parse, that parses all raw files into the data directory.
-
-    Args:
-        state (PFState): Internal state of the program
-        args (dict): argparse variables
-    Raises:
-        PfBudgetInitialized: Raised when there's already an initialized state
-    """
-    if not state:
-        s = dict(
-            filename=tools.STATE_FILE,
-            raw_dir=args.raw,
-            data_dir=args.data,
-            raw_files=[],
-            data_files=[],
-            vacations=[],
-            last_backup="",
-            last_datadir_backup="",
-        )
-        try:
-            state = pfstate(tools.STATE_FILE, s)
-            parse(state, args)
-        except Exception as e:
-            print(e)
-            if Path(tools.STATE_FILE).is_file():
-                print(f"Deleting {tools.STATE_FILE}")
-                Path(tools.STATE_FILE).unlink()
-
-    else:
-        raise PfBudgetInitialized(f"{Path(tools.STATE_FILE)} already exists")
 
 
 def restart(state, args):
@@ -165,23 +132,6 @@ def restart(state, args):
         parse(state, args)
     else:
         raise PfBudgetNotInitialized(f"{Path(tools.STATE_FILE)} doesn't exist")
-
-
-def backup(state, args):
-    """Backup
-
-    Saves all transactions on transactions_#.csv
-
-    Args:
-        state (PFState): Internal state of the program
-        args (dict): argparse variables
-    """
-    if args.option == "single":
-        tools.backup(state)
-    elif args.option == "all":
-        tools.full_backup(state)
-    elif args.option == "restore":
-        tools.restore(state)
 
 
 def parse(state, args):
@@ -299,8 +249,5 @@ def f_report(state, args):
 
 
 def run():
-    parser = get_argparser()
-    args = parser.parse_args()
-
-    state = pfstate(tools.STATE_FILE)
-    args.func(state, args)
+    args = argparser().parse_args()
+    args.func(args)
