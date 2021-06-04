@@ -1,5 +1,13 @@
-# Created by https://www.toptal.com/developers/gitignore/api/python
-# Edit at https://www.toptal.com/developers/gitignore?templates=python
+# Created by https://www.toptal.com/developers/gitignore/api/python,database
+# Edit at https://www.toptal.com/developers/gitignore?templates=python,database
+
+### Database ###
+*.accdb
+*.db
+*.dbf
+*.mdb
+*.pdb
+*.sqlite3
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -144,6 +152,5 @@ dmypy.json
 # End of https://www.toptal.com/developers/gitignore/api/python
 
 ### Default user directories
-data/
-raw/
+export/
 .pfbudget
