@@ -44,21 +44,10 @@ class Transaction:
         self.month = self.date.month
         self.day = self.date.day
 
-        self.file = file
         self.modified = False
 
     def to_csv(self):
         return [self.date, self.description, self.bank, self.value, self.category]
-
-    @staticmethod
-    def get_repeated_transactions(transactions):
-        repeated, new = list(), list()
-        for t in transactions:
-            if t not in new:
-                new.append(t)
-            else:
-                repeated.append(t)
-        return repeated
 
     @property
     def category(self):
@@ -106,88 +95,6 @@ class Transaction:
         return "{} {} {}€ ({})".format(
             self.date.strftime("%d/%m/%y"), self.category, self.value, self.bank
         )
-
-
-def sort_by_bank(transactions: list):
-    transactions.sort(key=lambda k: k.bank)
-
-
-def daterange(start, end, period):
-    if not start or not end:
-        raise TransactionError("daterange requires start and end")
-
-    if period == "year":
-        r = [d.strftime("%Y") for d in rrule(YEARLY, dtstart=start, until=end)]
-    elif period == "month":
-        r = [d.strftime("%b %Y") for d in rrule(MONTHLY, dtstart=start, until=end)]
-    else:
-        raise TransactionError("wrong time period")
-    return r
-
-
-def by_year(transactions, start=None, end=None) -> dict:
-    start = start if start else transactions[0].date
-    end = end if end else transactions[-1].date
-
-    yearly_transactions = dict.fromkeys(daterange(start, end, "year"), None)
-    for t in [t for t in transactions if t.date >= start and t.date <= end]:
-        try:
-            yearly_transactions[t.date.strftime("%Y")].append(t)
-        except AttributeError:
-            yearly_transactions[t.date.strftime("%Y")] = [t]
-        except KeyError:
-            raise TransactionError("date invalid")
-
-    return yearly_transactions
-
-
-def by_month(transactions, start=None, end=None) -> dict:
-    start = start if start else transactions[0].date
-    end = end if end else transactions[-1].date
-
-    monthly_transactions = dict.fromkeys(daterange(start, end, "month"), None)
-    for t in [t for t in transactions if t.date >= start and t.date <= end]:
-        try:
-            monthly_transactions[t.date.strftime("%b %Y")].append(t)
-        except AttributeError:
-            monthly_transactions[t.date.strftime("%b %Y")] = [t]
-        except KeyError:
-            raise TransactionError("date invalid")
-
-    return monthly_transactions
-
-
-def by_category(transactions) -> dict:
-    transactions_by_category = dict.fromkeys(get_categories(), None)
-
-    if transactions:
-        for transaction in transactions:
-            try:
-                transactions_by_category[transaction.category].append(transaction)
-            except AttributeError:
-                transactions_by_category[transaction.category] = [transaction]
-
-    return transactions_by_category
-
-
-def by_year_and_category(transactions, start, end) -> dict:
-    yearly_transactions_by_category = {}
-
-    yearly_transactions = by_year(transactions, start, end)
-    for year, transactions in yearly_transactions.items():
-        yearly_transactions_by_category[year] = by_category(transactions)
-
-    return yearly_transactions_by_category
-
-
-def by_month_and_category(transactions, start, end) -> dict:
-    monthly_transactions_by_categories = {}
-
-    monthly_transactions = by_month(transactions, start, end)
-    for month, transactions in monthly_transactions.items():
-        monthly_transactions_by_categories[month] = by_category(transactions)
-
-    return monthly_transactions_by_categories
 
 
 def load_transactions(data_dir) -> list:
