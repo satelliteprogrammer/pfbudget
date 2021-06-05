@@ -1,0 +1,61 @@
+Income1:
+  regex:
+    - company A
+
+Income2:
+  regex:
+    - transfer
+  bank:
+    - BankA
+
+Income3:
+  regex:
+    - company B
+
+Commute:
+  regex:
+    - uber
+  regular:
+    - [train, 50]
+
+Utilities:
+  regex:
+    - electricity
+  regular:
+    - [water]
+    - [internet, 30.5]
+
+Groceries:
+  regex:
+    - lidl
+    - e.leclerc
+    - aldi
+
+Eating Out:
+  regex:
+    - restaurant 1
+    - restaurant 2
+
+Entertainment:
+  regex:
+    - cinema
+    - steam
+
+Pets:
+
+Medical:
+  regex:
+    - hospital
+    - pharmacy
+
+Miscellaneous:
+
+Travel:
+  regex:
+    - ryanair
+    - easyjet
+    - airbnb
+  date_fmt: "%Y-%m-%d"
+  dates:
+    - ["2019-12-23", "2020-01-02"]
+    - ["2020-07-01", "2020-07-30"]
