@@ -75,7 +75,7 @@ WHERE date BETWEEN (?) AND (?)
 SELECT_TRANSACTIONS_BY_CATEGORY = """
 SELECT *
 FROM transactions
-WHERE category = (?)
+WHERE category IS (?)
 """
 
 SELECT_TRANSACTION_BY_PERIOD = """
@@ -182,6 +182,10 @@ class DBManager:
     def get_by_period(self, period):
         logger.info(f"Get transactions by {period}")
         return self.__execute(SELECT_TRANSACTION_BY_PERIOD, period)
+
+    def get_uncategorized_transactions(self):
+        logger.info("Get uncategorized transactions")
+        return self.get_category(None)
 
     def export(self):
         filename = pathlib.Path(
