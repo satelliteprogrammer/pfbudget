@@ -83,6 +83,13 @@ SELECT EXTRACT((?) FROM date) AS (?), date, description, bank, value
 FROM transactions
 """
 
+SELECT_TRANSACTIONS_BETWEEN_DATES_WITHOUT_CATEGORIES = """
+SELECT *
+FROM transactions
+WHERE date BETWEEN (?) AND (?)
+AND category NOT IN {}
+"""
+
 
 class DBManager:
     """SQLite DB connection manager"""
@@ -163,6 +170,13 @@ class DBManager:
         logger.info(f"Update {transaction} category")
         self.__execute(UPDATE_CATEGORY, (transaction[4], *transaction[:4]))
 
+    def update_categories(self, transactions):
+        logger.info(f"Update {len(transactions)} transactions' categories")
+        self.__executemany(
+            UPDATE_CATEGORY,
+            [(transaction[4], *transaction[:4]) for transaction in transactions],
+        )
+
     def get_duplicated_transactions(self):
         logger.info("Get duplicated transactions")
         return self.__execute(DUPLICATED_TRANSACTIONS)
@@ -186,6 +200,13 @@ class DBManager:
     def get_uncategorized_transactions(self):
         logger.info("Get uncategorized transactions")
         return self.get_category(None)
+
+    def get_daterage_without(self, start, end, *categories):
+        logger.info(f"Get transactions between {start} and {end} not in {categories}")
+        query = SELECT_TRANSACTIONS_BETWEEN_DATES_WITHOUT_CATEGORIES.format(
+            "(" + ", ".join("?" for _ in categories) + ")"
+        )
+        return self.__execute(query, (start, end, *categories))
 
     def export(self):
         filename = pathlib.Path(
