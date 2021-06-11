@@ -2,12 +2,12 @@ from pathlib import Path
 import argparse
 import datetime as dt
 
+from .categories import categorize_data
 from .database import DBManager
 from .graph import discrete, monthly
 from .parsers import parse_data
 from .transactions import load_transactions, save_transactions
 from . import report
-from . import tools
 
 DEFAULT_DB = "data.db"
 
@@ -54,19 +54,18 @@ def argparser():
     p_parse.add_argument("--bank", nargs=1, type=str)
     p_parse.set_defaults(func=parse)
 
-    # p_restart = subparsers.add_parser("restart", help="restart help")
+    """
+    Categorizing
+    """
+    p_categorize = subparsers.add_parser("categorize", help="parse help")
+    p_categorize.set_defaults(func=categorize)
+
     p_vacation = subparsers.add_parser(
         "vacation", help="vacation help format: [YYYY/MM/DD]"
     )
     p_graph = subparsers.add_parser("graph", help="graph help")
     p_report = subparsers.add_parser("report", help="report help")
     p_status = subparsers.add_parser("status", help="status help")
-
-    # p_restart.add_argument("--raw", help="new raw data dir")
-    # p_restart.add_argument("--data", help="new parsed data dir")
-
-    # p_export.add_argument("option", type=str, choices=["single", "all", "restore"], nargs="?", default="single",
-    #                       help="backup option help")
 
     subparser_vacation = p_vacation.add_subparsers(
         dest="option", required=True, help="vacation suboption help"
@@ -107,44 +106,11 @@ def argparser():
     return parser
 
 
-def restart(state, args):
-    """Restart
-
-    Deletes state and creates a new one.
-    Parses all raw files into the data directory. New dirs can be passed as
-    arguments, otherwise uses previous values.
-
-    Args:
-        state (PFState): Internal state of the program
-        args (dict): argparse variables
-
-    Raises:
-        DataFileMissing: Missing data files from those listed in state
-        PfBudgetNotInitialized: Raised when no state has been initialized yet
-    """
-    if state is not None:
-        for fn in state.data_files:
-            try:
-                (Path(state.data_dir) / fn).unlink()
-            except FileNotFoundError:
-                raise DataFileMissing("missing {}".format(Path(state.data_dir) / fn))
-
-        if args.raw:
-            state.raw_dir = args.raw
-        if args.data:
-            state.data_dir = args.data
-        state.raw_files = []
-        state.data_files = []
-        parse(state, args)
-    else:
-        raise PfBudgetNotInitialized(f"{Path(tools.STATE_FILE)} doesn't exist")
-
-
-def parse(args):
+def parse(args, db):
     """Parser
 
     Parses the contents of the raw directory into the data files, and
-    categorizes the transactions.
+    categorizes the transactions
 
     Args:
         state (PFState): Internal state of the program
@@ -158,26 +124,20 @@ def parse(args):
             trs = parse_data(path, args.bank)
         else:
             raise FileNotFoundError
-    # tools.parser(state, raw_dir, data_dir)
-    # categorize(state, args)
     print("\n".join([t.desc() for t in trs]))
 
 
-def categorize(state, args):
+def categorize(args, db):
     """Categorization
 
     Automatically categorizes transactions based on the regex of each
-    category. Manually present the remaining to the user.
+    category. Manually present the remaining to the user
 
     Args:
         state (PFState): Internal state of the program
         args (dict): argparse variables
     """
-    transactions = load_transactions(state.data_dir)
-    missing = tools.auto_categorization(state, transactions)
-    if missing:
-        tools.manual_categorization(state, transactions)
-    save_transactions(state.data_dir, transactions)
+    categorize_data(db)
 
 
 def vacation(state, args):
@@ -261,5 +221,6 @@ def f_report(state, args):
 
 
 def run():
+    db = DBManager("transactions.db")
     args = argparser().parse_args()
-    args.func(args)
+    args.func(args, db)
