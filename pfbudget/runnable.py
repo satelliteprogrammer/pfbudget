@@ -24,7 +24,7 @@ class DataFileMissing(Exception):
     pass
 
 
-def argparser():
+def argparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="does cool finance stuff")
     parser.add_argument("--db", help="select current database", default=DEFAULT_DB)
     parser.add_argument("-q", "--quiet", help="quiet")
@@ -60,26 +60,9 @@ def argparser():
     p_categorize = subparsers.add_parser("categorize", help="parse help")
     p_categorize.set_defaults(func=categorize)
 
-    p_vacation = subparsers.add_parser(
-        "vacation", help="vacation help format: [YYYY/MM/DD]"
-    )
     p_graph = subparsers.add_parser("graph", help="graph help")
     p_report = subparsers.add_parser("report", help="report help")
     p_status = subparsers.add_parser("status", help="status help")
-
-    subparser_vacation = p_vacation.add_subparsers(
-        dest="option", required=True, help="vacation suboption help"
-    )
-    p_vacation_add = subparser_vacation.add_parser("add", help="add help")
-    p_vacation_add.add_argument(
-        "start", type=str, nargs=1, help="new vacation start date"
-    )
-    p_vacation_add.add_argument("end", type=str, nargs=1, help="new vacation end date")
-    _ = subparser_vacation.add_parser("list", help="list help")
-    p_vacation_remove = subparser_vacation.add_parser("remove", help="remove help")
-    p_vacation_remove.add_argument(
-        "pos", help="position of vacation to remove", type=int, nargs=1
-    )
 
     p_graph.add_argument(
         "option",
@@ -97,8 +80,6 @@ def argparser():
     p_graph_interval.add_argument("--end", type=str, nargs=1, help="graph end date")
     p_graph_interval.add_argument("--year", type=str, nargs=1, help="graph year")
 
-    # p_restart.set_defaults(func=restart)
-    p_vacation.set_defaults(func=vacation)
     p_status.set_defaults(func=status)
     p_graph.set_defaults(func=graph)
     p_report.set_defaults(func=f_report)
@@ -113,8 +94,8 @@ def parse(args, db):
     categorizes the transactions
 
     Args:
-        state (PFState): Internal state of the program
         args (dict): argparse variables
+        db (DBManager): db connection manager
     """
     for path in args.path:
         if (dir := Path(path)).is_dir():
@@ -134,34 +115,10 @@ def categorize(args, db):
     category. Manually present the remaining to the user
 
     Args:
-        state (PFState): Internal state of the program
         args (dict): argparse variables
+        db (DBManager): db connection manager
     """
     categorize_data(db)
-
-
-def vacation(state, args):
-    """Vacations
-
-    Adds vacations to the pfstate.
-
-    Args:
-        state (PFState): Internal state of the program
-        args (dict): argparse variables
-    """
-    if args.option == "list":
-        print(state.vacations)
-    elif args.option == "remove":
-        vacations = state.vacations
-        del state.vacations[args.pos[0]]
-        state.vacations = vacations
-    elif args.option == "add":
-        start = dt.datetime.strptime(args.start[0], "%Y/%m/%d").date()
-        end = dt.datetime.strptime(args.end[0], "%Y/%m/%d").date()
-
-        vacations = state.vacations
-        vacations.append((start, end))
-        state.vacations = vacations
 
 
 def status(state, args):
