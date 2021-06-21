@@ -1,14 +1,21 @@
+from __future__ import annotations
 import csv
 import datetime
 import logging
 import logging.config
 import pathlib
 import sqlite3
+from decimal import Decimal
+
+from .transactions import Transaction
+
 
 if not pathlib.Path("logs").is_dir():
     pathlib.Path("logs").mkdir()
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("pfbudget.transactions")
+
+sqlite3.register_adapter(Decimal, lambda d: float(d))
 
 __DB_NAME = "data.db"
 
@@ -20,13 +27,6 @@ CREATE TABLE IF NOT EXISTS transactions (
     value REAL NOT NULL,
     category TEXT
 );
-"""
-
-CREATE_VACATIONS_TABLE = """
-CREATE TABLE IF NOT EXISTS vacations (
-    start TEXT NOT NULL,
-    end TEXT NOT NULL
-)
 """
 
 CREATE_BACKUPS_TABLE = """
@@ -96,10 +96,10 @@ class DBManager:
 
     __EXPORT_DIR = "export"
 
-    def __init__(self, db):
+    def __init__(self, db: str):
         self.db = db
 
-    def __execute(self, query, params=None):
+    def __execute(self, query: str, params: tuple = None) -> list | None:
         ret = None
         try:
             con = sqlite3.connect(self.db)
@@ -120,7 +120,7 @@ class DBManager:
 
         return ret
 
-    def __executemany(self, query, list_of_params):
+    def __executemany(self, query: str, list_of_params: list[tuple]) -> list | None:
         ret = None
         try:
             con = sqlite3.connect(self.db)
@@ -136,20 +136,15 @@ class DBManager:
 
         return ret
 
-    def __create_tables(self, tables):
+    def __create_tables(self, tables: tuple[tuple]):
         for table_name, query in tables:
             logger.info(f"Creating table if it doesn't exist {table_name}")
             self.__execute(query)
-
-    def query(self, query, params=None):
-        logger.info(f"Executing {query} with params={params}")
-        return self.__execute(query, params)
 
     def init(self):
         self.__create_tables(
             (
                 ("transactions", CREATE_TRANSACTIONS_TABLE),
-                ("vacations", CREATE_VACATIONS_TABLE),
                 ("backups", CREATE_BACKUPS_TABLE),
             )
         )
@@ -158,55 +153,78 @@ class DBManager:
         logger.info(f"Reading all transactions from {self.db}")
         return self.__execute("SELECT * FROM transactions")
 
-    def add_transaction(self, transaction):
+    def insert_transaction(self, transaction: Transaction):
         logger.info(f"Adding {transaction} into {self.db}")
-        self.__execute(ADD_TRANSACTION, transaction)
+        self.__execute(ADD_TRANSACTION, (transaction.to_list(),))
 
-    def add_transactions(self, transactions):
+    def insert_transactions(self, transactions: list[Transaction]):
         logger.info(f"Adding {len(transactions)} into {self.db}")
+        transactions = [t.to_list() for t in transactions]
         self.__executemany(ADD_TRANSACTION, transactions)
 
-    def update_category(self, transaction):
+    def update_category(self, transaction: Transaction):
         logger.info(f"Update {transaction} category")
         self.__execute(UPDATE_CATEGORY, (transaction[4], *transaction[:4]))
 
-    def update_categories(self, transactions):
+    def update_categories(self, transactions: list[Transaction]):
         logger.info(f"Update {len(transactions)} transactions' categories")
         self.__executemany(
-            UPDATE_CATEGORY,
-            [(transaction[4], *transaction[:4]) for transaction in transactions],
+            UPDATE_CATEGORY, [transaction for transaction in transactions]
         )
 
-    def get_duplicated_transactions(self):
+    def get_duplicated_transactions(self) -> list[Transaction] | None:
         logger.info("Get duplicated transactions")
-        return self.__execute(DUPLICATED_TRANSACTIONS)
+        transactions = self.__execute(DUPLICATED_TRANSACTIONS)
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
-    def get_sorted_transactions(self, key):
+    def get_sorted_transactions(self, key: str) -> list[Transaction] | None:
         logger.info(f"Get transactions sorted by {key}")
-        return self.__execute(SORTED_TRANSACTIONS, key)
+        transactions = self.__execute(SORTED_TRANSACTIONS, key)
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
-    def get_daterange(self, start, end):
+    def get_daterange(self, start: datetime, end: datetime) -> list[Transaction] | None:
         logger.info(f"Get transactions from {start} to {end}")
-        return self.__execute(SELECT_TRANSACTIONS_BETWEEN_DATES, (start, end))
+        transactions = self.__execute(SELECT_TRANSACTIONS_BETWEEN_DATES, (start, end))
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
-    def get_category(self, value):
+    def get_category(self, value: str) -> list[Transaction] | None:
         logger.info(f"Get transaction where category = {value}")
-        return self.__execute(SELECT_TRANSACTIONS_BY_CATEGORY, (value,))
+        transactions = self.__execute(SELECT_TRANSACTIONS_BY_CATEGORY, (value,))
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
-    def get_by_period(self, period):
+    def get_by_period(self, period: str) -> list[Transaction] | None:
         logger.info(f"Get transactions by {period}")
-        return self.__execute(SELECT_TRANSACTION_BY_PERIOD, period)
+        transactions = self.__execute(SELECT_TRANSACTION_BY_PERIOD, period)
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
-    def get_uncategorized_transactions(self):
+    def get_uncategorized_transactions(self) -> list[Transaction] | None:
         logger.info("Get uncategorized transactions")
-        return self.get_category(None)
+        transactions = self.get_category(None)
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
-    def get_daterage_without(self, start, end, *categories):
+    def get_daterage_without(
+        self, start: datetime, end: datetime, *categories: str
+    ) -> list[Transaction] | None:
         logger.info(f"Get transactions between {start} and {end} not in {categories}")
         query = SELECT_TRANSACTIONS_BETWEEN_DATES_WITHOUT_CATEGORIES.format(
             "(" + ", ".join("?" for _ in categories) + ")"
         )
-        return self.__execute(query, (start, end, *categories))
+        transactions = self.__execute(query, (start, end, *categories))
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
     def export(self):
         filename = pathlib.Path(
