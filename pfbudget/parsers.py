@@ -1,18 +1,15 @@
 from collections import namedtuple
 from decimal import Decimal
 from importlib import import_module
-from typing import Final
+from typing import TYPE_CHECKING
 import datetime as dt
 import yaml
 
 from .transactions import Transaction
 from . import utils
 
-
-cfg: Final = yaml.safe_load(open("parsers.yaml"))
-assert (
-    "Banks" in cfg
-), "parsers.yaml is missing the Banks section with the list of available banks"
+if TYPE_CHECKING:
+    from .database import DBManager
 
 Index = namedtuple(
     "Index", ["date", "text", "value", "negate"], defaults=[-1, -1, -1, False]
@@ -36,25 +33,33 @@ Options = namedtuple(
 )
 
 
-def parse_data(filename: str, bank=None) -> list:
+def parse_data(db: DBManager, filename: str, bank: list = []) -> None:
+    cfg: dict = yaml.safe_load(open("parsers.yaml"))
+    assert (
+        "Banks" in cfg
+    ), "parsers.yaml is missing the Banks section with the list of available banks"
+
     if not bank:
         bank, creditcard = utils.find_credit_institution(
             filename, cfg.get("Banks"), cfg.get("CreditCards")
         )
+    else:
+        bank = bank[0]
+        creditcard = None
 
     if creditcard:
-        options = cfg[bank][creditcard]
+        options: dict = cfg[bank][creditcard]
         bank += creditcard
     else:
-        options = cfg[bank]
+        options: dict = cfg[bank]
 
-    if options.get("additional_parser", False):
+    if options.get("additional_parser"):
         parser = getattr(import_module("pfbudget.parsers"), bank)
         transactions = parser(filename, bank, options).parse()
     else:
         transactions = Parser(filename, bank, options).parse()
 
-    return transactions
+    db.insert_transactions(transactions)
 
 
 def transaction(line: str, bank: str, options: Options, func) -> Transaction:

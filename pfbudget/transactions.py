@@ -1,10 +1,7 @@
 from csv import reader, writer
 from datetime import date
-from dateutil.rrule import rrule, MONTHLY, YEARLY
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-
-from .categories import get_categories
 
 COMMENT_TOKEN = "#"
 
@@ -19,7 +16,7 @@ class Transaction:
         self.description = ""
         self.bank = ""
         self.value = 0
-        self.category = ""
+        self.category = None
 
         arg = args[0] if len(args) == 1 else list(args)
         try:
@@ -46,7 +43,7 @@ class Transaction:
 
         self.modified = False
 
-    def to_csv(self):
+    def to_list(self):
         return [self.date, self.description, self.bank, self.value, self.category]
 
     @property

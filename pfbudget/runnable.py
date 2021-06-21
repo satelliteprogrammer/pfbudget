@@ -100,12 +100,11 @@ def parse(args, db):
     for path in args.path:
         if (dir := Path(path)).is_dir():
             for file in dir.iterdir():
-                parse_data(file, args.bank)
+                parse_data(db, file, args.bank)
         elif Path(path).is_file():
-            trs = parse_data(path, args.bank)
+            parse_data(db, path, args.bank)
         else:
             raise FileNotFoundError
-    print("\n".join([t.desc() for t in trs]))
 
 
 def categorize(args, db):
