@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections import namedtuple
 from decimal import Decimal
 from importlib import import_module
@@ -62,26 +63,6 @@ def parse_data(db: DBManager, filename: str, bank: list = []) -> None:
     db.insert_transactions(transactions)
 
 
-def transaction(line: str, bank: str, options: Options, func) -> Transaction:
-    line = line.rstrip().split(options.separator)
-    index = Parser.index(line, options)
-
-    date = (
-        dt.datetime.strptime(line[index.date].strip(), options.date_fmt)
-        .date()
-        .isoformat()
-    )
-    text = line[index.text]
-    value = utils.parse_decimal(line[index.value])
-    if index.negate:
-        value = -value
-    transaction = Transaction(date, text, bank, value)
-
-    if options.additional_parser:
-        func(transaction)
-    return transaction
-
-
 class Parser:
     def __init__(self, filename: str, bank: str, options: dict):
         self.filename = filename
@@ -97,9 +78,9 @@ class Parser:
     def func(self, transaction: Transaction):
         pass
 
-    def parse(self) -> list:
+    def parse(self) -> list[Transaction]:
         transactions = [
-            transaction(line, self.bank, self.options, self.func)
+            Parser.transaction(line, self.bank, self.options, self.func)
             for line in list(open(self.filename, encoding=self.options.encoding))[
                 self.options.start - 1 : self.options.end
             ]
@@ -134,6 +115,26 @@ class Parser:
             raise IndexError("No debit not credit indexes available")
 
         return index
+
+    @staticmethod
+    def transaction(line: str, bank: str, options: Options, func) -> Transaction:
+        line = line.rstrip().split(options.separator)
+        index = Parser.index(line, options)
+
+        date = (
+            dt.datetime.strptime(line[index.date].strip(), options.date_fmt)
+            .date()
+            .isoformat()
+        )
+        text = line[index.text]
+        value = utils.parse_decimal(line[index.value])
+        if index.negate:
+            value = -value
+        transaction = Transaction(date, text, bank, value)
+
+        if options.additional_parser:
+            func(transaction)
+        return transaction
 
 
 class Bank1(Parser):
