@@ -138,10 +138,11 @@ class DBManager:
 
     def __create_tables(self, tables: tuple[tuple]):
         for table_name, query in tables:
-            logger.info(f"Creating table if it doesn't exist {table_name}")
+            logger.info(f"Creating table {table_name} if it doesn't exist already")
             self.__execute(query)
 
     def init(self):
+        logging.info(f"Initializing {self.db} database")
         self.__create_tables(
             (
                 ("transactions", CREATE_TRANSACTIONS_TABLE),
@@ -230,8 +231,8 @@ class DBManager:
         filename = pathlib.Path(
             "@".join([self.db, datetime.datetime.now().isoformat()])
         ).with_suffix(".csv")
-        logger.info(f"Exporting {self.db} into {filename}")
         transactions = self.select_all()
+        logger.info(f"Exporting {self.db} into {filename}")
         if not (dir := pathlib.Path(self.__EXPORT_DIR)).is_dir():
             dir.mkdir()
         with open(dir / filename, "w", newline="") as f:

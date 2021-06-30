@@ -6,7 +6,6 @@ from .categories import categorize_data
 from .database import DBManager
 from .graph import discrete, monthly
 from .parsers import parse_data
-from .transactions import load_transactions, save_transactions
 from . import report
 
 DEFAULT_DB = "data.db"
@@ -25,9 +24,13 @@ class DataFileMissing(Exception):
 
 
 def argparser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="does cool finance stuff")
-    parser.add_argument("--db", help="select current database", default=DEFAULT_DB)
-    parser.add_argument("-q", "--quiet", help="quiet")
+    help = argparse.ArgumentParser(add_help=False)
+    help.add_argument("--db", help="select current database", default=DEFAULT_DB)
+    help.add_argument("-q", "--quiet", help="quiet")
+
+    parser = argparse.ArgumentParser(
+        description="does cool finance stuff", parents=[help]
+    )
     parser.add_argument("--version")
 
     subparsers = parser.add_subparsers(
@@ -37,19 +40,19 @@ def argparser() -> argparse.ArgumentParser:
     """
     Init
     """
-    p_init = subparsers.add_parser("init", help="init help")
-    p_init.set_defaults(func=lambda args: DBManager(args.db))
+    p_init = subparsers.add_parser("init", parents=[help])
+    p_init.set_defaults(func=lambda args: DBManager(args.db).init())
 
     """
     Exporting
     """
-    p_export = subparsers.add_parser("export", help="export help")
+    p_export = subparsers.add_parser("export", parents=[help])
     p_export.set_defaults(func=lambda args: DBManager(args.db).export())
 
     """
     Parsing
     """
-    p_parse = subparsers.add_parser("parse", help="parse help")
+    p_parse = subparsers.add_parser("parse", parents=[help])
     p_parse.add_argument("path", nargs="+", type=str)
     p_parse.add_argument("--bank", nargs=1, type=str)
     p_parse.set_defaults(func=parse)
@@ -57,7 +60,7 @@ def argparser() -> argparse.ArgumentParser:
     """
     Categorizing
     """
-    p_categorize = subparsers.add_parser("categorize", help="parse help")
+    p_categorize = subparsers.add_parser("categorize", parents=[help])
     p_categorize.set_defaults(func=categorize)
 
     p_graph = subparsers.add_parser("graph", help="graph help")
@@ -87,16 +90,14 @@ def argparser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse(args, db):
-    """Parser
-
-    Parses the contents of the raw directory into the data files, and
-    categorizes the transactions
+def parse(args):
+    """Parses the contents of the path in args to the selected database.
 
     Args:
         args (dict): argparse variables
         db (DBManager): db connection manager
     """
+    db = DBManager(args.db)
     for path in args.path:
         if (dir := Path(path)).is_dir():
             for file in dir.iterdir():
@@ -107,17 +108,15 @@ def parse(args, db):
             raise FileNotFoundError
 
 
-def categorize(args, db):
-    """Categorization
-
-    Automatically categorizes transactions based on the regex of each
-    category. Manually present the remaining to the user
+def categorize(args):
+    """Automatically categorizes transactions based on the regex of each
+    category. Manually present the remaining to the user.
 
     Args:
         args (dict): argparse variables
         db (DBManager): db connection manager
     """
-    categorize_data(db)
+    categorize_data(DBManager(args.db))
 
 
 def status(state, args):
@@ -177,6 +176,5 @@ def f_report(state, args):
 
 
 def run():
-    db = DBManager("transactions.db")
     args = argparser().parse_args()
-    args.func(args, db)
+    args.func(args)
