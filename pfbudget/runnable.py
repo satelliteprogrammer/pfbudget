@@ -25,7 +25,9 @@ class DataFileMissing(Exception):
 
 def argparser() -> argparse.ArgumentParser:
     help = argparse.ArgumentParser(add_help=False)
-    help.add_argument("--db", help="select current database", default=DEFAULT_DB)
+    help.add_argument(
+        "-db", "--database", help="select current database", default=DEFAULT_DB
+    )
     help.add_argument("-q", "--quiet", help="quiet")
 
     parser = argparse.ArgumentParser(
@@ -41,13 +43,13 @@ def argparser() -> argparse.ArgumentParser:
     Init
     """
     p_init = subparsers.add_parser("init", parents=[help])
-    p_init.set_defaults(func=lambda args: DBManager(args.db).init())
+    p_init.set_defaults(func=lambda args: DBManager(args.database).init())
 
     """
     Exporting
     """
     p_export = subparsers.add_parser("export", parents=[help])
-    p_export.set_defaults(func=lambda args: DBManager(args.db).export())
+    p_export.set_defaults(func=lambda args: DBManager(args.database).export())
 
     """
     Parsing
@@ -61,7 +63,9 @@ def argparser() -> argparse.ArgumentParser:
     Categorizing
     """
     p_categorize = subparsers.add_parser("categorize", parents=[help])
-    p_categorize.set_defaults(func=lambda args: categorize_data(DBManager(args.db)))
+    p_categorize.set_defaults(
+        func=lambda args: categorize_data(DBManager(args.database))
+    )
 
     p_graph = subparsers.add_parser("graph", help="graph help")
     p_report = subparsers.add_parser("report", help="report help")
@@ -95,9 +99,8 @@ def parse(args):
 
     Args:
         args (dict): argparse variables
-        db (DBManager): db connection manager
     """
-    db = DBManager(args.db)
+    db = DBManager(args.database)
     for path in args.path:
         if (dir := Path(path)).is_dir():
             for file in dir.iterdir():
