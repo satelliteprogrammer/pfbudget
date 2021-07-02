@@ -61,7 +61,7 @@ def argparser() -> argparse.ArgumentParser:
     Categorizing
     """
     p_categorize = subparsers.add_parser("categorize", parents=[help])
-    p_categorize.set_defaults(func=categorize)
+    p_categorize.set_defaults(func=lambda args: categorize_data(DBManager(args.db)))
 
     p_graph = subparsers.add_parser("graph", help="graph help")
     p_report = subparsers.add_parser("report", help="report help")
@@ -106,17 +106,6 @@ def parse(args):
             parse_data(db, path, args.bank)
         else:
             raise FileNotFoundError
-
-
-def categorize(args):
-    """Automatically categorizes transactions based on the regex of each
-    category. Manually present the remaining to the user.
-
-    Args:
-        args (dict): argparse variables
-        db (DBManager): db connection manager
-    """
-    categorize_data(DBManager(args.db))
 
 
 def status(state, args):
