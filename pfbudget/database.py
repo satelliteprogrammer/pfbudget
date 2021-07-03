@@ -157,9 +157,12 @@ class DBManager:
             )
         )
 
-    def select_all(self):
+    def select_all(self) -> list[Transaction] | None:
         logger.info(f"Reading all transactions from {self.db}")
-        return self.__execute("SELECT * FROM transactions")
+        transactions = self.__execute("SELECT * FROM transactions")
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
 
     def insert_transaction(self, transaction: Transaction):
         logger.info(f"Adding {transaction} into {self.db}")
