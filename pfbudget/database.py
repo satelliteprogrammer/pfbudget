@@ -78,6 +78,13 @@ FROM transactions
 WHERE category IS (?)
 """
 
+SELECT_TRANSACTIONS_BETWEEN_DATES_WITH_CATEGORY = """
+SELECT *
+FROM transactions
+WHERE date BETWEEN (?) AND (?)
+AND category IS (?)
+"""
+
 SELECT_TRANSACTION_BY_PERIOD = """
 SELECT EXTRACT((?) FROM date) AS (?), date, description, bank, value
 FROM transactions
@@ -165,12 +172,13 @@ class DBManager:
 
     def update_category(self, transaction: Transaction):
         logger.info(f"Update {transaction} category")
-        self.__execute(UPDATE_CATEGORY, (transaction[4], *transaction[:4]))
+        self.__execute(UPDATE_CATEGORY, transaction.update_category())
 
     def update_categories(self, transactions: list[Transaction]):
         logger.info(f"Update {len(transactions)} transactions' categories")
         self.__executemany(
-            UPDATE_CATEGORY, [transaction for transaction in transactions]
+            UPDATE_CATEGORY,
+            [transaction.update_category() for transaction in transactions],
         )
 
     def get_duplicated_transactions(self) -> list[Transaction] | None:
@@ -195,8 +203,21 @@ class DBManager:
         return None
 
     def get_category(self, value: str) -> list[Transaction] | None:
-        logger.info(f"Get transaction where category = {value}")
+        logger.info(f"Get transactions where category = {value}")
         transactions = self.__execute(SELECT_TRANSACTIONS_BY_CATEGORY, (value,))
+        if transactions:
+            return [Transaction(t) for t in transactions]
+        return None
+
+    def get_daterange_category(
+        self, start: datetime, end: datetime, category: str
+    ) -> list[Transaction] | None:
+        logger.info(
+            f"Get transactions from {start} to {end} where category = {category}"
+        )
+        transactions = self.__execute(
+            SELECT_TRANSACTIONS_BETWEEN_DATES_WITH_CATEGORY, (start, end, category)
+        )
         if transactions:
             return [Transaction(t) for t in transactions]
         return None
@@ -209,11 +230,12 @@ class DBManager:
         return None
 
     def get_uncategorized_transactions(self) -> list[Transaction] | None:
-        logger.info("Get uncategorized transactions")
-        transactions = self.get_category(None)
-        if transactions:
-            return [Transaction(t) for t in transactions]
-        return None
+        logger.debug("Get uncategorized transactions")
+        return self.get_category(None)
+
+    def get_daterange_uncategorized_transactions(self, start: datetime, end: datetime):
+        logger.debug("Get uncategorized transactions from {start} to {end}")
+        return self.get_daterange_category(start, end, None)
 
     def get_daterage_without(
         self, start: datetime, end: datetime, *categories: str

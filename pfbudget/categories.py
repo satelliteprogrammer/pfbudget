@@ -1,10 +1,15 @@
+from __future__ import annotations
 from collections import namedtuple
+from typing import TYPE_CHECKING
 import datetime as dt
 import logging
 import re
 import yaml
 
-from .database import DBManager
+
+if TYPE_CHECKING:
+    from pfbudget.database import DBManager
+    from pfbudget.transactions import Transaction
 
 
 Options = namedtuple(
@@ -36,19 +41,22 @@ def categorize_data(db: DBManager):
     vacations(db)
 
     # 3rd) Classify all else based on regex
-    transactions = [list(t) for t in db.get_uncategorized_transactions()]
-    for transaction in transactions:
-        if not transaction[4]:
-            for name, category in categories.items():
-                if matches(transaction, category):
-                    transaction[4] = name
-                    break
-    db.update_categories(transactions)
+    if transactions := db.get_uncategorized_transactions():
+        for transaction in transactions:
+            if not transaction.category:
+                for name, category in categories.items():
+                    if matches(transaction, category):
+                        transaction.category = name
+                        break
+        db.update_categories(
+            [transaction for transaction in transactions if transaction.category]
+        )
 
     # 4th) Manually update categories from the uncategorized transactions
-    transactions = [list(t) for t in db.get_uncategorized_transactions()]
-    if transactions:
-        print(f"Still {len(transactions)} uncategorized transactions left")
+    if transactions := db.get_uncategorized_transactions():
+        print(
+            f"Still {len(transactions)} uncategorized transactions left. Type quit/exit to exit the program."
+        )
         for transaction in transactions:
             while True:
                 category = input(f"{transaction} category: ")
@@ -59,7 +67,7 @@ def categorize_data(db: DBManager):
                         f"Category {category} doesn't exist. Please use one of {categories.keys()}"
                     )
                 else:
-                    transaction[4] = category
+                    transaction.category = category
                     db.update_category(transaction)
                     break
 
@@ -75,13 +83,18 @@ def vacations(db: DBManager) -> None:
                 logging.warning(f"{e} continuing...")
                 continue
 
-            not_vacations = categories["Travel"].negative_regex
+            not_vacations = categories["Travel"].negative_regex  # default is []
 
-            if transactions := [
-                list(t) for t in db.get_daterage_without(start, end, *not_vacations)
-            ]:
+            if transactions := db.get_daterange_uncategorized_transactions(start, end):
                 for transaction in transactions:
-                    transaction[4] = "Travel"
+                    if not_vacations:
+                        for category in not_vacations:
+                            if not matches(
+                                transaction, categories.get(category, Options())
+                            ):
+                                transaction.category = "Travel"
+                    else:
+                        transaction.category = "Travel"
 
                 db.update_categories(transactions)
 
@@ -91,36 +104,40 @@ def vacations(db: DBManager) -> None:
 
 def nulls(db: DBManager) -> None:
     null = categories.get("Null", Options())
-    transactions = [list(t) for t in db.get_uncategorized_transactions()]
+    transactions = db.get_uncategorized_transactions()
+    if not transactions:
+        return
+
     matching_transactions = []
     for t in transactions:
         for cancel in (
             cancel
             for cancel in transactions
             if (
-                dt.datetime.fromisoformat(t[0]) - dt.timedelta(days=null.timedelta)
-                <= dt.datetime.fromisoformat(cancel[0])
-                and dt.datetime.fromisoformat(cancel[0])
-                <= dt.datetime.fromisoformat(t[0]) + dt.timedelta(days=null.timedelta)
+                t.date - dt.timedelta(days=null.timedelta)
+                <= cancel.date
+                <= t.date + dt.timedelta(days=null.timedelta)
                 and (matches(t, null) if null.regex else True)
-                and t[2] != cancel[2]
+                and t.bank != cancel.bank
                 and t not in matching_transactions
                 and cancel not in matching_transactions
                 and cancel != t
-                and t[3] == -cancel[3]
+                and t.value == -cancel.value
             )
         ):
-            t[4] = "Null"
-            cancel[4] = "Null"
+            t.category = "Null"
+            cancel.category = "Null"
             matching_transactions.extend([t, cancel])
             break  # There will only be one match per null transaction pair
 
-    db.update_categories(matching_transactions)
+    if matching_transactions:
+        db.update_categories(matching_transactions)
 
 
-def matches(transaction, category: Options):
+def matches(transaction: Transaction, category: Options):
     if not category.regex:
         return False
     return any(
-        re.compile(pattern).search(transaction[1].lower()) for pattern in category.regex
+        re.compile(pattern).search(transaction.description.lower())
+        for pattern in category.regex
     )

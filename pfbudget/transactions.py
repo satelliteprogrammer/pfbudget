@@ -46,6 +46,9 @@ class Transaction:
     def to_list(self):
         return [self.date, self.description, self.bank, self.value, self.category]
 
+    def update_category(self):
+        return (self.category, self.date, self.description, self.bank, self.value)
+
     @property
     def category(self):
         return self._category
