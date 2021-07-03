@@ -67,10 +67,10 @@ def argparser() -> argparse.ArgumentParser:
         func=lambda args: categorize_data(DBManager(args.database))
     )
 
-    p_graph = subparsers.add_parser("graph", help="graph help")
-    p_report = subparsers.add_parser("report", help="report help")
-    p_status = subparsers.add_parser("status", help="status help")
-
+    """
+    Graph
+    """
+    p_graph = subparsers.add_parser("graph", parents=[help])
     p_graph.add_argument(
         "option",
         type=str,
@@ -86,9 +86,12 @@ def argparser() -> argparse.ArgumentParser:
     p_graph_interval.add_argument("--start", type=str, nargs=1, help="graph start date")
     p_graph_interval.add_argument("--end", type=str, nargs=1, help="graph end date")
     p_graph_interval.add_argument("--year", type=str, nargs=1, help="graph year")
+    p_graph.set_defaults(func=graph)
+
+    p_report = subparsers.add_parser("report", help="report help")
+    p_status = subparsers.add_parser("status", help="status help")
 
     p_status.set_defaults(func=status)
-    p_graph.set_defaults(func=graph)
     p_report.set_defaults(func=f_report)
 
     return parser
@@ -123,16 +126,14 @@ def status(state, args):
     print(state)
 
 
-def graph(state, args):
-    """Graph
-
-    Plots the transactions over a period of time.
+def graph(args):
+    """Plots the transactions over a period of time.
 
     Args:
         state (PFState): Internal state of the program
         args (dict): argparse variables
     """
-    start, end = None, None
+    start, end = dt.date.min, dt.date.max
     if args.start or args.interval:
         start = dt.datetime.strptime(args.start[0], "%Y/%m/%d").date()
 
@@ -150,9 +151,9 @@ def graph(state, args):
         ).date() - dt.timedelta(days=1)
 
     if args.option == "monthly":
-        monthly(state, start, end)
+        monthly(DBManager(args.database), start, end)
     elif args.option == "discrete":
-        discrete(state, start, end)
+        discrete(DBManager(args.database), start, end)
 
 
 def f_report(state, args):
