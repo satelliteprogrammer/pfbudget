@@ -63,13 +63,14 @@ HAVING COUNT(*) > 1
 SORTED_TRANSACTIONS = """
 SELECT *
 FROM transactions
-ORDER BY (?)
+ORDER BY date ASC
 """
 
 SELECT_TRANSACTIONS_BETWEEN_DATES = """
 SELECT *
 FROM transactions
 WHERE date BETWEEN (?) AND (?)
+ORDER BY date ASC
 """
 
 SELECT_TRANSACTIONS_BY_CATEGORY = """
@@ -191,9 +192,9 @@ class DBManager:
             return [Transaction(t) for t in transactions]
         return None
 
-    def get_sorted_transactions(self, key: str) -> list[Transaction] | None:
-        logger.info(f"Get transactions sorted by {key}")
-        transactions = self.__execute(SORTED_TRANSACTIONS, key)
+    def get_sorted_transactions(self) -> list[Transaction] | None:
+        logger.info("Get transactions sorted by date")
+        transactions = self.__execute(SORTED_TRANSACTIONS)
         if transactions:
             return [Transaction(t) for t in transactions]
         return None

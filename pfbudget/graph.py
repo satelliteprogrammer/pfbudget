@@ -1,242 +1,98 @@
+from __future__ import annotations
+from calendar import monthrange
+from dateutil.rrule import rrule, MONTHLY
+from typing import TYPE_CHECKING
+import datetime as dt
 import matplotlib.pyplot as plt
 
-from .categories import (
-    get_income_categories,
-    get_fixed_expenses,
-    get_required_expenses,
-    get_health_expenses,
-    get_discretionary_expenses,
-)
-from .transactions import load_transactions, daterange, by_month_and_category
+import pfbudget.categories as categories
+
+if TYPE_CHECKING:
+    from pfbudget.database import DBManager
 
 
-def monthly(state, start, end):
-    transactions = load_transactions(state.data_dir)
-    if not start:
-        start = transactions[0].date
-    if not end:
-        end = transactions[-1].date
-
-    income, fixed, required, health, discretionary = [], [], [], [], []
-    monthly_transactions_by_categories = by_month_and_category(transactions, start, end)
-
-    for _, transactions_by_category in monthly_transactions_by_categories.items():
-        income.append(
-            sum(
-                float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_income_categories()
-                for t in transactions
-            )
+def monthly(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
+    transactions = db.get_daterange(start, end)
+    start, end = transactions[0].date, transactions[-1].date
+    monthly_transactions = tuple(
+        (
+            month,
+            {
+                group: sum(
+                    transaction.value
+                    for transaction in transactions
+                    if transaction.category in categories
+                    and month
+                    <= transaction.date
+                    <= month
+                    + dt.timedelta(days=monthrange(month.year, month.month)[1] - 1)
+                )
+                for group, categories in categories.groups.items()
+            },
         )
-        fixed.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_fixed_expenses()
-                for t in transactions
+        for month in [
+            month.date()
+            for month in rrule(
+                MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1)
             )
-        )
-        required.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_required_expenses()
-                for t in transactions
-            )
-        )
-        health.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_health_expenses()
-                for t in transactions
-            )
-        )
-        discretionary.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_discretionary_expenses()
-                for t in transactions
-            )
-        )
-
-    plt.figure(figsize=(30, 10))
-    plt.plot(daterange(start, end, "month"), income, label="Income")
-    plt.stackplot(
-        daterange(start, end, "month"),
-        fixed,
-        required,
-        health,
-        discretionary,
-        labels=["Fixed", "Required", "Health", "Discretionary"],
+        ]
     )
-    plt.legend(loc="upper left")
-    plt.tight_layout()
-    plt.savefig("graph.png")
-
-
-def discrete(state, start, end):
-    transactions = load_transactions(state.data_dir)
-    if not start:
-        start = transactions[0].date
-    if not end:
-        end = transactions[-1].date
-
-    income, fixed, required, health, discretionary = [], [], [], [], []
-    monthly_transactions_by_categories = by_month_and_category(transactions, start, end)
-
-    for _, transactions_by_category in monthly_transactions_by_categories.items():
-        income.append(
-            sum(
-                float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_income_categories()
-                for t in transactions
-            )
-        )
-        fixed.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_fixed_expenses()
-                for t in transactions
-            )
-        )
-        required.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_required_expenses()
-                for t in transactions
-            )
-        )
-        health.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_health_expenses()
-                for t in transactions
-            )
-        )
-        d = []
-        for category, transactions in transactions_by_category.items():
-            if category in get_discretionary_expenses():
-                try:
-                    d.append(sum(-float(t.value) for t in transactions))
-                except TypeError:
-                    d.append(0)
-
-        discretionary.append(d)
-
-    # transposing discretionary
-    discretionary = list(map(list, zip(*discretionary)))
 
     plt.figure(figsize=(30, 10))
-    plt.plot(daterange(start, end, "month"), income, label="Income")
-    plt.stackplot(
-        daterange(start, end, "month"),
-        fixed,
-        required,
-        health,
-        *discretionary,
-        labels=["Fixed", "Required", "Health", *get_discretionary_expenses()],
+    plt.plot(
+        list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
+        [groups["income"] for _, groups in monthly_transactions],
     )
-    plt.legend(loc="upper left")
-    plt.grid()
-    plt.tight_layout()
-    plt.savefig("graph.png")
-
-
-def average(state, start, end):
-    transactions = load_transactions(state.data_dir)
-
-    income, fixed, required, health, discretionary = [], [], [], [], []
-    monthly_transactions_by_categories = by_month_and_category(transactions, start, end)
-
-    for _, transactions_by_category in monthly_transactions_by_categories.items():
-        income.append(
-            sum(
-                float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_income_categories()
-                for t in transactions
-            )
-        )
-        fixed.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_fixed_expenses()
-                for t in transactions
-            )
-        )
-        required.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_required_expenses()
-                for t in transactions
-            )
-        )
-        health.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_health_expenses()
-                for t in transactions
-            )
-        )
-        d = []
-        for category, transactions in transactions_by_category.items():
-            if category in get_discretionary_expenses():
-                try:
-                    d.append(sum(-float(t.value) for t in transactions))
-                except TypeError:
-                    d.append(0)
-
-        discretionary.append(d)
-
-    # transposing discretionary
-    discretionary = list(map(list, zip(*discretionary)))
-
-    print(discretionary)
-
-    n = len(daterange(start, end, "month"))
-
-    avg_income = sum(income) / n
-
-    l_avg_income = [avg_income] * n
-
-    avg_fixed = [sum(fixed) / n] * n
-    avg_required = [sum(required) / n] * n
-    avg_health = [sum(health) / n] * n
-    avg_discretionary = [[sum(d) / n] * n for d in discretionary]
-
-    print(avg_discretionary)
-
-    plt.figure(figsize=(30, 10))
-    plt.plot(daterange(start, end, "month"), l_avg_income, label=f"Income {avg_income}")
     plt.stackplot(
-        daterange(start, end, "month"),
-        avg_fixed,
-        avg_required,
-        avg_health,
-        *avg_discretionary,
-        labels=[
-            f"Fixed {avg_fixed[0]/avg_income * 100}%",
-            f"Required {avg_required[0]/avg_income * 100}%",
-            f"Health {avg_health[0]/avg_income * 100}%",
-            *[
-                f"{e} {avg_discretionary[i][0]/avg_income * 100}%"
-                for i, e in enumerate(get_discretionary_expenses())
-            ],
+        list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
+        [
+            [-groups[group] for _, groups in monthly_transactions]
+            for group in categories.groups.keys()
+            if group != "income"
         ],
+        labels=[group for group in categories.groups.keys() if group != "income"],
     )
-    plt.legend(bbox_to_anchor=(1, 1), loc="upper left")
+    plt.legend(loc="upper left")
     plt.tight_layout()
-    plt.savefig(
-        "graph.png",
-        dpi=600,
+    plt.savefig("graph.png")
+
+
+def discrete(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
+    transactions = db.get_daterange(start, end)
+    start, end = transactions[0].date, transactions[-1].date
+    monthly_transactions = tuple(
+        (
+            month,
+            {
+                category: sum(
+                    transaction.value
+                    for transaction in transactions
+                    if transaction.category == category
+                    and month
+                    <= transaction.date
+                    <= month
+                    + dt.timedelta(days=monthrange(month.year, month.month)[1] - 1)
+                )
+                for category in categories.categories.keys()
+            },
+        )
+        for month in [
+            month.date()
+            for month in rrule(
+                MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1)
+            )
+        ]
     )
+
+    plt.figure(figsize=(30, 10))
+    plt.stackplot(
+        list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
+        [
+            [-categories[category] for _, categories in monthly_transactions]
+            for category in categories.categories.keys()
+        ],
+        labels=[category for category in categories.categories.keys()],
+    )
+    plt.legend(loc="upper left")
+    plt.tight_layout()
+    plt.savefig("graph.png")
