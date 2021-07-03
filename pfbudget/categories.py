@@ -28,6 +28,7 @@ Options = namedtuple(
 
 cfg = yaml.safe_load(open("categories.yaml"))
 categories = {k: Options(**v) if v else Options() for k, v in cfg.items()}
+categories["Null"] = Options()
 
 
 def categorize_data(db: DBManager):
