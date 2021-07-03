@@ -1,24 +1,29 @@
 Income1:
+  group: income
   regex:
     - company A
 
 Income2:
+  group: income
   regex:
     - transfer
   banks:
     - BankA
 
 Income3:
+  group: income
   regex:
     - company B
 
 Commute:
+  group: required
   regex:
     - uber
   regular:
     - [train, 50]
 
 Utilities:
+  group: fixed
   regex:
     - electricity
   regular:
@@ -26,24 +31,29 @@ Utilities:
     - [internet, 30.5]
 
 Groceries:
+  group: required
   regex:
     - lidl
     - e.leclerc
     - aldi
 
 Eating Out:
+  group: discretionary
   regex:
     - restaurant 1
     - restaurant 2
 
 Entertainment:
+  group: discretionary
   regex:
     - cinema
     - steam
 
 Pets:
+  group: required
 
 Medical:
+  group: health
   regex:
     - hospital
     - pharmacy
@@ -51,6 +61,7 @@ Medical:
 Miscellaneous:
 
 Travel:
+  group: discretionary
   regex:
     - ryanair
     - easyjet

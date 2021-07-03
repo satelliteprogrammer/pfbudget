@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 Options = namedtuple(
     "Options",
     [
+        "group",
         "regex",
         "banks",
         "regular",
@@ -23,11 +24,17 @@ Options = namedtuple(
         "vacations",
         "timedelta",
     ],
-    defaults=[[], [], [], [], "", [], 4],
+    defaults=["", [], [], [], [], "", [], 4],
 )
 
 cfg = yaml.safe_load(open("categories.yaml"))
 categories = {k: Options(**v) if v else Options() for k, v in cfg.items()}
+groups = {
+    group: [
+        category for category, options in categories.items() if options.group == group
+    ]
+    for group in set(category.group for category in categories.values())
+}
 categories["Null"] = Options()
 
 
