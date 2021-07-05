@@ -35,7 +35,7 @@ groups = {
     ]
     for group in set(category.group for category in categories.values())
 }
-categories["Null"] = Options()
+categories.setdefault("Null", Options())
 
 
 def categorize_data(db: DBManager):
