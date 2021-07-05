@@ -1,7 +1,5 @@
-from csv import reader, writer
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from pathlib import Path
 
 COMMENT_TOKEN = "#"
 
@@ -95,46 +93,3 @@ class Transaction:
         return "{} {} {}€ ({})".format(
             self.date.strftime("%d/%m/%y"), self.category, self.value, self.bank
         )
-
-
-def load_transactions(data_dir) -> list:
-    transactions = []
-    for df in Path(data_dir).iterdir():
-        try:
-            trs = read_transactions(df)
-        except TransactionError as e:
-            print(f"{e} -> datafile {df}")
-            raise TransactionError
-        transactions.extend(trs)
-
-    transactions.sort()
-    return transactions
-
-
-def save_transactions(data_dir, transactions):
-    files2write = set(t.file if t.modified else None for t in transactions)
-    files2write.discard(None)
-    for f in files2write:
-        trs = [t for t in transactions if t.file == f]
-        write_transactions(f, trs)
-
-
-def read_transactions(filename, encoding="utf-8") -> list:
-    try:
-        with open(filename, newline="", encoding=encoding) as f:
-            r = reader(f, delimiter="\t")
-            transactions = [
-                Transaction(row, file=filename)
-                for row in r
-                if row and row[0][0] != COMMENT_TOKEN
-            ]
-    except FileNotFoundError:
-        transactions = []
-
-    return transactions
-
-
-def write_transactions(file, transactions, append=False, encoding="utf-8"):
-    with open(file, "a" if append else "w", newline="", encoding=encoding) as f:
-        w = writer(f, delimiter="\t")
-        w.writerows([transaction.to_csv() for transaction in transactions])

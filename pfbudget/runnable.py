@@ -95,10 +95,6 @@ def argparser() -> argparse.ArgumentParser:
     p_report = subparsers.add_parser("report", parents=[help, period])
     p_report.set_defaults(func=report)
 
-    p_status = subparsers.add_parser("status", help="status help")
-
-    p_status.set_defaults(func=status)
-
     return parser
 
 
@@ -117,18 +113,6 @@ def parse(args):
             parse_data(db, path, args.bank)
         else:
             raise FileNotFoundError
-
-
-def status(state, args):
-    """Status
-
-    Prints the state file.
-
-    Args:
-        state (PFState): Internal state of the program
-        args (dict): argparse variables
-    """
-    print(state)
 
 
 def graph(args):
