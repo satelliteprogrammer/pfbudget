@@ -1,78 +1,42 @@
-from .categories import (
-    get_income_categories,
-    get_fixed_expenses,
-    get_required_expenses,
-    get_health_expenses,
-    get_discretionary_expenses,
-)
-from .transactions import load_transactions, by_year_and_category
+from __future__ import annotations
+from dateutil.rrule import rrule, YEARLY
+from typing import TYPE_CHECKING
+import datetime as dt
+
+import pfbudget.categories as categories
+
+if TYPE_CHECKING:
+    from pfbudget.database import DBManager
 
 
-def net(state, start=None, end=None):
-    transactions = load_transactions(state.data_dir)
-    if not start:
-        start = transactions[0].date
-    if not end:
-        end = transactions[-1].date
+def net(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
+    transactions = db.get_daterange(start, end)
+    start, end = transactions[0].date, transactions[-1].date
 
-    income, fixed, required, health, discretionary = [], [], [], [], []
-    yearly_transactions_by_categories = by_year_and_category(transactions, start, end)
-    for _, transactions_by_category in yearly_transactions_by_categories.items():
-        income.append(
-            sum(
-                float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_income_categories()
-                for t in transactions
-            )
+    yearly_transactions = tuple(
+        (
+            year,
+            {
+                group: sum(
+                    transaction.value
+                    for transaction in transactions
+                    if transaction.category in categories
+                    and year <= transaction.date <= year.replace(month=12, day=31)
+                )
+                for group, categories in categories.groups.items()
+            },
         )
-        fixed.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_fixed_expenses()
-                for t in transactions
+        for year in [
+            year.date()
+            for year in rrule(
+                YEARLY, dtstart=start.replace(day=1), until=end.replace(day=1)
             )
-        )
-        required.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_required_expenses()
-                for t in transactions
-            )
-        )
-        health.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_health_expenses()
-                for t in transactions
-            )
-        )
-        discretionary.append(
-            sum(
-                -float(t.value)
-                for category, transactions in transactions_by_category.items()
-                if transactions and category in get_discretionary_expenses()
-                for t in transactions
-            )
-        )
+        ]
+    )
 
-    for i, year in enumerate(yearly_transactions_by_categories.keys()):
-        print(year)
-        print(
-            "Income: {:.2f}, Expenses: {:.2f}, Net: {:.2f}\n"
-            "Fixed Expenses: {:.2f}\n"
-            "Required Expenses: {:.2f}\n"
-            "Health Expenses: {:.2f}\n"
-            "Discretionary Expenses: {:.2f}\n".format(
-                income[i],
-                fixed[i] + required[i] + health[i] + discretionary[i],
-                income[i] - (fixed[i] + required[i] + health[i] + discretionary[i]),
-                fixed[i],
-                required[i],
-                health[i],
-                discretionary[i],
-            )
-        )
+    for year, groups in yearly_transactions:
+        print(year.year)
+        print(f"Income: {groups.pop('income'):.2f}€")
+        for group, value in groups.items():
+            print(f"{group.capitalize()} expenses: {value:.2f}€")
+        print()

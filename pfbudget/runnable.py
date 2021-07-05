@@ -1,12 +1,12 @@
 from pathlib import Path
 import argparse
-import datetime as dt
 
 from .categories import categorize_data
 from .database import DBManager
-from .graph import discrete, monthly
 from .parsers import parse_data
-from . import report
+import pfbudget.graph
+import pfbudget.report
+import pfbudget.utils
 
 DEFAULT_DB = "data.db"
 
@@ -67,10 +67,18 @@ def argparser() -> argparse.ArgumentParser:
         func=lambda args: categorize_data(DBManager(args.database))
     )
 
+    period = argparse.ArgumentParser(add_help=False).add_mutually_exclusive_group()
+    period.add_argument(
+        "--interval", type=str, nargs=2, help="graph interval", metavar=("START", "END")
+    )
+    period.add_argument("--start", type=str, nargs=1, help="graph start date")
+    period.add_argument("--end", type=str, nargs=1, help="graph end date")
+    period.add_argument("--year", type=str, nargs=1, help="graph year")
+
     """
     Graph
     """
-    p_graph = subparsers.add_parser("graph", parents=[help])
+    p_graph = subparsers.add_parser("graph", parents=[help, period])
     p_graph.add_argument(
         "option",
         type=str,
@@ -79,20 +87,17 @@ def argparser() -> argparse.ArgumentParser:
         default="monthly",
         help="graph option help",
     )
-    p_graph_interval = p_graph.add_mutually_exclusive_group()
-    p_graph_interval.add_argument(
-        "--interval", type=str, nargs=2, help="graph interval", metavar=("START", "END")
-    )
-    p_graph_interval.add_argument("--start", type=str, nargs=1, help="graph start date")
-    p_graph_interval.add_argument("--end", type=str, nargs=1, help="graph end date")
-    p_graph_interval.add_argument("--year", type=str, nargs=1, help="graph year")
     p_graph.set_defaults(func=graph)
 
-    p_report = subparsers.add_parser("report", help="report help")
+    """
+    Report
+    """
+    p_report = subparsers.add_parser("report", parents=[help, period])
+    p_report.set_defaults(func=report)
+
     p_status = subparsers.add_parser("status", help="status help")
 
     p_status.set_defaults(func=status)
-    p_report.set_defaults(func=f_report)
 
     return parser
 
@@ -133,39 +138,22 @@ def graph(args):
         state (PFState): Internal state of the program
         args (dict): argparse variables
     """
-    start, end = dt.date.min, dt.date.max
-    if args.start or args.interval:
-        start = dt.datetime.strptime(args.start[0], "%Y/%m/%d").date()
-
-    if args.end or args.interval:
-        end = dt.datetime.strptime(args.end[0], "%Y/%m/%d").date()
-
-    if args.interval:
-        start = dt.datetime.strptime(args.interval[0], "%Y/%m/%d").date()
-        end = dt.datetime.strptime(args.interval[1], "%Y/%m/%d").date()
-
-    if args.year:
-        start = dt.datetime.strptime(args.year[0], "%Y").date()
-        end = dt.datetime.strptime(
-            str(int(args.year[0]) + 1), "%Y"
-        ).date() - dt.timedelta(days=1)
-
+    start, end = pfbudget.utils.parse_args_period(args)
     if args.option == "monthly":
-        monthly(DBManager(args.database), start, end)
+        pfbudget.graph.monthly(DBManager(args.database), start, end)
     elif args.option == "discrete":
-        discrete(DBManager(args.database), start, end)
+        pfbudget.graph.discrete(DBManager(args.database), start, end)
 
 
-def f_report(state, args):
-    """Report
-
-    Prints a detailed report of the transactions over a period of time.
+def report(args):
+    """Prints a detailed report of the transactions over a period of time.
 
     Args:
         state (PFState): Internal state of the program
         args (dict): argparse variables
     """
-    report.net(state)
+    start, end = pfbudget.utils.parse_args_period(args)
+    pfbudget.report.net(DBManager(args.database), start, end)
 
 
 def run():
