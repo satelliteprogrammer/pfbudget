@@ -24,7 +24,7 @@ Options = namedtuple(
         "vacations",
         "timedelta",
     ],
-    defaults=["", [], [], [], [], "", [], 4],
+    defaults=["No group", [], [], [], [], "", [], 4],
 )
 
 cfg = yaml.safe_load(open("categories.yaml"))
