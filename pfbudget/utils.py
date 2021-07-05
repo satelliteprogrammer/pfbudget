@@ -1,3 +1,4 @@
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -52,3 +53,24 @@ def find_credit_institution(fn, banks, creditcards):
         raise CreditCardNotAvailableError
 
     return bank, cc
+
+
+def parse_args_period(args):
+    start, end = date.min, date.max
+    if args.start or args.interval:
+        start = datetime.strptime(args.start[0], "%Y/%m/%d").date()
+
+    if args.end or args.interval:
+        end = datetime.strptime(args.end[0], "%Y/%m/%d").date()
+
+    if args.interval:
+        start = datetime.strptime(args.interval[0], "%Y/%m/%d").date()
+        end = datetime.strptime(args.interval[1], "%Y/%m/%d").date()
+
+    if args.year:
+        start = datetime.strptime(args.year[0], "%Y").date()
+        end = datetime.strptime(str(int(args.year[0]) + 1), "%Y").date() - timedelta(
+            days=1
+        )
+
+    return start, end
