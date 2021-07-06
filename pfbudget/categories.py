@@ -28,7 +28,12 @@ Options = namedtuple(
 )
 
 cfg = yaml.safe_load(open("categories.yaml"))
-categories = {k: Options(**v) if v else Options() for k, v in cfg.items()}
+try:
+    categories = {k: Options(**v) if v else Options() for k, v in cfg.items()}
+except TypeError:
+    logging.exception("Invalid option in categories.yaml")
+    categories = {}
+
 groups = {
     group: [
         category for category, options in categories.items() if options.group == group
