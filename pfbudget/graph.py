@@ -12,7 +12,9 @@ if TYPE_CHECKING:
     from pfbudget.database import DBManager
 
 
-def monthly(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
+def monthly(
+    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
     monthly_transactions = tuple(
@@ -59,10 +61,15 @@ def monthly(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.
     )
     plt.legend(loc="upper left")
     plt.tight_layout()
-    plt.savefig("graph.png")
+    if args["save"]:
+        plt.savefig("graph.png")
+    else:
+        plt.show()
 
 
-def discrete(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
+def discrete(
+    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
     monthly_transactions = tuple(
@@ -118,4 +125,7 @@ def discrete(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date
     )
     plt.legend(loc="upper left")
     plt.tight_layout()
-    plt.savefig("graph.png")
+    if args["save"]:
+        plt.savefig("graph.png")
+    else:
+        plt.show()
