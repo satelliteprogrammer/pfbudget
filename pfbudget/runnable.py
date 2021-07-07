@@ -66,6 +66,7 @@ def argparser() -> argparse.ArgumentParser:
     p_parse.add_argument("path", nargs="+", type=str)
     p_parse.add_argument("--bank", nargs=1, type=str)
     p_parse.add_argument("--creditcard", nargs=1, type=str)
+    p_parse.add_argument("--category", nargs=1, type=int)
     p_parse.set_defaults(func=parse)
 
     """
