@@ -89,6 +89,7 @@ def argparser() -> argparse.ArgumentParser:
         default="monthly",
         help="graph option help",
     )
+    p_graph.add_argument("--save", action="store_true")
     p_graph.set_defaults(func=graph)
 
     """
@@ -126,9 +127,9 @@ def graph(args):
     """
     start, end = pfbudget.utils.parse_args_period(args)
     if args.option == "monthly":
-        pfbudget.graph.monthly(DBManager(args.database), start, end)
+        pfbudget.graph.monthly(DBManager(args.database), vars(args), start, end)
     elif args.option == "discrete":
-        pfbudget.graph.discrete(DBManager(args.database), start, end)
+        pfbudget.graph.discrete(DBManager(args.database), vars(args), start, end)
 
 
 def report(args):
