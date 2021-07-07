@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING
 import datetime as dt
 import matplotlib.pyplot as plt
 
-import pfbudget.categories as categories
+import pfbudget.categories
+
 
 if TYPE_CHECKING:
     from pfbudget.database import DBManager
@@ -27,7 +28,7 @@ def monthly(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.
                     <= month
                     + dt.timedelta(days=monthrange(month.year, month.month)[1] - 1)
                 )
-                for group, categories in categories.groups.items()
+                for group, categories in pfbudget.categories.groups.items()
             },
         )
         for month in [
@@ -47,10 +48,10 @@ def monthly(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [
             [-groups[group] for _, groups in monthly_transactions]
-            for group in categories.groups.keys()
+            for group in pfbudget.categories.groups
             if group != "income"
         ],
-        labels=[group for group in categories.groups.keys() if group != "income"],
+        labels=[group for group in pfbudget.categories.groups if group != "income"],
     )
     plt.legend(loc="upper left")
     plt.tight_layout()
@@ -73,7 +74,7 @@ def discrete(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date
                     <= month
                     + dt.timedelta(days=monthrange(month.year, month.month)[1] - 1)
                 )
-                for category in categories.categories.keys()
+                for category in pfbudget.categories.categories
             },
         )
         for month in [
@@ -85,13 +86,29 @@ def discrete(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date
     )
 
     plt.figure(figsize=(30, 10))
+    plt.plot(
+        list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
+        [
+            sum(
+                value
+                for category, value in categories.items()
+                if category in pfbudget.categories.groups["income"]
+            )
+            for _, categories in monthly_transactions
+        ],
+    )
     plt.stackplot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [
             [-categories[category] for _, categories in monthly_transactions]
-            for category in categories.categories.keys()
+            for category in pfbudget.categories.categories
+            if category not in pfbudget.categories.groups["income"]
         ],
-        labels=[category for category in categories.categories.keys()],
+        labels=[
+            category
+            for category in pfbudget.categories.categories
+            if category not in pfbudget.categories.groups["income"]
+        ],
     )
     plt.legend(loc="upper left")
     plt.tight_layout()
