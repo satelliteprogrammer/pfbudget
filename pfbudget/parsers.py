@@ -34,25 +34,25 @@ Options = namedtuple(
 )
 
 
-def parse_data(db: DBManager, filename: str, bank: list = []) -> None:
+def parse_data(db: DBManager, filename: str, args: dict) -> None:
     cfg: dict = yaml.safe_load(open("parsers.yaml"))
     assert (
         "Banks" in cfg
     ), "parsers.yaml is missing the Banks section with the list of available banks"
 
-    if not bank:
+    if not args["bank"]:
         bank, creditcard = utils.find_credit_institution(
             filename, cfg.get("Banks"), cfg.get("CreditCards")
         )
     else:
-        bank = bank[0]
-        creditcard = None
+        bank = args["bank"][0]
+        creditcard = None if not args["creditcard"] else args["creditcard"][0]
 
-    if creditcard:
+    if not creditcard:
+        options: dict = cfg[bank]
+    else:
         options: dict = cfg[bank][creditcard]
         bank += creditcard
-    else:
-        options: dict = cfg[bank]
 
     if options.get("additional_parser"):
         parser = getattr(import_module("pfbudget.parsers"), bank)

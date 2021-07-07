@@ -65,6 +65,7 @@ def argparser() -> argparse.ArgumentParser:
     p_parse = subparsers.add_parser("parse", parents=[help])
     p_parse.add_argument("path", nargs="+", type=str)
     p_parse.add_argument("--bank", nargs=1, type=str)
+    p_parse.add_argument("--creditcard", nargs=1, type=str)
     p_parse.set_defaults(func=parse)
 
     """
@@ -108,9 +109,9 @@ def parse(args):
     for path in args.path:
         if (dir := Path(path)).is_dir():
             for file in dir.iterdir():
-                parse_data(db, file, args.bank)
+                parse_data(db, file, vars(args))
         elif Path(path).is_file():
-            parse_data(db, path, args.bank)
+            parse_data(db, path, vars(args))
         else:
             raise FileNotFoundError
 
