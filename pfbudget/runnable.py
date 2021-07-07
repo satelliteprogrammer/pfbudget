@@ -30,6 +30,14 @@ def argparser() -> argparse.ArgumentParser:
     )
     help.add_argument("-q", "--quiet", help="quiet")
 
+    period = argparse.ArgumentParser(add_help=False).add_mutually_exclusive_group()
+    period.add_argument(
+        "--interval", type=str, nargs=2, help="graph interval", metavar=("START", "END")
+    )
+    period.add_argument("--start", type=str, nargs=1, help="graph start date")
+    period.add_argument("--end", type=str, nargs=1, help="graph end date")
+    period.add_argument("--year", type=str, nargs=1, help="graph year")
+
     parser = argparse.ArgumentParser(
         description="does cool finance stuff", parents=[help]
     )
@@ -66,14 +74,6 @@ def argparser() -> argparse.ArgumentParser:
     p_categorize.set_defaults(
         func=lambda args: categorize_data(DBManager(args.database))
     )
-
-    period = argparse.ArgumentParser(add_help=False).add_mutually_exclusive_group()
-    period.add_argument(
-        "--interval", type=str, nargs=2, help="graph interval", metavar=("START", "END")
-    )
-    period.add_argument("--start", type=str, nargs=1, help="graph start date")
-    period.add_argument("--end", type=str, nargs=1, help="graph end date")
-    period.add_argument("--year", type=str, nargs=1, help="graph year")
 
     """
     Graph
