@@ -49,6 +49,9 @@ Entertainment:
     - cinema
     - steam
 
+Investment:
+  group: investment
+
 Pets:
   group: required
 

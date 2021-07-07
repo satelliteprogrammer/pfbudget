@@ -49,9 +49,13 @@ def monthly(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.
         [
             [-groups[group] for _, groups in monthly_transactions]
             for group in pfbudget.categories.groups
-            if group != "income"
+            if group != "income" and group != "investment"
         ],
-        labels=[group for group in pfbudget.categories.groups if group != "income"],
+        labels=[
+            group
+            for group in pfbudget.categories.groups
+            if group != "income" and group != "investment"
+        ],
     )
     plt.legend(loc="upper left")
     plt.tight_layout()
@@ -103,11 +107,13 @@ def discrete(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date
             [-categories[category] for _, categories in monthly_transactions]
             for category in pfbudget.categories.categories
             if category not in pfbudget.categories.groups["income"]
+            and category not in pfbudget.categories.groups["investment"]
         ],
         labels=[
             category
             for category in pfbudget.categories.categories
             if category not in pfbudget.categories.groups["income"]
+            and category not in pfbudget.categories.groups["investment"]
         ],
     )
     plt.legend(loc="upper left")
