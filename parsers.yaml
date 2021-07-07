@@ -12,6 +12,10 @@ default: &default
   encoding: utf-8
   separator: "\t"
   date_fmt: "%Y-%m-%d"
+  debit:
+    date: 0
+    text: 1
+    value: 3
 
 Bank1:
   <<: *default
