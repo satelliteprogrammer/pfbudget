@@ -26,11 +26,12 @@ Options = namedtuple(
         "debit",
         "credit",
         "additional_parser",
+        "category",
         "VISA",
         "MasterCard",
         "AmericanExpress",
     ],
-    defaults=["", "", "", 1, None, Index(), Index(), False, None, None, None],
+    defaults=["", "", "", 1, None, Index(), Index(), False, None, None, None, None],
 )
 
 
@@ -53,6 +54,9 @@ def parse_data(db: DBManager, filename: str, args: dict) -> None:
     else:
         options: dict = cfg[bank][creditcard]
         bank += creditcard
+
+    if args["category"]:
+        options["category"] = args["category"][0]
 
     if options.get("additional_parser"):
         parser = getattr(import_module("pfbudget.parsers"), bank)
@@ -130,7 +134,12 @@ class Parser:
         value = utils.parse_decimal(line[index.value])
         if index.negate:
             value = -value
-        transaction = Transaction(date, text, bank, value)
+
+        if options.category:
+            category = line[options.category]
+            transaction = Transaction(date, text, bank, value, category)
+        else:
+            transaction = Transaction(date, text, bank, value, options.category)
 
         if options.additional_parser:
             func(transaction)
