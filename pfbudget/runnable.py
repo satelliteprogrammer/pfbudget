@@ -1,5 +1,6 @@
 from pathlib import Path
 import argparse
+import re
 
 from .categories import categorize_data
 from .database import DBManager
@@ -41,7 +42,14 @@ def argparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="does cool finance stuff", parents=[help]
     )
-    parser.add_argument("--version")
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=re.search(
+            r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+            open("pfbudget/__init__.py").read(),
+        ).group(1),
+    )
 
     subparsers = parser.add_subparsers(
         dest="command", required=True, help="sub-command help"
