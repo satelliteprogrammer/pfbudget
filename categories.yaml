@@ -72,8 +72,7 @@ Travel:
   negative_regex:
     - Commute
     - Utilities
-
   date_fmt: "%Y-%m-%d"
-  dates:
+  vacations:
     - ["2019-12-23", "2020-01-02"]
     - ["2020-07-01", "2020-07-30"]
