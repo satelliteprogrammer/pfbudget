@@ -27,9 +27,15 @@ class DataFileMissing(Exception):
 def argparser() -> argparse.ArgumentParser:
     help = argparse.ArgumentParser(add_help=False)
     help.add_argument(
-        "-db", "--database", help="select current database", default=DEFAULT_DB
+        "-db",
+        "--database",
+        nargs="?",
+        help="select current database",
+        default=DEFAULT_DB,
     )
-    help.add_argument("-q", "--quiet", help="quiet")
+    help.add_argument(
+        "-q", "--quiet", action="store_true", help="reduces the amount of verbose"
+    )
 
     period = argparse.ArgumentParser(add_help=False).add_mutually_exclusive_group()
     period.add_argument(
@@ -40,7 +46,9 @@ def argparser() -> argparse.ArgumentParser:
     period.add_argument("--year", type=str, nargs=1, help="graph year")
 
     parser = argparse.ArgumentParser(
-        description="does cool finance stuff", parents=[help]
+        description="does cool finance stuff",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--version",
@@ -51,26 +59,39 @@ def argparser() -> argparse.ArgumentParser:
         ).group(1),
     )
 
-    subparsers = parser.add_subparsers(
-        dest="command", required=True, help="sub-command help"
-    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
     """
     Init
     """
-    p_init = subparsers.add_parser("init", parents=[help])
+    p_init = subparsers.add_parser(
+        "init",
+        description="Initializes the SQLite3 database",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p_init.set_defaults(func=lambda args: DBManager(args.database).init())
 
     """
     Exporting
     """
-    p_export = subparsers.add_parser("export", parents=[help])
+    p_export = subparsers.add_parser(
+        "export",
+        description="Exports the selected database to a .csv file",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p_export.set_defaults(func=lambda args: DBManager(args.database).export())
 
     """
     Parsing
     """
-    p_parse = subparsers.add_parser("parse", parents=[help])
+    p_parse = subparsers.add_parser(
+        "parse",
+        description="Parses and adds the requested transactions into the selected database",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p_parse.add_argument("path", nargs="+", type=str)
     p_parse.add_argument("--bank", nargs=1, type=str)
     p_parse.add_argument("--creditcard", nargs=1, type=str)
@@ -80,7 +101,12 @@ def argparser() -> argparse.ArgumentParser:
     """
     Categorizing
     """
-    p_categorize = subparsers.add_parser("categorize", parents=[help])
+    p_categorize = subparsers.add_parser(
+        "categorize",
+        description="Categorizes the transactions in the selected database",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p_categorize.set_defaults(
         func=lambda args: categorize_data(DBManager(args.database))
     )
@@ -88,7 +114,12 @@ def argparser() -> argparse.ArgumentParser:
     """
     Graph
     """
-    p_graph = subparsers.add_parser("graph", parents=[help, period])
+    p_graph = subparsers.add_parser(
+        "graph",
+        description="Graph of the transactions",
+        parents=[help, period],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p_graph.add_argument(
         "option",
         type=str,
@@ -103,7 +134,12 @@ def argparser() -> argparse.ArgumentParser:
     """
     Report
     """
-    p_report = subparsers.add_parser("report", parents=[help, period])
+    p_report = subparsers.add_parser(
+        "report",
+        description="Prints report of transaction groups",
+        parents=[help, period],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     p_report.set_defaults(func=report)
 
     return parser
@@ -130,7 +166,6 @@ def graph(args):
     """Plots the transactions over a period of time.
 
     Args:
-        state (PFState): Internal state of the program
         args (dict): argparse variables
     """
     start, end = pfbudget.utils.parse_args_period(args)
@@ -144,7 +179,6 @@ def report(args):
     """Prints a detailed report of the transactions over a period of time.
 
     Args:
-        state (PFState): Internal state of the program
         args (dict): argparse variables
     """
     start, end = pfbudget.utils.parse_args_period(args)
