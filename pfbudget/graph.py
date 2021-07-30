@@ -41,7 +41,7 @@ def monthly(
         ]
     )
 
-    plt.figure(figsize=(30, 10))
+    plt.figure(tight_layout=True)
     plt.plot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [groups["income"] for _, groups in monthly_transactions],
@@ -60,7 +60,6 @@ def monthly(
         ],
     )
     plt.legend(loc="upper left")
-    plt.tight_layout()
     if args["save"]:
         plt.savefig("graph.png")
     else:
