@@ -56,11 +56,10 @@ def categorize_data(db: DBManager):
     # 3rd) Classify all else based on regex
     if transactions := db.get_uncategorized_transactions():
         for transaction in transactions:
-            if not transaction.category:
-                for name, category in categories.items():
-                    if matches(transaction, category):
-                        transaction.category = name
-                        break
+            for name, category in categories.items():
+                if matches(transaction, category):
+                    transaction.category = name
+                    break
         db.update_categories(
             [transaction for transaction in transactions if transaction.category]
         )
@@ -150,7 +149,10 @@ def nulls(db: DBManager) -> None:
 def matches(transaction: Transaction, category: Options):
     if not category.regex:
         return False
-    return any(
-        re.compile(pattern).search(transaction.description.lower())
-        for pattern in category.regex
-    )
+    try:
+        return any(
+            re.compile(pattern).search(transaction.description.lower())
+            for pattern in category.regex
+        )
+    except re.error as e:
+        print(f"{e}{transaction} {category}")

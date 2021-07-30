@@ -31,7 +31,20 @@ Options = namedtuple(
         "MasterCard",
         "AmericanExpress",
     ],
-    defaults=["", "", "", 1, None, Index(), Index(), False, None, None, None, None],
+    defaults=[
+        "",
+        "",
+        "",
+        1,
+        None,
+        Index(),
+        Index(),
+        False,
+        None,
+        None,
+        None,
+        None,
+    ],
 )
 
 
@@ -88,6 +101,7 @@ class Parser:
             for line in list(open(self.filename, encoding=self.options.encoding))[
                 self.options.start - 1 : self.options.end
             ]
+            if len(line) > 2
         ]
         return transactions
 
@@ -100,9 +114,10 @@ class Parser:
                 elif line[options.credit.value]:
                     index = options.credit
             elif options.debit.date != options.credit.date:
-                if line[options.debit.date]:
+                negate = 1 if (options.debit.negate or options.credit.negate) else -1
+                if (negate * utils.parse_decimal(line[options.debit.value])) < 0:
                     index = options.debit
-                elif line[options.credit.date]:
+                else:
                     index = options.credit
             elif options.debit.text != options.credit.text:
                 if line[options.debit.text]:

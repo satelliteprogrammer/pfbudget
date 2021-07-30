@@ -1,5 +1,5 @@
 from datetime import date, datetime, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 
@@ -21,15 +21,18 @@ def parse_decimal(s: str) -> Decimal:
         return Decimal(s)
     except ValueError:
         pass
-    s = s.strip().replace(u"\xa0", "").replace(" ", "")
-    s = s.strip().replace("€", "").replace("+", "")
-    if s.rfind(",") > s.rfind("."):
-        s = s.replace(".", "")
-        i = s.rfind(",")
-        li = list(s)
-        li[i] = "."
-        s = "".join(li)
-    return Decimal(s.replace(",", ""))
+    try:
+        d = s.strip().replace("\xa0", "").replace(" ", "")
+        d = d.replace("€", "").replace("+", "").replace("EUR", "").strip()
+        if d.rfind(",") > d.rfind("."):
+            d = d.replace(".", "")
+            i = d.rfind(",")
+            li = list(d)
+            li[i] = "."
+            d = "".join(li)
+        return Decimal(d.replace(",", ""))
+    except InvalidOperation:
+        raise InvalidOperation(f"{s} -> {d}")
 
 
 def find_credit_institution(fn, banks, creditcards):
@@ -47,10 +50,10 @@ def find_credit_institution(fn, banks, creditcards):
     if not bank:
         raise WrongFilenameError
 
-    if bank not in banks:
-        raise BankNotAvailableError
-    if cc and cc not in creditcards:
-        raise CreditCardNotAvailableError
+    if bank.lower() not in [bank.lower() for bank in banks]:
+        raise BankNotAvailableError(f"{fn}: {banks}")
+    if cc and cc.lower() not in [cc.lower() for cc in creditcards]:
+        raise CreditCardNotAvailableError(f"{fn}: {banks}")
 
     return bank, cc
 
