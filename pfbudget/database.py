@@ -1,11 +1,11 @@
 from __future__ import annotations
+from decimal import Decimal
 import csv
 import datetime
 import logging
 import logging.config
 import pathlib
 import sqlite3
-from decimal import Decimal
 
 from .transactions import Transaction
 
@@ -58,6 +58,7 @@ SELECT COUNT(*), date, description, bank, value
 FROM transactions
 GROUP BY date, description, bank, value
 HAVING COUNT(*) > 1
+ORDER BY date ASC
 """
 
 SORTED_TRANSACTIONS = """
@@ -77,6 +78,7 @@ SELECT_TRANSACTIONS_BY_CATEGORY = """
 SELECT *
 FROM transactions
 WHERE category IS (?)
+ORDER BY date ASC
 """
 
 SELECT_TRANSACTIONS_BETWEEN_DATES_WITH_CATEGORY = """
@@ -84,11 +86,13 @@ SELECT *
 FROM transactions
 WHERE date BETWEEN (?) AND (?)
 AND category IS (?)
+ORDER BY date ASC
 """
 
 SELECT_TRANSACTION_BY_PERIOD = """
 SELECT EXTRACT((?) FROM date) AS (?), date, description, bank, value
 FROM transactions
+ORDER BY date ASC
 """
 
 SELECT_TRANSACTIONS_BETWEEN_DATES_WITHOUT_CATEGORIES = """
@@ -96,6 +100,7 @@ SELECT *
 FROM transactions
 WHERE date BETWEEN (?) AND (?)
 AND category NOT IN {}
+ORDER BY date ASC
 """
 
 
