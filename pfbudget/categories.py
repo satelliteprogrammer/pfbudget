@@ -19,7 +19,7 @@ Options = namedtuple(
         "regex",
         "banks",
         "regular",
-        "negative_regex",
+        "not_in_groups",
         "date_fmt",
         "vacations",
         "timedelta",
@@ -29,7 +29,9 @@ Options = namedtuple(
 
 cfg = yaml.safe_load(open("categories.yaml"))
 try:
-    categories = {k: Options(**v) if v else Options() for k, v in cfg.items()}
+    categories = {
+        k: Options(**v) if v and k != "Groups" else Options() for k, v in cfg.items()
+    }
 except TypeError:
     logging.exception("Invalid option in categories.yaml")
     categories = {}
@@ -41,6 +43,12 @@ groups = {
     for group in set(category.group for category in categories.values())
 }
 categories.setdefault("Null", Options())
+
+order = {k: i for i, k in enumerate(cfg["Groups"])}
+groups = {
+    group: groups[group]
+    for group in sorted(groups, key=lambda x: order.get(x, len(groups)))
+}
 
 
 def categorize_data(db: DBManager):
@@ -71,9 +79,11 @@ def categorize_data(db: DBManager):
         )
         for transaction in transactions:
             while True:
-                category = input(f"{transaction} category: ")
+                category = input(f"{repr(transaction)} category: ")
                 if category == "quit" or category == "exit":
                     return
+                if not category:
+                    break
                 if category not in categories:
                     print(
                         f"Category {category} doesn't exist. Please use one of {categories.keys()}"
@@ -95,20 +105,28 @@ def vacations(db: DBManager) -> None:
                 logging.warning(f"{e} continuing...")
                 continue
 
-            not_vacations = categories["Travel"].negative_regex  # default is []
+            not_in_groups = categories["Travel"].not_in_groups  # default is []
 
+            update = False
             if transactions := db.get_daterange_uncategorized_transactions(start, end):
                 for transaction in transactions:
-                    if not_vacations:
-                        for category in not_vacations:
-                            if not matches(
-                                transaction, categories.get(category, Options())
-                            ):
-                                transaction.category = "Travel"
+                    if not_in_groups:
+                        if not any(
+                            matches(
+                                transaction,
+                                categories.get(category, Options()),
+                            )
+                            for group in not_in_groups
+                            for category in groups[group]
+                        ):
+                            transaction.category = "Travel"
+                            update = True
                     else:
                         transaction.category = "Travel"
+                        update = True
 
-                db.update_categories(transactions)
+                if update:
+                    db.update_categories(transactions)
 
     except KeyError as e:
         print(e)
@@ -151,7 +169,7 @@ def matches(transaction: Transaction, category: Options):
         return False
     try:
         return any(
-            re.compile(pattern).search(transaction.description.lower())
+            re.compile(pattern.lower()).search(transaction.description.lower())
             for pattern in category.regex
         )
     except re.error as e:

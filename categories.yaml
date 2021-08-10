@@ -1,3 +1,15 @@
+Groups:
+  income:
+    color: limegreen
+  fixed:
+    color: tab:blue
+  required:
+    color: tab:orange
+  health:
+    color: tab:red
+  discretionary:
+    color: tab:brown
+
 Income1:
   group: income
   regex:
@@ -69,9 +81,9 @@ Travel:
     - ryanair
     - easyjet
     - airbnb
-  negative_regex:
-    - Commute
-    - Utilities
+  not_in_groups:
+    - income
+    - fixed
   date_fmt: "%Y-%m-%d"
   vacations:
     - ["2019-12-23", "2020-01-02"]

@@ -84,12 +84,16 @@ class Transaction:
     def __ge__(self, other):
         return self.date >= other.date
 
-    def desc(self):
-        return "{} {} {}€ ({})".format(
-            self.date.strftime("%d/%m/%y"), self.description, self.value, self.bank
+    def __repr__(self):
+        return "{} {} ({}) {}€ at {}".format(
+            self.date.strftime("%d/%m/%y"),
+            self.description,
+            self.category,
+            self.value,
+            self.bank,
         )
 
-    def __repr__(self):
-        return "{} {} {}€ ({})".format(
+    def __str__(self):
+        return "{} {} {}€ at {}".format(
             self.date.strftime("%d/%m/%y"), self.category, self.value, self.bank
         )
