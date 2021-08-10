@@ -12,6 +12,9 @@ if TYPE_CHECKING:
     from pfbudget.database import DBManager
 
 
+groups = pfbudget.categories.cfg["Groups"]
+
+
 def monthly(
     db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
 ):
@@ -45,6 +48,7 @@ def monthly(
     plt.plot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [groups["income"] for _, groups in monthly_transactions],
+        color=groups["income"]["color"],
     )
     plt.stackplot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
@@ -55,6 +59,11 @@ def monthly(
         ],
         labels=[
             group
+            for group in pfbudget.categories.groups
+            if group != "income" and group != "investment"
+        ],
+        colors=[
+            groups.get(group, {"color": "gray"})["color"]
             for group in pfbudget.categories.groups
             if group != "income" and group != "investment"
         ],
@@ -95,7 +104,7 @@ def discrete(
         ]
     )
 
-    plt.figure(figsize=(30, 10))
+    plt.figure(tight_layout=True)
     plt.plot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [
@@ -106,6 +115,7 @@ def discrete(
             )
             for _, categories in monthly_transactions
         ],
+        color=groups["income"]["color"],
     )
     plt.stackplot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
@@ -114,16 +124,18 @@ def discrete(
             for category in pfbudget.categories.categories
             if category not in pfbudget.categories.groups["income"]
             and category not in pfbudget.categories.groups["investment"]
+            and category != "Null"
         ],
         labels=[
             category
             for category in pfbudget.categories.categories
             if category not in pfbudget.categories.groups["income"]
             and category not in pfbudget.categories.groups["investment"]
+            and category != "Null"
         ],
     )
+    plt.grid()
     plt.legend(loc="upper left")
-    plt.tight_layout()
     if args["save"]:
         plt.savefig("graph.png")
     else:
