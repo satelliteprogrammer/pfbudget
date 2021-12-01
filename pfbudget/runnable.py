@@ -140,6 +140,14 @@ def argparser() -> argparse.ArgumentParser:
         parents=[help, period],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    p_report.add_argument(
+        "option",
+        type=str,
+        choices=["net", "detailed"],
+        nargs="?",
+        default="net",
+        help="report option help",
+    )
     p_report.set_defaults(func=report)
 
     return parser
@@ -184,7 +192,10 @@ def report(args):
         args (dict): argparse variables
     """
     start, end = pfbudget.utils.parse_args_period(args)
-    pfbudget.report.net(DBManager(args.database), start, end)
+    if args.option == "net":
+        pfbudget.report.net(DBManager(args.database), start, end)
+    elif args.option == "detailed":
+        pfbudget.report.detailed(DBManager(args.database), start, end)
 
 
 def run():
