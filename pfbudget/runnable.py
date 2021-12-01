@@ -123,7 +123,7 @@ def argparser() -> argparse.ArgumentParser:
     p_graph.add_argument(
         "option",
         type=str,
-        choices=["monthly", "discrete"],
+        choices=["monthly", "discrete", "networth"],
         nargs="?",
         default="monthly",
         help="graph option help",
@@ -173,6 +173,8 @@ def graph(args):
         pfbudget.graph.monthly(DBManager(args.database), vars(args), start, end)
     elif args.option == "discrete":
         pfbudget.graph.discrete(DBManager(args.database), vars(args), start, end)
+    elif args.option == "networth":
+        pfbudget.graph.networth(DBManager(args.database), vars(args), start, end)
 
 
 def report(args):
