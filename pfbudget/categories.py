@@ -30,7 +30,9 @@ Options = namedtuple(
 cfg = yaml.safe_load(open("categories.yaml"))
 try:
     categories = {
-        k: Options(**v) if v and k != "Groups" else Options() for k, v in cfg.items()
+        str(k): Options(**v) if v else Options()
+        for k, v in cfg.items()
+        if k and k != "Groups"
     }
 except TypeError:
     logging.exception("Invalid option in categories.yaml")
@@ -129,7 +131,7 @@ def vacations(db: DBManager) -> None:
                     db.update_categories(transactions)
 
     except KeyError as e:
-        print(e)
+        logging.exception(e)
 
 
 def nulls(db: DBManager) -> None:
