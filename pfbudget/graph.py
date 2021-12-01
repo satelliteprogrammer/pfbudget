@@ -47,25 +47,45 @@ def monthly(
     plt.figure(tight_layout=True)
     plt.plot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
-        [groups["income"] for _, groups in monthly_transactions],
+        [
+            sum(
+                value
+                for group, value in groups.items()
+                if group == "income-fixed" or group == "income-extra"
+            )
+            for _, groups in monthly_transactions
+        ],
         color=groups["income"]["color"],
+        linestyle=groups["income"]["linestyle"],
+    )
+    plt.plot(
+        list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
+        [groups["income-fixed"] for _, groups in monthly_transactions],
+        color=groups["income-fixed"]["color"],
+        linestyle=groups["income-fixed"]["linestyle"],
     )
     plt.stackplot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [
             [-groups[group] for _, groups in monthly_transactions]
             for group in pfbudget.categories.groups
-            if group != "income" and group != "investment"
+            if group != "income-fixed"
+            and group != "income-extra"
+            and group != "investment"
         ],
         labels=[
             group
             for group in pfbudget.categories.groups
-            if group != "income" and group != "investment"
+            if group != "income-fixed"
+            and group != "income-extra"
+            and group != "investment"
         ],
         colors=[
             groups.get(group, {"color": "gray"})["color"]
             for group in pfbudget.categories.groups
-            if group != "income" and group != "investment"
+            if group != "income-fixed"
+            and group != "income-extra"
+            and group != "investment"
         ],
     )
     plt.legend(loc="upper left")
@@ -111,25 +131,42 @@ def discrete(
             sum(
                 value
                 for category, value in categories.items()
-                if category in pfbudget.categories.groups["income"]
+                if category in pfbudget.categories.groups["income-fixed"]
+                or category in pfbudget.categories.groups["income-extra"]
             )
             for _, categories in monthly_transactions
         ],
         color=groups["income"]["color"],
+        linestyle=groups["income"]["linestyle"],
+    )
+    plt.plot(
+        list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
+        [
+            sum(
+                value
+                for category, value in categories.items()
+                if category in pfbudget.categories.groups["income-fixed"]
+            )
+            for _, categories in monthly_transactions
+        ],
+        color=groups["income-fixed"]["color"],
+        linestyle=groups["income-fixed"]["linestyle"],
     )
     plt.stackplot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [
             [-categories[category] for _, categories in monthly_transactions]
             for category in pfbudget.categories.categories
-            if category not in pfbudget.categories.groups["income"]
+            if category not in pfbudget.categories.groups["income-fixed"]
+            and category not in pfbudget.categories.groups["income-extra"]
             and category not in pfbudget.categories.groups["investment"]
             and category != "Null"
         ],
         labels=[
             category
             for category in pfbudget.categories.categories
-            if category not in pfbudget.categories.groups["income"]
+            if category not in pfbudget.categories.groups["income-fixed"]
+            and category not in pfbudget.categories.groups["income-extra"]
             and category not in pfbudget.categories.groups["investment"]
             and category != "Null"
         ],

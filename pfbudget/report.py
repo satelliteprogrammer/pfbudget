@@ -3,7 +3,7 @@ from dateutil.rrule import rrule, YEARLY
 from typing import TYPE_CHECKING
 import datetime as dt
 
-import pfbudget.categories as categories
+import pfbudget.categories
 
 if TYPE_CHECKING:
     from pfbudget.database import DBManager
@@ -23,7 +23,7 @@ def net(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max)
                     if transaction.category in categories
                     and year <= transaction.date <= year.replace(month=12, day=31)
                 )
-                for group, categories in categories.groups.items()
+                for group, categories in pfbudget.categories.groups.items()
             },
         )
         for year in [
@@ -35,8 +35,29 @@ def net(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max)
     )
 
     for year, groups in yearly_transactions:
-        print(year.year)
-        print(f"Income: {groups.pop('income'):.2f}€")
+        print(f"\n{year.year}\n")
+
+        income = groups.pop("income-fixed") + groups.pop("income-extra")
+        print(f"Income: {income:.2f} €\n")
+
+        investments = -groups.pop("investment")
+
+        expenses = 0
         for group, value in groups.items():
-            print(f"{group.capitalize()} expenses: {value:.2f}€")
-        print()
+            expenses -= value
+            if income != 0:
+                print(
+                    f"{group.capitalize()} expenses: {-value:.2f} € ({-value/income*100:.1f}%)"
+                )
+            else:
+                print(f"{group.capitalize()} expenses: {-value:.2f} €")
+
+        print(f"\nNet total: {income-expenses:.2f} €")
+        if income != 0:
+            print(
+                f"Total expenses are {expenses:.2f} ({expenses/income*100:.1f}% of income)\n"
+            )
+        else:
+            print(f"Total expenses are {expenses:.2f}. No income this year!\n")
+
+        print(f"Invested: {investments:.2f}€\n")

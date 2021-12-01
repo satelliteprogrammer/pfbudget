@@ -1,29 +1,38 @@
 Groups:
+  income-fixed:
+    color: limegreen
+    linestyle: dashed
+  income-extra:
+    color: limegreen
+    linestyle: dashed
   income:
     color: limegreen
+    linestyle: solid
   fixed:
     color: tab:blue
   required:
     color: tab:orange
   health:
     color: tab:red
+  travel:
+    color: tab:cyan
   discretionary:
     color: tab:brown
 
 Income1:
-  group: income
+  group: income-fixed
   regex:
     - company A
 
 Income2:
-  group: income
+  group: income-fixed
   regex:
     - transfer
   banks:
     - BankA
 
 Income3:
-  group: income
+  group: income-extra
   regex:
     - company B
 
@@ -76,13 +85,14 @@ Medical:
 Miscellaneous:
 
 Travel:
-  group: discretionary
+  group: travel
   regex:
     - ryanair
     - easyjet
     - airbnb
   not_in_groups:
-    - income
+    - income-fixed
+    - income-extra
     - fixed
   date_fmt: "%Y-%m-%d"
   vacations:
