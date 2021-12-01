@@ -15,6 +15,8 @@ class Transaction:
         self.bank = ""
         self.value = 0
         self.category = None
+        self.original = ""
+        self.additional_comment = ""
 
         arg = args[0] if len(args) == 1 else list(args)
         try:
@@ -29,6 +31,8 @@ class Transaction:
             else:
                 self.value = Decimal(args[3])
             self.category = arg[4]
+            self.original = arg[5]
+            self.additional_comment = arg[6]
         except IndexError:
             pass
         except InvalidOperation:
