@@ -20,12 +20,14 @@ sqlite3.register_adapter(Decimal, lambda d: float(d))
 __DB_NAME = "data.db"
 
 CREATE_TRANSACTIONS_TABLE = """
-CREATE TABLE IF NOT EXISTS transactions (
-    date TEXT NOT NULL,
-    description TEXT,
-    bank TEXT,
-    value REAL NOT NULL,
-    category TEXT
+CREATE TABLE IF NOT EXISTS "transactions" (
+    "date" TEXT NOT NULL,
+    "description" TEXT,
+    "bank" TEXT NOT NULL,
+    "value" REAL NOT NULL,
+    "category" TEXT,
+    "original" TEXT,
+    "additional comments" TEXT
 );
 """
 
