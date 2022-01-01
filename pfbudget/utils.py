@@ -44,7 +44,7 @@ def find_credit_institution(fn, banks, creditcards):
         except ValueError:
             if not bank:
                 bank = i
-            else:
+            elif not cc:
                 cc = i
 
     if not bank:
