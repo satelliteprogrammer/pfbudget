@@ -60,10 +60,10 @@ def find_credit_institution(fn, banks, creditcards):
 
 def parse_args_period(args):
     start, end = date.min, date.max
-    if args.start or args.interval:
+    if args.start:
         start = datetime.strptime(args.start[0], "%Y/%m/%d").date()
 
-    if args.end or args.interval:
+    if args.end:
         end = datetime.strptime(args.end[0], "%Y/%m/%d").date()
 
     if args.interval:
