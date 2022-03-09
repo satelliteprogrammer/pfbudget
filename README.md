@@ -29,6 +29,7 @@ Create graphs and reports
 
 ## ToDo
 - [ ] Support regular transactions from fixed group in categories
+- [ ] Add one table for user inputed transactions and other for fixes
 - [ ] Predicting future expenses
 - [ ] Finish writing the README.md
 - [ ] Implement undo/redo feature in sqlite3 database
