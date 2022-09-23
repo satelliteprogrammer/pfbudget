@@ -53,7 +53,6 @@ def find_credit_institution(fn, banks, creditcards):
     if bank.lower() not in [bank.lower() for bank in banks]:
         raise BankNotAvailableError(f"{fn} -> {bank}: {banks}")
     if cc and cc.lower() not in [cc.lower() for cc in creditcards]:
-        # raise CreditCardNotAvailableError(f"{fn}: {banks}")
         print(f"{fn} -> {cc} not in {creditcards}, using {bank} parser")
         cc = None
 

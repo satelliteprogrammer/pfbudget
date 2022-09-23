@@ -7,7 +7,7 @@ import logging.config
 import pathlib
 import sqlite3
 
-from .transactions import Transaction
+from ..core.transactions import Transaction
 
 
 if not pathlib.Path("logs").is_dir():

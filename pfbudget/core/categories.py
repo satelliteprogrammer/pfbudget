@@ -8,8 +8,8 @@ import yaml
 
 
 if TYPE_CHECKING:
-    from pfbudget.database import DBManager
-    from pfbudget.transactions import Transaction
+    from pfbudget.db.manager import DBManager
+    from pfbudget.core.transactions import Transaction
 
 
 Options = namedtuple(

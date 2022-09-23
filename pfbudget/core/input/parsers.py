@@ -1,16 +1,11 @@
-from __future__ import annotations
 from collections import namedtuple
 from decimal import Decimal
 from importlib import import_module
-from typing import TYPE_CHECKING
 import datetime as dt
 import yaml
 
-from .transactions import Transaction
-from . import utils
-
-if TYPE_CHECKING:
-    from .database import DBManager
+from pfbudget.core.transactions import Transaction
+from pfbudget.utils import utils
 
 Index = namedtuple(
     "Index", ["date", "text", "value", "negate"], defaults=[-1, -1, -1, False]

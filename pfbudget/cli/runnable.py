@@ -2,12 +2,15 @@ from pathlib import Path
 import argparse
 import re
 
-from .categories import categorize_data
-from .database import DBManager
-from .parsers import parse_data
-import pfbudget.graph
-import pfbudget.report
+from pfbudget.core.categories import categorize_data
+from pfbudget.core.input.parsers import parse_data
+from pfbudget.db.client import DBManager
+import pfbudget.reporting.graph
+import pfbudget.reporting.report
 import pfbudget.utils
+
+from pfbudget.core.input.nordigen import Client
+
 
 DEFAULT_DB = "data.db"
 
@@ -150,6 +153,56 @@ def argparser() -> argparse.ArgumentParser:
     )
     p_report.set_defaults(func=report)
 
+    """
+    Init Nordigen session: get new access token
+    """
+    p_nordigen_access = subparsers.add_parser(
+        "init",
+        description="Get new access token",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_nordigen_access.set_defaults(func=lambda args: Client().token())
+
+    """
+    Access to Nordigen API
+    """
+    p_nordigen_access = subparsers.add_parser(
+        "renew",
+        description="Renew the requisition ID",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_nordigen_access.add_argument("institution", nargs=1, type=str)
+    p_nordigen_access.add_argument("country", nargs=1, type=str)
+    p_nordigen_access.set_defaults(
+        func=lambda args: Client().requisition(args.institution[0], args.country[0])
+    )
+
+    """
+    Downloading through Nordigen API
+    """
+    p_nordigen_download = subparsers.add_parser(
+        "download",
+        description="Downloads transactions using Nordigen API",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_nordigen_download.add_argument("id", nargs=1, type=str)
+    p_nordigen_download.set_defaults(func=lambda args: Client().download(args.id[0]))
+
+    """
+    List available banks to download from
+    """
+    p_nordigen_list = subparsers.add_parser(
+        "list",
+        description="Lists banks in {country}",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_nordigen_list.add_argument("country", nargs=1, type=str)
+    p_nordigen_list.set_defaults(func=lambda args: Client().banks(args.country[0]))
+
     return parser
 
 
@@ -178,11 +231,11 @@ def graph(args):
     """
     start, end = pfbudget.utils.parse_args_period(args)
     if args.option == "monthly":
-        pfbudget.graph.monthly(DBManager(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.monthly(DBManager(args.database), vars(args), start, end)
     elif args.option == "discrete":
-        pfbudget.graph.discrete(DBManager(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.discrete(DBManager(args.database), vars(args), start, end)
     elif args.option == "networth":
-        pfbudget.graph.networth(DBManager(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.networth(DBManager(args.database), vars(args), start, end)
 
 
 def report(args):
@@ -193,9 +246,9 @@ def report(args):
     """
     start, end = pfbudget.utils.parse_args_period(args)
     if args.option == "net":
-        pfbudget.report.net(DBManager(args.database), start, end)
+        pfbudget.reporting.report.net(DBManager(args.database), start, end)
     elif args.option == "detailed":
-        pfbudget.report.detailed(DBManager(args.database), start, end)
+        pfbudget.reporting.report.detailed(DBManager(args.database), start, end)
 
 
 def run():
