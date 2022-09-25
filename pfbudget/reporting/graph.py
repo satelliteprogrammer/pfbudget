@@ -9,14 +9,14 @@ import pfbudget.core.categories
 
 
 if TYPE_CHECKING:
-    from pfbudget.db.manager import DBManager
+    from pfbudget.db.client import DatabaseClient
 
 
 groups = pfbudget.core.categories.cfg["Groups"]
 
 
 def monthly(
-    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+    db: DatabaseClient, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
 ):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
@@ -96,7 +96,7 @@ def monthly(
 
 
 def discrete(
-    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+    db: DatabaseClient, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
 ):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
@@ -180,7 +180,7 @@ def discrete(
 
 
 def networth(
-    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+    db: DatabaseClient, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
 ):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date

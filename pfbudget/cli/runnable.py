@@ -2,9 +2,9 @@ from pathlib import Path
 import argparse
 import re
 
+from pfbudget.core.manager import Manager
 from pfbudget.core.categories import categorize_data
-from pfbudget.core.input.parsers import parse_data
-from pfbudget.db.client import DBManager
+from pfbudget.db.client import DatabaseClient
 import pfbudget.reporting.graph
 import pfbudget.reporting.report
 import pfbudget.utils
@@ -12,7 +12,7 @@ import pfbudget.utils
 from pfbudget.core.input.nordigen import Client
 
 
-DEFAULT_DB = "data.db"
+DEFAULT_DB = "stub.db"
 
 
 class PfBudgetInitialized(Exception):
@@ -27,7 +27,8 @@ class DataFileMissing(Exception):
     pass
 
 
-def argparser() -> argparse.ArgumentParser:
+def argparser(manager: Manager) -> argparse.ArgumentParser:
+
     help = argparse.ArgumentParser(add_help=False)
     help.add_argument(
         "-db",
@@ -73,7 +74,7 @@ def argparser() -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_init.set_defaults(func=lambda args: DBManager(args.database).init())
+    p_init.set_defaults(func=lambda args: DatabaseClient(args.database).init())
 
     """
     Exporting
@@ -84,7 +85,7 @@ def argparser() -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_export.set_defaults(func=lambda args: DBManager(args.database).export())
+    p_export.set_defaults(func=lambda args: DatabaseClient(args.database).export())
 
     """
     Parsing
@@ -99,7 +100,7 @@ def argparser() -> argparse.ArgumentParser:
     p_parse.add_argument("--bank", nargs=1, type=str)
     p_parse.add_argument("--creditcard", nargs=1, type=str)
     p_parse.add_argument("--category", nargs=1, type=int)
-    p_parse.set_defaults(func=parse)
+    p_parse.set_defaults(func=lambda args: parse(manager, args))
 
     """
     Categorizing
@@ -111,7 +112,7 @@ def argparser() -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_categorize.set_defaults(
-        func=lambda args: categorize_data(DBManager(args.database))
+        func=lambda args: categorize_data(DatabaseClient(args.database))
     )
 
     """
@@ -206,19 +207,18 @@ def argparser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse(args):
+def parse(manager: Manager, args):
     """Parses the contents of the path in args to the selected database.
 
     Args:
         args (dict): argparse variables
     """
-    db = DBManager(args.database)
     for path in args.path:
         if (dir := Path(path)).is_dir():
             for file in dir.iterdir():
-                parse_data(db, file, vars(args))
+                manager.parse(file, vars(args))
         elif Path(path).is_file():
-            parse_data(db, path, vars(args))
+            manager.parse(path, vars(args))
         else:
             raise FileNotFoundError
 
@@ -231,11 +231,11 @@ def graph(args):
     """
     start, end = pfbudget.utils.parse_args_period(args)
     if args.option == "monthly":
-        pfbudget.reporting.graph.monthly(DBManager(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.monthly(DatabaseClient(args.database), vars(args), start, end)
     elif args.option == "discrete":
-        pfbudget.reporting.graph.discrete(DBManager(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.discrete(DatabaseClient(args.database), vars(args), start, end)
     elif args.option == "networth":
-        pfbudget.reporting.graph.networth(DBManager(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.networth(DatabaseClient(args.database), vars(args), start, end)
 
 
 def report(args):
@@ -246,11 +246,12 @@ def report(args):
     """
     start, end = pfbudget.utils.parse_args_period(args)
     if args.option == "net":
-        pfbudget.reporting.report.net(DBManager(args.database), start, end)
+        pfbudget.reporting.report.net(DatabaseClient(args.database), start, end)
     elif args.option == "detailed":
-        pfbudget.reporting.report.detailed(DBManager(args.database), start, end)
+        pfbudget.reporting.report.detailed(DatabaseClient(args.database), start, end)
 
 
 def run():
-    args = argparser().parse_args()
+    manager = Manager(DEFAULT_DB)
+    args = argparser(manager).parse_args()
     args.func(args)

@@ -6,10 +6,10 @@ import datetime as dt
 import pfbudget.core.categories
 
 if TYPE_CHECKING:
-    from pfbudget.db.manager import DBManager
+    from pfbudget.db.client import DatabaseClient
 
 
-def net(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
+def net(db: DatabaseClient, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
 
@@ -63,7 +63,7 @@ def net(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max)
         print(f"Invested: {investments:.2f}€\n")
 
 
-def detailed(db: DBManager, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
+def detailed(db: DatabaseClient, start: dt.date = dt.date.min, end: dt.date = dt.date.max):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
 

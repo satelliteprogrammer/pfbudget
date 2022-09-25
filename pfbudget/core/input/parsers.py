@@ -43,7 +43,7 @@ Options = namedtuple(
 )
 
 
-def parse_data(db: DBManager, filename: str, args: dict) -> None:
+def parse_data(filename: str, args: dict) -> None:
     cfg: dict = yaml.safe_load(open("parsers.yaml"))
     assert (
         "Banks" in cfg
@@ -72,7 +72,7 @@ def parse_data(db: DBManager, filename: str, args: dict) -> None:
     else:
         transactions = Parser(filename, bank, options).parse()
 
-    db.insert_transactions(transactions)
+    return transactions
 
 
 class Parser:

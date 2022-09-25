@@ -7,7 +7,8 @@ import logging.config
 import pathlib
 import sqlite3
 
-from ..core.transactions import Transaction
+from pfbudget.core.transactions import Transaction
+import pfbudget.db.schema as Q
 
 
 if not pathlib.Path("logs").is_dir():
@@ -19,94 +20,8 @@ sqlite3.register_adapter(Decimal, lambda d: float(d))
 
 __DB_NAME = "data.db"
 
-CREATE_TRANSACTIONS_TABLE = """
-CREATE TABLE IF NOT EXISTS "transactions" (
-    "date" TEXT NOT NULL,
-    "description" TEXT,
-    "bank" TEXT NOT NULL,
-    "value" REAL NOT NULL,
-    "category" TEXT,
-    "original" TEXT,
-    "additional comments" TEXT
-);
-"""
 
-CREATE_BACKUPS_TABLE = """
-CREATE TABLE IF NOT EXISTS backups (
-    datetime TEXT NOT NULL,
-    file TEXT NOT NULL
-)
-"""
-
-CREATE_BANKS_TABLE = """
-CREATE TABLE banks (
-    name TEXT NOT NULL PRIMARY KEY,
-    url TEXT
-)
-"""
-
-ADD_TRANSACTION = """
-INSERT INTO transactions (date, description, bank, value, category) values (?,?,?,?,?)
-"""
-
-UPDATE_CATEGORY = """
-UPDATE transactions
-SET category = (?)
-WHERE date = (?) AND description = (?) AND bank = (?) AND value = (?)
-"""
-
-DUPLICATED_TRANSACTIONS = """
-SELECT COUNT(*), date, description, bank, value
-FROM transactions
-GROUP BY date, description, bank, value
-HAVING COUNT(*) > 1
-ORDER BY date ASC
-"""
-
-SORTED_TRANSACTIONS = """
-SELECT *
-FROM transactions
-ORDER BY date ASC
-"""
-
-SELECT_TRANSACTIONS_BETWEEN_DATES = """
-SELECT *
-FROM transactions
-WHERE date BETWEEN (?) AND (?)
-ORDER BY date ASC
-"""
-
-SELECT_TRANSACTIONS_BY_CATEGORY = """
-SELECT *
-FROM transactions
-WHERE category IS (?)
-ORDER BY date ASC
-"""
-
-SELECT_TRANSACTIONS_BETWEEN_DATES_WITH_CATEGORY = """
-SELECT *
-FROM transactions
-WHERE date BETWEEN (?) AND (?)
-AND category IS (?)
-ORDER BY date ASC
-"""
-
-SELECT_TRANSACTION_BY_PERIOD = """
-SELECT EXTRACT((?) FROM date) AS (?), date, description, bank, value
-FROM transactions
-ORDER BY date ASC
-"""
-
-SELECT_TRANSACTIONS_BETWEEN_DATES_WITHOUT_CATEGORIES = """
-SELECT *
-FROM transactions
-WHERE date BETWEEN (?) AND (?)
-AND category NOT IN {}
-ORDER BY date ASC
-"""
-
-
-class DBManager:
+class DatabaseClient:
     """SQLite DB connection manager"""
 
     __EXPORT_DIR = "export"
@@ -160,8 +75,8 @@ class DBManager:
         logging.info(f"Initializing {self.db} database")
         self.__create_tables(
             (
-                ("transactions", CREATE_TRANSACTIONS_TABLE),
-                ("backups", CREATE_BACKUPS_TABLE),
+                ("transactions", Q.CREATE_TRANSACTIONS_TABLE),
+                ("backups", Q.CREATE_BACKUPS_TABLE),
             )
         )
 
@@ -174,48 +89,47 @@ class DBManager:
 
     def insert_transaction(self, transaction: Transaction):
         logger.info(f"Adding {transaction} into {self.db}")
-        self.__execute(ADD_TRANSACTION, (transaction.to_list(),))
+        self.__execute(Q.ADD_TRANSACTION, (transaction.to_list(),))
 
-    def insert_transactions(self, transactions: list[Transaction]):
+    def insert_transactions(self, transactions: list[list]):
         logger.info(f"Adding {len(transactions)} into {self.db}")
-        transactions = [t.to_list() for t in transactions]
-        self.__executemany(ADD_TRANSACTION, transactions)
+        self.__executemany(Q.ADD_TRANSACTION, transactions)
 
     def update_category(self, transaction: Transaction):
         logger.info(f"Update {transaction} category")
-        self.__execute(UPDATE_CATEGORY, transaction.update_category())
+        self.__execute(Q.UPDATE_CATEGORY, transaction.update_category())
 
     def update_categories(self, transactions: list[Transaction]):
         logger.info(f"Update {len(transactions)} transactions' categories")
         self.__executemany(
-            UPDATE_CATEGORY,
+            Q.UPDATE_CATEGORY,
             [transaction.update_category() for transaction in transactions],
         )
 
     def get_duplicated_transactions(self) -> list[Transaction] | None:
         logger.info("Get duplicated transactions")
-        transactions = self.__execute(DUPLICATED_TRANSACTIONS)
+        transactions = self.__execute(Q.DUPLICATED_TRANSACTIONS)
         if transactions:
             return [Transaction(t) for t in transactions]
         return None
 
     def get_sorted_transactions(self) -> list[Transaction] | None:
         logger.info("Get transactions sorted by date")
-        transactions = self.__execute(SORTED_TRANSACTIONS)
+        transactions = self.__execute(Q.SORTED_TRANSACTIONS)
         if transactions:
             return [Transaction(t) for t in transactions]
         return None
 
     def get_daterange(self, start: datetime, end: datetime) -> list[Transaction] | None:
         logger.info(f"Get transactions from {start} to {end}")
-        transactions = self.__execute(SELECT_TRANSACTIONS_BETWEEN_DATES, (start, end))
+        transactions = self.__execute(Q.SELECT_TRANSACTIONS_BETWEEN_DATES, (start, end))
         if transactions:
             return [Transaction(t) for t in transactions]
         return None
 
     def get_category(self, value: str) -> list[Transaction] | None:
         logger.info(f"Get transactions where category = {value}")
-        transactions = self.__execute(SELECT_TRANSACTIONS_BY_CATEGORY, (value,))
+        transactions = self.__execute(Q.SELECT_TRANSACTIONS_BY_CATEGORY, (value,))
         if transactions:
             return [Transaction(t) for t in transactions]
         return None
@@ -227,7 +141,7 @@ class DBManager:
             f"Get transactions from {start} to {end} where category = {category}"
         )
         transactions = self.__execute(
-            SELECT_TRANSACTIONS_BETWEEN_DATES_WITH_CATEGORY, (start, end, category)
+            Q.SELECT_TRANSACTIONS_BETWEEN_DATES_WITH_CATEGORY, (start, end, category)
         )
         if transactions:
             return [Transaction(t) for t in transactions]
@@ -235,7 +149,7 @@ class DBManager:
 
     def get_by_period(self, period: str) -> list[Transaction] | None:
         logger.info(f"Get transactions by {period}")
-        transactions = self.__execute(SELECT_TRANSACTION_BY_PERIOD, period)
+        transactions = self.__execute(Q.SELECT_TRANSACTION_BY_PERIOD, period)
         if transactions:
             return [Transaction(t) for t in transactions]
         return None
@@ -252,7 +166,7 @@ class DBManager:
         self, start: datetime, end: datetime, *categories: str
     ) -> list[Transaction] | None:
         logger.info(f"Get transactions between {start} and {end} not in {categories}")
-        query = SELECT_TRANSACTIONS_BETWEEN_DATES_WITHOUT_CATEGORIES.format(
+        query = Q.SELECT_TRANSACTIONS_BETWEEN_DATES_WITHOUT_CATEGORIES.format(
             "(" + ", ".join("?" for _ in categories) + ")"
         )
         transactions = self.__execute(query, (start, end, *categories))
