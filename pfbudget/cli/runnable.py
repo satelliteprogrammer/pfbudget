@@ -2,8 +2,9 @@ from pathlib import Path
 import argparse
 import re
 
-from pfbudget.core.manager import Manager
 from pfbudget.core.categories import categorize_data
+from pfbudget.core.manager import Manager
+from pfbudget.core.input.json import JsonParser
 from pfbudget.db.client import DatabaseClient
 import pfbudget.reporting.graph
 import pfbudget.reporting.report
@@ -74,7 +75,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_init.set_defaults(func=lambda args: DatabaseClient(args.database).init())
+    p_init.set_defaults(func=lambda args: manager.init())
 
     """
     Exporting
@@ -155,10 +156,10 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_report.set_defaults(func=report)
 
     """
-    Init Nordigen session: get new access token
+    Nordigen API
     """
     p_nordigen_access = subparsers.add_parser(
-        "init",
+        "token",
         description="Get new access token",
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -204,6 +205,20 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_nordigen_list.add_argument("country", nargs=1, type=str)
     p_nordigen_list.set_defaults(func=lambda args: Client().banks(args.country[0]))
 
+    """
+    Nordigen JSONs
+    """
+    p_nordigen_json = subparsers.add_parser(
+        "json",
+        description="",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_nordigen_json.add_argument("json", nargs=1, type=str)
+    p_nordigen_json.add_argument("bank", nargs=1, type=str)
+    p_nordigen_json.add_argument("--invert", action=argparse.BooleanOptionalAction)
+    p_nordigen_json.set_defaults(func=lambda args: manager.parser(JsonParser(vars(args))))
+
     return parser
 
 
@@ -231,11 +246,17 @@ def graph(args):
     """
     start, end = pfbudget.utils.parse_args_period(args)
     if args.option == "monthly":
-        pfbudget.reporting.graph.monthly(DatabaseClient(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.monthly(
+            DatabaseClient(args.database), vars(args), start, end
+        )
     elif args.option == "discrete":
-        pfbudget.reporting.graph.discrete(DatabaseClient(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.discrete(
+            DatabaseClient(args.database), vars(args), start, end
+        )
     elif args.option == "networth":
-        pfbudget.reporting.graph.networth(DatabaseClient(args.database), vars(args), start, end)
+        pfbudget.reporting.graph.networth(
+            DatabaseClient(args.database), vars(args), start, end
+        )
 
 
 def report(args):

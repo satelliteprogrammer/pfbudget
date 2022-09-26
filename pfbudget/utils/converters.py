@@ -1,6 +1,6 @@
 from functools import singledispatch
 
-from pfbudget.core.transactions import Transaction
+from pfbudget.core.transactions import Transaction, TransactionError, Transactions
 
 
 @singledispatch
@@ -14,5 +14,15 @@ def _(t: Transaction) -> list:
 
 
 @convert.register
-def _(transactions: list) -> list[list]:
+def _(t: list) -> Transaction:
+    try:
+        return Transaction(t)
+    except TransactionError:
+        print(f"{t} is in the wrong format")
+
+
+def convert_transactions(transactions) -> list[list]:
     return [convert(c) for c in transactions]
+
+
+convert.register(type(Transactions), convert_transactions)

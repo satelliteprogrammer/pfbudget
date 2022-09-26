@@ -101,3 +101,6 @@ class Transaction:
         return "{} {} {}€ at {}".format(
             self.date.strftime("%d/%m/%y"), self.category, self.value, self.bank
         )
+
+
+Transactions = list[Transaction]
