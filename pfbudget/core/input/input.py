@@ -9,5 +9,5 @@ class Input(ABC):
         self.options = options
 
     @abstractmethod
-    def transactions(self) -> Transactions:
+    def parse(self) -> Transactions:
         return NotImplemented

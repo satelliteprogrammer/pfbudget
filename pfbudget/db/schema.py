@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 CREATE_TRANSACTIONS_TABLE = """
 CREATE TABLE IF NOT EXISTS "transactions" (
     "date" TEXT NOT NULL,
@@ -10,6 +12,9 @@ CREATE TABLE IF NOT EXISTS "transactions" (
 );
 """
 
+DbTransaction = tuple[str, str | None, str, Decimal, str | None, str | None, str | None]
+DbTransactions = list[DbTransaction]
+
 CREATE_BACKUPS_TABLE = """
 CREATE TABLE IF NOT EXISTS backups (
     datetime TEXT NOT NULL,
@@ -18,11 +23,15 @@ CREATE TABLE IF NOT EXISTS backups (
 """
 
 CREATE_BANKS_TABLE = """
-CREATE TABLE banks (
+CREATE TABLE IF NOT EXISTS banks (
     name TEXT NOT NULL PRIMARY KEY,
-    url TEXT
+    requisition TEXT,
+    invert INTEGER,
+    description TEXT
 )
 """
+
+Bank = tuple[str, str, bool]
 
 ADD_TRANSACTION = """
 INSERT INTO transactions (date, description, bank, value, category) values (?,?,?,?,?)
@@ -82,4 +91,13 @@ FROM transactions
 WHERE date BETWEEN (?) AND (?)
 AND category NOT IN {}
 ORDER BY date ASC
+"""
+
+ADD_BANK = """
+INSERT INTO banks (name, requisition, invert, description) values (?,?,?,?)
+"""
+
+DELETE_BANK = """
+DELETE FROM banks
+WHERE name = (?)
 """

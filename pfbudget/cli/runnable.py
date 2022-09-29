@@ -156,6 +156,53 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_report.set_defaults(func=report)
 
     """
+    Register bank
+    """
+    p_register = subparsers.add_parser(
+        "register",
+        description="Register a bank",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_register.add_argument(
+        "bank",
+        type=str,
+        nargs=1,
+        help="bank option help"
+    )
+    p_register.add_argument(
+        "--requisition",
+        type=str,
+        nargs=1,
+        help="requisition option help"
+    )
+    p_register.add_argument("--invert", action="store_true")
+    p_register.add_argument(
+        "--description",
+        type=str,
+        nargs="?",
+        help="description option help"
+    )
+    p_register.set_defaults(func=lambda args: manager.register(vars(args)))
+
+    """
+    Unregister bank
+    """
+    p_register = subparsers.add_parser(
+        "unregister",
+        description="Unregister a bank",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_register.add_argument(
+        "bank",
+        type=str,
+        nargs=1,
+        help="bank option help"
+    )
+    p_register.set_defaults(func=lambda args: manager.unregister(vars(args)))
+
+    """
     Nordigen API
     """
     p_nordigen_access = subparsers.add_parser(

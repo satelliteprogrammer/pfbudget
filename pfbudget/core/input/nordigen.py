@@ -22,7 +22,7 @@ class Client(Input):
 
         self._client.token = self.__token()
 
-    def transactions(self) -> Transactions:
+    def parse(self) -> Transactions:
         requisition = self._client.requisition.get_requisition_by_id(self.options["id"])
 
         for acc in requisition["accounts"]:
@@ -51,7 +51,7 @@ class Client(Input):
 
     def download(self, id: str):
         if len(id) > 0:
-            return self.transactions(id)
+            return self.parse(id)
         else:
             print("you forgot the req id")
 

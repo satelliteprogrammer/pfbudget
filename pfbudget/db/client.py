@@ -77,8 +77,11 @@ class DatabaseClient:
             (
                 ("transactions", Q.CREATE_TRANSACTIONS_TABLE),
                 ("backups", Q.CREATE_BACKUPS_TABLE),
+                ("banks", Q.CREATE_BANKS_TABLE),
             )
         )
+
+    """Transaction table methods"""
 
     def select_all(self) -> list[Transaction] | None:
         logger.info(f"Reading all transactions from {self.db}")
@@ -184,3 +187,13 @@ class DatabaseClient:
             dir.mkdir()
         with open(dir / filename, "w", newline="") as f:
             csv.writer(f, delimiter="\t").writerows(transactions)
+
+    """Banks table methods"""
+
+    def register_bank(self, bank: Q.Bank):
+        logger.info(f"Registering bank {bank[0]} with req_id={bank[1]}")
+        self.__execute(Q.ADD_BANK, (bank[0], bank[1], bank[2], bank[3]))
+
+    def unregister_bank(self, bank: str):
+        logger.info(f"Unregistering bank {bank}")
+        self.__execute(Q.DELETE_BANK, (bank,))

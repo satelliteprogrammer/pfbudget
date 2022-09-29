@@ -1,6 +1,7 @@
 from functools import singledispatch
 
 from pfbudget.core.transactions import Transaction, TransactionError, Transactions
+from pfbudget.db.schema import DbTransaction, DbTransactions
 
 
 @singledispatch
@@ -9,20 +10,35 @@ def convert(t):
 
 
 @convert.register
-def _(t: Transaction) -> list:
+def _(t: Transaction) -> DbTransaction:
     return (t.date, t.description, t.bank, t.value, t.category)
 
 
-@convert.register
-def _(t: list) -> Transaction:
+def convert_dbtransaction(db) -> Transaction:
     try:
-        return Transaction(t)
+        return Transaction(db)
     except TransactionError:
-        print(f"{t} is in the wrong format")
+        print(f"{db} is in the wrong format")
 
 
-def convert_transactions(transactions) -> list[list]:
-    return [convert(c) for c in transactions]
+convert.register(type(DbTransaction), convert_dbtransaction)
+
+
+def convert_transactions(ts: Transactions) -> DbTransactions:
+    try:
+        return [convert(t) for t in ts]
+    except TransactionError:
+        print(f"{ts} is in the wrong format")
 
 
 convert.register(type(Transactions), convert_transactions)
+
+
+def convert_dbtransactions(ts: DbTransactions) -> Transactions:
+    try:
+        return [convert(t) for t in ts]
+    except TransactionError:
+        print(f"{ts} is in the wrong format")
+
+
+convert.register(type(DbTransactions), convert_dbtransactions)
