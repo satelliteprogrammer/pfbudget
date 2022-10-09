@@ -190,12 +190,12 @@ class DatabaseClient:
 
     """Banks table methods"""
 
-    def register_bank(self, bank: Q.Bank):
-        logger.info(f"Registering bank {bank[0]} with req_id={bank[1]}")
-        self.__execute(Q.ADD_BANK, (bank[0], bank[1], bank[2], bank[3]))
+    def register_bank(self, bank: Q.DbBank):
+        logger.info(f"Registering {bank}")
+        self.__execute(Q.ADD_BANK, bank.tuple())
 
     def unregister_bank(self, bank: str):
-        logger.info(f"Unregistering bank {bank}")
+        logger.info(f"Unregistering {bank}")
         self.__execute(Q.DELETE_BANK, (bank,))
 
     def get_bank(self, key: str, value: str) -> Q.DbBank | None:

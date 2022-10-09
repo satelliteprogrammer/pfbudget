@@ -168,9 +168,6 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         "--requisition", type=str, nargs=1, help="requisition option help"
     )
     p_register.add_argument("--invert", action="store_true")
-    p_register.add_argument(
-        "--description", type=str, nargs="?", help="description option help"
-    )
     p_register.set_defaults(func=lambda args: manager.register(vars(args)))
 
     """

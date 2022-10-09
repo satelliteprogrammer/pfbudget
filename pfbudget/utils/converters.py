@@ -26,8 +26,12 @@ def _(db: DbTransaction) -> Transaction:
 
 @convert.register
 def _(db: DbBank, key: str = "") -> Bank:
-    bank = Bank(db.name, db.bic, db.requisition_id, db.invert, key=key)
-    return bank
+    return Bank(db.name, db.bic, db.requisition_id, db.invert, key=key)
+
+
+@convert.register
+def _(bank: Bank, key: str = "") -> DbBank:
+    return DbBank(bank.name, bank.bic, "", "", bank.requisition_id, bank.invert)
 
 
 @convert.register

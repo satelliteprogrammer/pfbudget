@@ -66,6 +66,16 @@ class DbBank:
     requisition_id: str
     invert: bool
 
+    def tuple(self):
+        return (
+            self.name,
+            self.bic,
+            self.nordigen_id,
+            self.nordigen_name,
+            self.requisition_id,
+            int(self.invert),
+        )
+
 
 DbBanks = list[DbBank]
 
@@ -130,7 +140,7 @@ ORDER BY date ASC
 """
 
 ADD_BANK = """
-INSERT INTO banks (name, requisition, invert, description) values (?,?,?,?)
+INSERT INTO banks (name, bic, nordigen_id, nordigen_name, requisition_id, invert) values (?,?,?,?,?,?)
 """
 
 DELETE_BANK = """

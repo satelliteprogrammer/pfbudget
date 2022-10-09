@@ -14,20 +14,9 @@ class Manager:
         client.init()
 
     def register(self, args: dict):
-        print(args)
+        bank = Bank(args["bank"][0], "", args["requisition"][0], args["invert"])
         client = DatabaseClient(self.__db)
-        client.register_bank(
-            Bank(
-                (
-                    args["bank"][0],
-                    args["requisition"][0]
-                    if args["requisition"]
-                    else args["requisition"],
-                    args["invert"],
-                    args["description"],
-                )
-            )
-        )
+        client.register_bank(convert(bank))
 
     def unregister(self, args: dict):
         client = DatabaseClient(self.__db)
