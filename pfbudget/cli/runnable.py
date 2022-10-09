@@ -219,15 +219,13 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_nordigen_download = subparsers.add_parser(
         "download",
         description="Downloads transactions using Nordigen API",
-        parents=[help],
+        parents=[help, period],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_nordigen_download.add_argument("--id", nargs="+", type=str)
     p_nordigen_download.add_argument("--name", nargs="+", type=str)
     p_nordigen_download.add_argument("--all", action="store_true")
-    p_nordigen_download.set_defaults(
-        func=lambda args: manager.parser(NordigenInput(manager, vars(args)))
-    )
+    p_nordigen_download.set_defaults(func=lambda args: download(manager, args))
 
     """
     List available banks on Nordigen API
@@ -313,6 +311,11 @@ def report(args):
 def nordigen_banks(manager: Manager, args):
     input = NordigenInput(manager)
     input.list(vars(args)["country"][0])
+
+
+def download(manager: Manager, args):
+    start, end = pfbudget.utils.parse_args_period(args)
+    manager.parser(NordigenInput(manager, vars(args), start, end))
 
 
 def run():

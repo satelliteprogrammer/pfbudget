@@ -1,3 +1,6 @@
+from datetime import date
+from time import sleep
+from requests import ReadTimeout
 from dotenv import load_dotenv
 from nordigen import NordigenClient
 from uuid import uuid4
@@ -12,7 +15,7 @@ load_dotenv()
 
 
 class NordigenInput(Input):
-    def __init__(self, manager, options: dict = {}):
+    def __init__(self, manager, options: dict = {}, start=date.min, end=date.max):
         super().__init__(manager)
         self._client = NordigenClient(
             secret_key=os.environ.get("SECRET_KEY"),
@@ -21,7 +24,7 @@ class NordigenInput(Input):
 
         self.client.token = self.__token()
 
-        print(options)
+        # print(options)
 
         if "all" in options and options["all"]:
             self.__banks = self.manager.get_banks()
@@ -36,22 +39,45 @@ class NordigenInput(Input):
         else:
             self.__banks = None
 
+        self.__from = start
+        self.__to = end
+
     def parse(self) -> Transactions:
         transactions = []
         if not self.__banks:
             raise NoBankSelected
 
         for bank in self.__banks:
+            print(f"Downloading from {bank}...")
             requisition = self.client.requisition.get_requisition_by_id(
                 bank.requisition_id
             )
 
             for acc in requisition["accounts"]:
                 account = self._client.account_api(acc)
-                d = account.get_transactions()["transactions"]
+
+                retries = 0
+                downloaded = {}
+                while retries < 3:
+                    try:
+                        downloaded = account.get_transactions()
+                        break
+                    except ReadTimeout:
+                        retries += 1
+                        print(f"Request #{retries} timed-out, waiting 1s")
+                        sleep(1)
+
+                if not downloaded:
+                    print(f"Couldn't download transactions for {account}")
+                    continue
+
+                converted = [
+                    convert(t, bank.name, bank.invert)
+                    for t in downloaded["transactions"]["booked"]
+                ]
 
                 transactions.extend(
-                    [convert(t, bank.name, bank.invert) for t in d["booked"]]
+                    [t for t in converted if self.__from <= t.date <= self.__to]
                 )
 
         return transactions
