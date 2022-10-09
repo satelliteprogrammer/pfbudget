@@ -6,8 +6,9 @@ from pfbudget.utils import convert, parse_decimal
 
 
 class JsonParser(Input):
-    def __init__(self, options):
-        super().__init__(options)
+    def __init__(self, manager, options):
+        super().__init__(manager)
+        self.options = options
 
     def parse(self) -> Transactions:
         try:

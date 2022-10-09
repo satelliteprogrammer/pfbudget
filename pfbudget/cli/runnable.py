@@ -5,7 +5,7 @@ import re
 from pfbudget.core.categories import categorize_data
 from pfbudget.core.manager import Manager
 from pfbudget.input.json import JsonParser
-from pfbudget.input.nordigen import Client
+from pfbudget.input.nordigen import NordigenInput
 from pfbudget.db.client import DatabaseClient
 import pfbudget.reporting.graph
 import pfbudget.reporting.report
@@ -163,24 +163,13 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    p_register.add_argument("bank", type=str, nargs=1, help="bank option help")
     p_register.add_argument(
-        "bank",
-        type=str,
-        nargs=1,
-        help="bank option help"
-    )
-    p_register.add_argument(
-        "--requisition",
-        type=str,
-        nargs=1,
-        help="requisition option help"
+        "--requisition", type=str, nargs=1, help="requisition option help"
     )
     p_register.add_argument("--invert", action="store_true")
     p_register.add_argument(
-        "--description",
-        type=str,
-        nargs="?",
-        help="description option help"
+        "--description", type=str, nargs="?", help="description option help"
     )
     p_register.set_defaults(func=lambda args: manager.register(vars(args)))
 
@@ -193,12 +182,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_register.add_argument(
-        "bank",
-        type=str,
-        nargs=1,
-        help="bank option help"
-    )
+    p_register.add_argument("bank", type=str, nargs=1, help="bank option help")
     p_register.set_defaults(func=lambda args: manager.unregister(vars(args)))
 
     """
@@ -210,7 +194,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_nordigen_access.set_defaults(func=lambda args: Client().token())
+    p_nordigen_access.set_defaults(func=lambda args: NordigenInput(manager).token())
 
     """
     Access to Nordigen API
@@ -224,7 +208,9 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_nordigen_access.add_argument("institution", nargs=1, type=str)
     p_nordigen_access.add_argument("country", nargs=1, type=str)
     p_nordigen_access.set_defaults(
-        func=lambda args: Client().requisition(args.institution[0], args.country[0])
+        func=lambda args: NordigenInput().requisition(
+            args.institution[0], args.country[0]
+        )
     )
 
     """
@@ -236,11 +222,15 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_nordigen_download.add_argument("id", nargs=1, type=str)
-    p_nordigen_download.set_defaults(func=lambda args: Client().download(args.id[0]))
+    p_nordigen_download.add_argument("--id", nargs="+", type=str)
+    p_nordigen_download.add_argument("--name", nargs="+", type=str)
+    p_nordigen_download.add_argument("--all", action="store_true")
+    p_nordigen_download.set_defaults(
+        func=lambda args: manager.parser(NordigenInput(manager, vars(args)))
+    )
 
     """
-    List available banks to download from
+    List available banks on Nordigen API
     """
     p_nordigen_list = subparsers.add_parser(
         "list",
@@ -249,7 +239,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_nordigen_list.add_argument("country", nargs=1, type=str)
-    p_nordigen_list.set_defaults(func=lambda args: Client().banks(args.country[0]))
+    p_nordigen_list.set_defaults(func=lambda args: nordigen_banks(manager, args))
 
     """
     Nordigen JSONs
@@ -263,7 +253,9 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_nordigen_json.add_argument("json", nargs=1, type=str)
     p_nordigen_json.add_argument("bank", nargs=1, type=str)
     p_nordigen_json.add_argument("--invert", action=argparse.BooleanOptionalAction)
-    p_nordigen_json.set_defaults(func=lambda args: manager.parser(JsonParser(vars(args))))
+    p_nordigen_json.set_defaults(
+        func=lambda args: manager.parser(JsonParser(vars(args)))
+    )
 
     return parser
 
@@ -316,6 +308,11 @@ def report(args):
         pfbudget.reporting.report.net(DatabaseClient(args.database), start, end)
     elif args.option == "detailed":
         pfbudget.reporting.report.detailed(DatabaseClient(args.database), start, end)
+
+
+def nordigen_banks(manager: Manager, args):
+    input = NordigenInput(manager)
+    input.list(vars(args)["country"][0])
 
 
 def run():

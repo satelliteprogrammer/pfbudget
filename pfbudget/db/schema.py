@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from decimal import Decimal
+import sqlite3
 
 CREATE_TRANSACTIONS_TABLE = """
 CREATE TABLE IF NOT EXISTS "transactions" (
@@ -23,6 +24,16 @@ class DbTransaction:
     category: str
     original: str
     comments: str
+
+    def __conform__(self, protocol):
+        if protocol is sqlite3.PrepareProtocol:
+            return (
+                self.date,
+                self.description,
+                self.bank,
+                self.value,
+                self.category,
+            )
 
 
 DbTransactions = list[DbTransaction]
@@ -57,7 +68,6 @@ class DbBank:
 
 
 DbBanks = list[DbBank]
-
 
 ADD_TRANSACTION = """
 INSERT INTO transactions (date, description, bank, value, category) values (?,?,?,?,?)
@@ -126,4 +136,15 @@ INSERT INTO banks (name, requisition, invert, description) values (?,?,?,?)
 DELETE_BANK = """
 DELETE FROM banks
 WHERE name = (?)
+"""
+
+SELECT_BANK = """
+SELECT *
+FROM banks
+WHERE {} = (?)
+"""
+
+SELECT_BANKS = """
+SELECT *
+FROM banks
 """

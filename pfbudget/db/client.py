@@ -94,7 +94,7 @@ class DatabaseClient:
         logger.info(f"Adding {transaction} into {self.db}")
         self.__execute(Q.ADD_TRANSACTION, (transaction.to_list(),))
 
-    def insert_transactions(self, transactions: list[list]):
+    def insert_transactions(self, transactions: Q.DbTransactions):
         logger.info(f"Adding {len(transactions)} into {self.db}")
         self.__executemany(Q.ADD_TRANSACTION, transactions)
 
@@ -197,3 +197,16 @@ class DatabaseClient:
     def unregister_bank(self, bank: str):
         logger.info(f"Unregistering bank {bank}")
         self.__execute(Q.DELETE_BANK, (bank,))
+
+    def get_bank(self, key: str, value: str) -> Q.DbBank | None:
+        logger.info(f"Get bank with {key} = {value}")
+        bank = self.__execute(Q.SELECT_BANK.format(key), (value, ))
+        if bank:
+            return Q.DbBank(*bank[0])
+
+    def get_banks(self) -> Q.DbBanks:
+        logger.info("Get all banks")
+        banks = self.__execute(Q.SELECT_BANKS)
+        if banks:
+            return [Q.DbBank(*bank) for bank in banks]
+        return []

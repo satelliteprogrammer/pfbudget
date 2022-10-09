@@ -5,39 +5,56 @@ import os
 import webbrowser
 
 from .input import Input
-from pfbudget.common.types import Transactions
-from pfbudget.utils import convert, parse_decimal
+from pfbudget.common.types import NoBankSelected, Transactions
+from pfbudget.utils import convert
 
 load_dotenv()
 
 
-class Client(Input):
-    def __init__(self, options: dict):
-        super().__init__(options)
+class NordigenInput(Input):
+    def __init__(self, manager, options: dict = {}):
+        super().__init__(manager)
         self._client = NordigenClient(
             secret_key=os.environ.get("SECRET_KEY"),
             secret_id=os.environ.get("SECRET_ID"),
         )
 
-        self._client.token = self.__token()
+        self.client.token = self.__token()
+
+        print(options)
+
+        if "all" in options and options["all"]:
+            self.__banks = self.manager.get_banks()
+        elif "id" in options and options["id"]:
+            self.__banks = [
+                self.manager.get_bank_by("nordigen_id", b) for b in options["id"]
+            ]
+        elif "name" in options and options["name"]:
+            self.__banks = [
+                self.manager.get_bank_by("name", b) for b in options["name"]
+            ]
+        else:
+            self.__banks = None
 
     def parse(self) -> Transactions:
-        requisition = self._client.requisition.get_requisition_by_id(self.options["id"])
+        transactions = []
+        if not self.__banks:
+            raise NoBankSelected
 
-        for acc in requisition["accounts"]:
-            account = self._client.account_api(acc)
-            d = account.get_transactions()["transactions"]
-            return [
-                convert(
-                    t["bookingDate"],
-                    t["remittanceInformationUnstructured"],
-                    self.options["bank"],
-                    parse_decimal(t["transactionAmount"]["amount"])
-                    if not self.options["invert"]
-                    else -parse_decimal(t["transactionAmount"]["amount"]),
+        for bank in self.__banks:
+            requisition = self.client.requisition.get_requisition_by_id(
+                bank.requisition_id
+            )
+
+            for acc in requisition["accounts"]:
+                account = self._client.account_api(acc)
+                d = account.get_transactions()["transactions"]
+
+                transactions.extend(
+                    [convert(t, bank.name, bank.invert) for t in d["booked"]]
                 )
-                for t in d["booked"]
-            ]
+
+        return transactions
 
     def token(self):
         token = self._client.generate_token()
@@ -48,13 +65,7 @@ class Client(Input):
         link, _ = self.__requisition_id(institution, country)
         webbrowser.open(link)
 
-    def download(self, id: str):
-        if len(id) > 0:
-            return self.parse(id)
-        else:
-            print("you forgot the req id")
-
-    def banks(self, country: str):
+    def list(self, country: str):
         print(self._client.institution.get_institutions(country))
 
     @property
