@@ -96,7 +96,7 @@ class DatabaseClient:
 
     def insert_transactions(self, transactions: Q.DbTransactions):
         logger.info(f"Adding {len(transactions)} into {self.db}")
-        self.__executemany(Q.ADD_TRANSACTION, transactions)
+        self.__executemany(Q.ADD_TRANSACTION, [t.tuple() for t in transactions])
 
     def update_category(self, transaction: Transaction):
         logger.info(f"Update {transaction} category")

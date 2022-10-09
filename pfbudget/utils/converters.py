@@ -13,7 +13,7 @@ def convert(t):
 
 @convert.register
 def _(t: Transaction) -> DbTransaction:
-    return (t.date, t.description, t.bank, t.value, t.category)
+    return DbTransaction(t.date, t.description, t.bank, t.value, t.category, t.original, t.additional_comment)
 
 
 @convert.register

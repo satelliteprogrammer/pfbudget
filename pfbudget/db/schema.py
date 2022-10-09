@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from decimal import Decimal
-import sqlite3
 
 CREATE_TRANSACTIONS_TABLE = """
 CREATE TABLE IF NOT EXISTS "transactions" (
@@ -25,15 +24,14 @@ class DbTransaction:
     original: str
     comments: str
 
-    def __conform__(self, protocol):
-        if protocol is sqlite3.PrepareProtocol:
-            return (
-                self.date,
-                self.description,
-                self.bank,
-                self.value,
-                self.category,
-            )
+    def tuple(self) -> tuple:
+        return (
+            self.date,
+            self.description,
+            self.bank,
+            self.value,
+            self.category,
+        )
 
 
 DbTransactions = list[DbTransaction]
