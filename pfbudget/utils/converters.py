@@ -1,11 +1,13 @@
 from functools import singledispatch
 
-from pfbudget.common.types import Transaction, Transactions, TransactionError
-from pfbudget.db.schema import DbTransaction, DbTransactions
+from pfbudget.common.types import Bank, Transaction, TransactionError
+from pfbudget.db.schema import DbBank, DbTransaction
+from .utils import parse_decimal
 
 
 @singledispatch
 def convert(t):
+    print("No converter as been found")
     pass
 
 
@@ -14,31 +16,29 @@ def _(t: Transaction) -> DbTransaction:
     return (t.date, t.description, t.bank, t.value, t.category)
 
 
-def convert_dbtransaction(db) -> Transaction:
+@convert.register
+def _(db: DbTransaction) -> Transaction:
     try:
         return Transaction(db)
     except TransactionError:
         print(f"{db} is in the wrong format")
 
 
-convert.register(type(DbTransaction), convert_dbtransaction)
+@convert.register
+def _(db: DbBank, key: str = "") -> Bank:
+    bank = Bank(db.name, db.bic, db.requisition_id, db.invert, key=key)
+    return bank
 
 
-def convert_transactions(ts: Transactions) -> DbTransactions:
+@convert.register
+def _(json: dict, bank: str, invert: bool) -> Transaction:
+    i = -1 if invert else 1
     try:
-        return [convert(t) for t in ts]
+        return Transaction(
+            json["bookingDate"],
+            json["remittanceInformationUnstructured"],
+            bank,
+            i * parse_decimal(json["transactionAmount"]["amount"]),
+        )
     except TransactionError:
-        print(f"{ts} is in the wrong format")
-
-
-convert.register(type(Transactions), convert_transactions)
-
-
-def convert_dbtransactions(ts: DbTransactions) -> Transactions:
-    try:
-        return [convert(t) for t in ts]
-    except TransactionError:
-        print(f"{ts} is in the wrong format")
-
-
-convert.register(type(DbTransactions), convert_dbtransactions)
+        print(f"{json} is in the wrong format")

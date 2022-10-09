@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from decimal import Decimal
 
 CREATE_TRANSACTIONS_TABLE = """
@@ -12,7 +13,18 @@ CREATE TABLE IF NOT EXISTS "transactions" (
 );
 """
 
-DbTransaction = tuple[str, str | None, str, Decimal, str | None, str | None, str | None]
+
+@dataclass
+class DbTransaction:
+    date: str
+    description: str
+    bank: str
+    value: Decimal
+    category: str
+    original: str
+    comments: str
+
+
 DbTransactions = list[DbTransaction]
 
 CREATE_BACKUPS_TABLE = """
@@ -25,13 +37,27 @@ CREATE TABLE IF NOT EXISTS backups (
 CREATE_BANKS_TABLE = """
 CREATE TABLE IF NOT EXISTS banks (
     name TEXT NOT NULL PRIMARY KEY,
-    requisition TEXT,
-    invert INTEGER,
-    description TEXT
+    bic TEXT,
+    nordigen_id TEXT,
+    nordigen_name TEXT,
+    requisition_id TEXT,
+    invert INTEGER
 )
 """
 
-Bank = tuple[str, str, bool]
+
+@dataclass
+class DbBank:
+    name: str
+    bic: str
+    nordigen_id: str
+    nordigen_name: str
+    requisition_id: str
+    invert: bool
+
+
+DbBanks = list[DbBank]
+
 
 ADD_TRANSACTION = """
 INSERT INTO transactions (date, description, bank, value, category) values (?,?,?,?,?)

@@ -1,7 +1,7 @@
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
-
-COMMENT_TOKEN = "#"
+from enum import Enum, auto
 
 
 class TransactionError(Exception):
@@ -104,3 +104,25 @@ class Transaction:
 
 
 Transactions = list[Transaction]
+
+
+class PrimaryKey(Enum):
+    ID = auto()
+    NAME = auto()
+    BIC = auto()
+
+
+@dataclass
+class Bank:
+    name: str
+    bic: str
+    requisition_id: str
+    invert: bool
+    key: PrimaryKey = PrimaryKey.ID
+
+
+Banks = list[Bank]
+
+
+class NoBankSelected(Exception):
+    pass
