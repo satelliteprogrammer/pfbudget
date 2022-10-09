@@ -7,7 +7,7 @@ import logging.config
 import pathlib
 import sqlite3
 
-from pfbudget.core.transactions import Transaction
+from pfbudget.common.types import Transaction
 import pfbudget.db.schema as Q
 
 

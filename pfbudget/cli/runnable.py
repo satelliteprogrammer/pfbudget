@@ -4,13 +4,12 @@ import re
 
 from pfbudget.core.categories import categorize_data
 from pfbudget.core.manager import Manager
-from pfbudget.core.input.json import JsonParser
+from pfbudget.input.json import JsonParser
+from pfbudget.input.nordigen import Client
 from pfbudget.db.client import DatabaseClient
 import pfbudget.reporting.graph
 import pfbudget.reporting.report
 import pfbudget.utils
-
-from pfbudget.core.input.nordigen import Client
 
 
 DEFAULT_DB = "stub.db"

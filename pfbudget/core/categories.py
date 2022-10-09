@@ -8,8 +8,8 @@ import yaml
 
 
 if TYPE_CHECKING:
+    from pfbudget.common.types import Transaction
     from pfbudget.db.client import DatabaseClient
-    from pfbudget.core.transactions import Transaction
 
 
 Options = namedtuple(

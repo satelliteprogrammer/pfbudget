@@ -1,9 +1,8 @@
-from pfbudget.core.input.input import Input
-from pfbudget.core.input.parsers import parse_data
-from pfbudget.core.transactions import Transaction
+from pfbudget.input.input import Input
+from pfbudget.input.parsers import parse_data
+from pfbudget.common.types import Bank, Transaction
 from pfbudget.db.client import DatabaseClient
-from pfbudget.db.schema import Bank
-from pfbudget.utils.converters import convert
+from pfbudget.utils import convert
 
 
 class Manager:

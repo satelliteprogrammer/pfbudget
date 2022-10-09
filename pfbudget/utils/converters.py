@@ -1,6 +1,6 @@
 from functools import singledispatch
 
-from pfbudget.core.transactions import Transaction, TransactionError, Transactions
+from pfbudget.common.types import Transaction, Transactions, TransactionError
 from pfbudget.db.schema import DbTransaction, DbTransactions
 
 

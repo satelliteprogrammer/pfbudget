@@ -4,7 +4,7 @@ from importlib import import_module
 import datetime as dt
 import yaml
 
-from pfbudget.core.transactions import Transaction
+from pfbudget.common.types import Transaction
 from pfbudget.utils import utils
 
 Index = namedtuple(

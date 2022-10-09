@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from pfbudget.core.transactions import Transactions
+from pfbudget.common.types import Transactions
 
 
 class Input(ABC):
