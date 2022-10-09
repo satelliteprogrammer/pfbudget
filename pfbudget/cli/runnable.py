@@ -12,7 +12,7 @@ import pfbudget.reporting.report
 import pfbudget.utils
 
 
-DEFAULT_DB = "stub.db"
+DEFAULT_DB = "data.db"
 
 
 class PfBudgetInitialized(Exception):
