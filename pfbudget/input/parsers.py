@@ -4,7 +4,7 @@ from importlib import import_module
 import datetime as dt
 import yaml
 
-from pfbudget.common.types import Transaction
+from pfbudget.common.types import NoBankSelected, Transaction, Transactions
 from pfbudget.utils import utils
 
 Index = namedtuple(
@@ -43,7 +43,7 @@ Options = namedtuple(
 )
 
 
-def parse_data(filename: str, args: dict) -> None:
+def parse_data(filename: str, args: dict) -> Transactions:
     cfg: dict = yaml.safe_load(open("parsers.yaml"))
     assert (
         "Banks" in cfg
@@ -57,17 +57,25 @@ def parse_data(filename: str, args: dict) -> None:
         bank = args["bank"][0]
         creditcard = None if not args["creditcard"] else args["creditcard"][0]
 
-    if not creditcard:
+    try:
         options: dict = cfg[bank]
-    else:
-        options: dict = cfg[bank][creditcard]
+    except KeyError as e:
+        banks = cfg["Banks"]
+        raise NoBankSelected(f"{e} not a valid bank, try one of {banks}")
+
+    if creditcard:
+        try:
+            options = options[creditcard]
+        except KeyError as e:
+            creditcards = cfg["CreditCards"]
+            raise NoBankSelected(f"{e} not a valid bank, try one of {creditcards}")
         bank += creditcard
 
     if args["category"]:
         options["category"] = args["category"][0]
 
     if options.get("additional_parser"):
-        parser = getattr(import_module("pfbudget.parsers"), bank)
+        parser = getattr(import_module("pfbudget.input.parsers"), bank)
         transactions = parser(filename, bank, options).parse()
     else:
         transactions = Parser(filename, bank, options).parse()
