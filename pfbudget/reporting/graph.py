@@ -5,18 +5,18 @@ from typing import TYPE_CHECKING
 import datetime as dt
 import matplotlib.pyplot as plt
 
-import pfbudget.categories
+import pfbudget.core.categories
 
 
 if TYPE_CHECKING:
-    from pfbudget.database import DBManager
+    from pfbudget.db.client import DatabaseClient
 
 
-groups = pfbudget.categories.cfg["Groups"]
+groups = pfbudget.core.categories.cfg["Groups"]
 
 
 def monthly(
-    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+    db: DatabaseClient, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
 ):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
@@ -33,7 +33,7 @@ def monthly(
                     <= month
                     + dt.timedelta(days=monthrange(month.year, month.month)[1] - 1)
                 )
-                for group, categories in pfbudget.categories.groups.items()
+                for group, categories in pfbudget.core.categories.groups.items()
             },
         )
         for month in [
@@ -68,21 +68,21 @@ def monthly(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [
             [-groups[group] for _, groups in monthly_transactions]
-            for group in pfbudget.categories.groups
+            for group in pfbudget.core.categories.groups
             if group != "income-fixed"
             and group != "income-extra"
             and group != "investment"
         ],
         labels=[
             group
-            for group in pfbudget.categories.groups
+            for group in pfbudget.core.categories.groups
             if group != "income-fixed"
             and group != "income-extra"
             and group != "investment"
         ],
         colors=[
             groups.get(group, {"color": "gray"})["color"]
-            for group in pfbudget.categories.groups
+            for group in pfbudget.core.categories.groups
             if group != "income-fixed"
             and group != "income-extra"
             and group != "investment"
@@ -96,7 +96,7 @@ def monthly(
 
 
 def discrete(
-    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+    db: DatabaseClient, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
 ):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
@@ -113,7 +113,7 @@ def discrete(
                     <= month
                     + dt.timedelta(days=monthrange(month.year, month.month)[1] - 1)
                 )
-                for category in pfbudget.categories.categories
+                for category in pfbudget.core.categories.categories
             },
         )
         for month in [
@@ -131,8 +131,8 @@ def discrete(
             sum(
                 value
                 for category, value in categories.items()
-                if category in pfbudget.categories.groups["income-fixed"]
-                or category in pfbudget.categories.groups["income-extra"]
+                if category in pfbudget.core.categories.groups["income-fixed"]
+                or category in pfbudget.core.categories.groups["income-extra"]
             )
             for _, categories in monthly_transactions
         ],
@@ -145,7 +145,7 @@ def discrete(
             sum(
                 value
                 for category, value in categories.items()
-                if category in pfbudget.categories.groups["income-fixed"]
+                if category in pfbudget.core.categories.groups["income-fixed"]
             )
             for _, categories in monthly_transactions
         ],
@@ -156,18 +156,18 @@ def discrete(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
         [
             [-categories[category] for _, categories in monthly_transactions]
-            for category in pfbudget.categories.categories
-            if category not in pfbudget.categories.groups["income-fixed"]
-            and category not in pfbudget.categories.groups["income-extra"]
-            and category not in pfbudget.categories.groups["investment"]
+            for category in pfbudget.core.categories.categories
+            if category not in pfbudget.core.categories.groups["income-fixed"]
+            and category not in pfbudget.core.categories.groups["income-extra"]
+            and category not in pfbudget.core.categories.groups["investment"]
             and category != "Null"
         ],
         labels=[
             category
-            for category in pfbudget.categories.categories
-            if category not in pfbudget.categories.groups["income-fixed"]
-            and category not in pfbudget.categories.groups["income-extra"]
-            and category not in pfbudget.categories.groups["investment"]
+            for category in pfbudget.core.categories.categories
+            if category not in pfbudget.core.categories.groups["income-fixed"]
+            and category not in pfbudget.core.categories.groups["income-extra"]
+            and category not in pfbudget.core.categories.groups["investment"]
             and category != "Null"
         ],
     )
@@ -180,7 +180,7 @@ def discrete(
 
 
 def networth(
-    db: DBManager, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
+    db: DatabaseClient, args: dict, start: dt.date = dt.date.min, end: dt.date = dt.date.max
 ):
     transactions = db.get_daterange(start, end)
     start, end = transactions[0].date, transactions[-1].date
@@ -193,11 +193,12 @@ def networth(
                 transaction.value
                 for transaction in transactions
                 if transaction.original != "No"
-                and transaction.category not in pfbudget.categories.groups["investment"]
+                and transaction.category not in pfbudget.core.categories.groups["investment"]
                 and month
                 <= transaction.date
                 <= month + dt.timedelta(days=monthrange(month.year, month.month)[1] - 1)
-            ) + accum
+            )
+            + accum,
         )
         for month in [
             month.date()
@@ -210,10 +211,8 @@ def networth(
     plt.figure(tight_layout=True)
     plt.plot(
         list(rrule(MONTHLY, dtstart=start.replace(day=1), until=end.replace(day=1))),
-        [
-            value for _, value in monthly_networth
-        ],
-        label="Total networth"
+        [value for _, value in monthly_networth],
+        label="Total networth",
     )
     plt.grid()
     plt.legend(loc="upper left")

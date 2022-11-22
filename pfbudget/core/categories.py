@@ -8,8 +8,8 @@ import yaml
 
 
 if TYPE_CHECKING:
-    from pfbudget.database import DBManager
-    from pfbudget.transactions import Transaction
+    from pfbudget.common.types import Transaction
+    from pfbudget.db.client import DatabaseClient
 
 
 Options = namedtuple(
@@ -53,7 +53,7 @@ groups = {
 }
 
 
-def categorize_data(db: DBManager):
+def categorize_data(db: DatabaseClient):
 
     # 1st) Classifying null transactions, i.e. transfers between banks.
     # Will not overwrite previous categories
@@ -96,7 +96,7 @@ def categorize_data(db: DBManager):
                     break
 
 
-def vacations(db: DBManager) -> None:
+def vacations(db: DatabaseClient) -> None:
     try:
         date_fmt = categories["Travel"].date_fmt
         for start, end in categories["Travel"].vacations:
@@ -134,7 +134,7 @@ def vacations(db: DBManager) -> None:
         logging.exception(e)
 
 
-def nulls(db: DBManager) -> None:
+def nulls(db: DatabaseClient) -> None:
     null = categories.get("Null", Options())
     transactions = db.get_uncategorized_transactions()
     if not transactions:

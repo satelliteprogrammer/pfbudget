@@ -1,16 +1,11 @@
-from __future__ import annotations
 from collections import namedtuple
 from decimal import Decimal
 from importlib import import_module
-from typing import TYPE_CHECKING
 import datetime as dt
 import yaml
 
-from .transactions import Transaction
-from . import utils
-
-if TYPE_CHECKING:
-    from .database import DBManager
+from pfbudget.common.types import NoBankSelected, Transaction, Transactions
+from pfbudget.utils import utils
 
 Index = namedtuple(
     "Index", ["date", "text", "value", "negate"], defaults=[-1, -1, -1, False]
@@ -48,7 +43,7 @@ Options = namedtuple(
 )
 
 
-def parse_data(db: DBManager, filename: str, args: dict) -> None:
+def parse_data(filename: str, args: dict) -> Transactions:
     cfg: dict = yaml.safe_load(open("parsers.yaml"))
     assert (
         "Banks" in cfg
@@ -62,22 +57,30 @@ def parse_data(db: DBManager, filename: str, args: dict) -> None:
         bank = args["bank"][0]
         creditcard = None if not args["creditcard"] else args["creditcard"][0]
 
-    if not creditcard:
+    try:
         options: dict = cfg[bank]
-    else:
-        options: dict = cfg[bank][creditcard]
+    except KeyError as e:
+        banks = cfg["Banks"]
+        raise NoBankSelected(f"{e} not a valid bank, try one of {banks}")
+
+    if creditcard:
+        try:
+            options = options[creditcard]
+        except KeyError as e:
+            creditcards = cfg["CreditCards"]
+            raise NoBankSelected(f"{e} not a valid bank, try one of {creditcards}")
         bank += creditcard
 
     if args["category"]:
         options["category"] = args["category"][0]
 
     if options.get("additional_parser"):
-        parser = getattr(import_module("pfbudget.parsers"), bank)
+        parser = getattr(import_module("pfbudget.input.parsers"), bank)
         transactions = parser(filename, bank, options).parse()
     else:
         transactions = Parser(filename, bank, options).parse()
 
-    db.insert_transactions(transactions)
+    return transactions
 
 
 class Parser:

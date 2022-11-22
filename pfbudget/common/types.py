@@ -1,7 +1,7 @@
+from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
-
-COMMENT_TOKEN = "#"
+from enum import Enum, auto
 
 
 class TransactionError(Exception):
@@ -27,7 +27,7 @@ class Transaction:
             self.description = " ".join(arg[1].split())
             self.bank = arg[2]
             if type(arg[3]) is float:
-                self.value = arg[3]
+                self.value = Decimal(str(arg[3]))
             else:
                 self.value = Decimal(args[3])
             self.category = arg[4]
@@ -101,3 +101,29 @@ class Transaction:
         return "{} {} {}€ at {}".format(
             self.date.strftime("%d/%m/%y"), self.category, self.value, self.bank
         )
+
+
+Transactions = list[Transaction]
+
+
+class PrimaryKey(Enum):
+    ID = auto()
+    NAME = auto()
+    BIC = auto()
+
+
+@dataclass
+class Bank:
+    name: str
+    bic: str
+    requisition_id: str
+    invert: bool
+    offset: int
+    key: PrimaryKey = PrimaryKey.ID
+
+
+Banks = list[Bank]
+
+
+class NoBankSelected(Exception):
+    pass
