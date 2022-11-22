@@ -4,6 +4,7 @@ from requests import HTTPError, ReadTimeout
 from dotenv import load_dotenv
 from nordigen import NordigenClient
 from uuid import uuid4
+import json
 import os
 import webbrowser
 
@@ -74,6 +75,9 @@ class NordigenInput(Input):
                 if not downloaded:
                     print(f"Couldn't download transactions for {account}")
                     continue
+
+                with open("json/" + bank.name + ".json", "w") as f:
+                    json.dump(downloaded, f)
 
                 converted = [
                     convert(t, bank) for t in downloaded["transactions"]["booked"]
