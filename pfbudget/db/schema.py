@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS banks (
     nordigen_id TEXT,
     nordigen_name TEXT,
     requisition_id TEXT,
-    invert INTEGER
+    invert INTEGER,
+    offset INTEGER
 )
 """
 
@@ -62,7 +63,8 @@ class DbBank:
     nordigen_id: str
     nordigen_name: str
     requisition_id: str
-    invert: bool
+    invert: bool = False
+    offset: int = 0
 
     def tuple(self):
         return (
@@ -72,6 +74,7 @@ class DbBank:
             self.nordigen_name,
             self.requisition_id,
             int(self.invert),
+            self.offset,
         )
 
 

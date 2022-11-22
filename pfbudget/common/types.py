@@ -118,6 +118,7 @@ class Bank:
     bic: str
     requisition_id: str
     invert: bool
+    offset: int
     key: PrimaryKey = PrimaryKey.ID
 
 

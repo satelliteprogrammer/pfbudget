@@ -72,8 +72,7 @@ class NordigenInput(Input):
                     continue
 
                 converted = [
-                    convert(t, bank.name, bank.invert)
-                    for t in downloaded["transactions"]["booked"]
+                    convert(t, bank) for t in downloaded["transactions"]["booked"]
                 ]
 
                 transactions.extend(
