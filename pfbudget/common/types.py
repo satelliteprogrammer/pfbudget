@@ -27,7 +27,7 @@ class Transaction:
             self.description = " ".join(arg[1].split())
             self.bank = arg[2]
             if type(arg[3]) is float:
-                self.value = arg[3]
+                self.value = Decimal(str(arg[3]))
             else:
                 self.value = Decimal(args[3])
             self.category = arg[4]
