@@ -194,19 +194,19 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_nordigen_access.set_defaults(func=lambda args: NordigenInput(manager).token())
 
     """
-    Access to Nordigen API
+    (Re)new bank requisition ID
     """
     p_nordigen_access = subparsers.add_parser(
         "renew",
-        description="Renew the requisition ID",
+        description="(Re)new the Bank requisition ID",
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_nordigen_access.add_argument("institution", nargs=1, type=str)
+    p_nordigen_access.add_argument("name", nargs=1, type=str)
     p_nordigen_access.add_argument("country", nargs=1, type=str)
     p_nordigen_access.set_defaults(
-        func=lambda args: NordigenInput().requisition(
-            args.institution[0], args.country[0]
+        func=lambda args: NordigenInput(manager).requisition(
+            args.name[0], args.country[0]
         )
     )
 
