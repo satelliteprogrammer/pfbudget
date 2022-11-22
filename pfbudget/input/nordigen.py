@@ -1,6 +1,6 @@
 from datetime import date
 from time import sleep
-from requests import ReadTimeout
+from requests import HTTPError, ReadTimeout
 from dotenv import load_dotenv
 from nordigen import NordigenClient
 from uuid import uuid4
@@ -64,7 +64,11 @@ class NordigenInput(Input):
                         break
                     except ReadTimeout:
                         retries += 1
-                        print(f"Request #{retries} timed-out, waiting 1s")
+                        print(f"Request #{retries} timed-out, retrying in 1s")
+                        sleep(1)
+                    except HTTPError as e:
+                        retries += 1
+                        print(f"Request #{retries} failed with {e}, retrying in 1s")
                         sleep(1)
 
                 if not downloaded:
