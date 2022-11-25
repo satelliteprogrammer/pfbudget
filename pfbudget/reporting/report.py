@@ -6,7 +6,7 @@ import datetime as dt
 import pfbudget.core.categories
 
 if TYPE_CHECKING:
-    from pfbudget.db.client import DatabaseClient
+    from pfbudget.db.sqlite import DatabaseClient
 
 
 def net(db: DatabaseClient, start: dt.date = dt.date.min, end: dt.date = dt.date.max):

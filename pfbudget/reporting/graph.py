@@ -9,7 +9,7 @@ import pfbudget.core.categories
 
 
 if TYPE_CHECKING:
-    from pfbudget.db.client import DatabaseClient
+    from pfbudget.db.sqlite import DatabaseClient
 
 
 groups = pfbudget.core.categories.cfg["Groups"]

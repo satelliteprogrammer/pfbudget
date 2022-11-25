@@ -1,7 +1,7 @@
 from pfbudget.input.input import Input
 from pfbudget.input.parsers import parse_data
 from pfbudget.common.types import Bank, Banks, Transaction, Transactions
-from pfbudget.db.client import DatabaseClient
+from pfbudget.db.sqlite import DatabaseClient
 from pfbudget.utils import convert
 
 
