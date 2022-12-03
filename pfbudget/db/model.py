@@ -9,13 +9,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    mapped_column,
-    MappedAsDataclass,
-    relationship,
-)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from decimal import Decimal
 from typing import Annotated, Optional
@@ -23,7 +17,7 @@ import datetime as dt
 import enum
 
 
-class Base(MappedAsDataclass, DeclarativeBase):
+class Base(DeclarativeBase):
     __table_args__ = {"schema": "transactions"}
     metadata = MetaData(
         naming_convention={
@@ -58,6 +52,13 @@ class Bank(Base):
     BIC: Mapped[str] = mapped_column(String(8), primary_key=True)
     type: Mapped[accounttype] = mapped_column(primary_key=True)
 
+    nordigen: Mapped[Optional[Nordigen]] = relationship(
+        back_populates="bank", lazy="joined"
+    )
+
+    def __repr__(self) -> str:
+        return f"Bank(name={self.name}, BIC={self.BIC}, type={self.type}, nordigen={self.nordigen})"
+
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
 
@@ -65,7 +66,7 @@ idpk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
 money = Annotated[Decimal, mapped_column(Numeric(16, 2), nullable=False)]
 
 
-class Original(Base):
+class Transaction(Base):
     __tablename__ = "originals"
 
     id: Mapped[idpk] = mapped_column(autoincrement=True)
@@ -74,15 +75,20 @@ class Original(Base):
     bank: Mapped[bankfk]
     amount: Mapped[money]
 
-    category: Mapped[Category] = relationship(back_populates="original")
-    note: Mapped[Note] = relationship(back_populates="original")
-    tags: Mapped[set[Tag]] = relationship(
+    category: Mapped[Optional[Category]] = relationship(
+        back_populates="original", lazy="joined"
+    )
+    note: Mapped[Optional[Note]] = relationship(back_populates="original")
+    tags: Mapped[Optional[set[Tag]]] = relationship(
         back_populates="original", cascade="all, delete-orphan", passive_deletes=True
     )
 
+    def __repr__(self) -> str:
+        return f"Transaction(date={self.date}, description={self.description}, bank={self.bank}, amount={self.amount}, category={self.category})"
+
 
 idfk = Annotated[
-    int, mapped_column(BigInteger, ForeignKey(Original.id, ondelete="CASCADE"))
+    int, mapped_column(BigInteger, ForeignKey(Transaction.id, ondelete="CASCADE"))
 ]
 
 
@@ -92,7 +98,10 @@ class Category(Base):
     id: Mapped[idfk] = mapped_column(primary_key=True)
     category: Mapped[str]
 
-    original: Mapped[Original] = relationship(back_populates="category")
+    original: Mapped[Transaction] = relationship(back_populates="category")
+
+    def __repr__(self) -> str:
+        return f"Category({self.category})"
 
 
 class Note(Base):
@@ -101,7 +110,7 @@ class Note(Base):
     id: Mapped[idfk] = mapped_column(primary_key=True)
     note: Mapped[str]
 
-    original: Mapped[Original] = relationship(back_populates="note")
+    original: Mapped[Transaction] = relationship(back_populates="note")
 
 
 class Nordigen(Base):
@@ -112,6 +121,11 @@ class Nordigen(Base):
     requisition_id: Mapped[Optional[str]]
     invert: Mapped[Optional[bool]]
 
+    bank: Mapped[Bank] = relationship(back_populates="nordigen")
+
+    def __repr__(self) -> str:
+        return f"(bank_id={self.bank_id}, requisition_id={self.requisition_id}, invert={self.invert})"
+
 
 class Tag(Base):
     __tablename__ = "tags"
@@ -119,4 +133,4 @@ class Tag(Base):
     id: Mapped[idfk] = mapped_column(primary_key=True)
     tag: Mapped[str] = mapped_column(primary_key=True)
 
-    original: Mapped[Original] = relationship(back_populates="tags")
+    original: Mapped[Transaction] = relationship(back_populates="tags")

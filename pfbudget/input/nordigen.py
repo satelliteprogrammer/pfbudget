@@ -9,7 +9,8 @@ import os
 import webbrowser
 
 from .input import Input
-from pfbudget.common.types import NoBankSelected, Transactions
+from pfbudget.common.types import NoBankSelected
+from pfbudget.db.model import Transaction
 from pfbudget.utils import convert
 
 load_dotenv()
@@ -43,7 +44,7 @@ class NordigenInput(Input):
         self.__from = start
         self.__to = end
 
-    def parse(self) -> Transactions:
+    def parse(self) -> list[Transaction]:
         transactions = []
         if not self.__banks:
             raise NoBankSelected
@@ -51,7 +52,7 @@ class NordigenInput(Input):
         for bank in self.__banks:
             print(f"Downloading from {bank}...")
             requisition = self.client.requisition.get_requisition_by_id(
-                bank.requisition_id
+                bank.nordigen.requisition_id
             )
 
             for acc in requisition["accounts"]:
