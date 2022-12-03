@@ -32,6 +32,7 @@ class AccountType(enum.Enum):
     checking = enum.auto()
     savings = enum.auto()
     investment = enum.auto()
+    mealcard = enum.auto()
     VISA = enum.auto()
     MASTERCARD = enum.auto()
 
