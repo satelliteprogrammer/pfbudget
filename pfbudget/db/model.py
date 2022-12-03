@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sqlalchemy import (
     BigInteger,
     Enum,
@@ -7,7 +9,13 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, MappedAsDataclass
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    MappedAsDataclass,
+    relationship,
+)
 
 from decimal import Decimal
 from typing import Annotated, Optional
@@ -66,15 +74,25 @@ class Original(Base):
     bank: Mapped[bankfk]
     amount: Mapped[money]
 
+    category: Mapped[Category] = relationship(back_populates="original")
+    note: Mapped[Note] = relationship(back_populates="original")
+    tags: Mapped[set[Tag]] = relationship(
+        back_populates="original", cascade="all, delete-orphan", passive_deletes=True
+    )
 
-idfk = Annotated[int, mapped_column(BigInteger, ForeignKey(Original.id))]
+
+idfk = Annotated[
+    int, mapped_column(BigInteger, ForeignKey(Original.id, ondelete="CASCADE"))
+]
 
 
-class Categorized(Base):
+class Category(Base):
     __tablename__ = "categorized"
 
     id: Mapped[idfk] = mapped_column(primary_key=True)
     category: Mapped[str]
+
+    original: Mapped[Original] = relationship(back_populates="category")
 
 
 class Note(Base):
@@ -82,6 +100,8 @@ class Note(Base):
 
     id: Mapped[idfk] = mapped_column(primary_key=True)
     note: Mapped[str]
+
+    original: Mapped[Original] = relationship(back_populates="note")
 
 
 class Nordigen(Base):
@@ -93,8 +113,10 @@ class Nordigen(Base):
     invert: Mapped[Optional[bool]]
 
 
-class Tags(Base):
+class Tag(Base):
     __tablename__ = "tags"
 
     id: Mapped[idfk] = mapped_column(primary_key=True)
     tag: Mapped[str] = mapped_column(primary_key=True)
+
+    original: Mapped[Original] = relationship(back_populates="tags")

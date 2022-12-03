@@ -153,4 +153,5 @@ dmypy.json
 
 ### Default user directories
 export/
+tmp/
 .pfbudget
