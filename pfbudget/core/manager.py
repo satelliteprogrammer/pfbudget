@@ -1,6 +1,7 @@
 from pfbudget.input.input import Input
 from pfbudget.input.parsers import parse_data
 from pfbudget.db.client import DbClient
+from pfbudget.core.categorizer import Categorizer
 from pfbudget.utils import convert
 
 
@@ -36,6 +37,12 @@ class Manager:
     def add_transactions(self, transactions):
         with self.db.session() as session:
             session.add(transactions)
+            session.commit()
+
+    def categorize(self, args: dict):
+        with self.db.session() as session:
+            uncategorized = session.uncategorized()
+            Categorizer().categorize(uncategorized)
             session.commit()
 
     # def get_bank_by(self, key: str, value: str) -> Bank:

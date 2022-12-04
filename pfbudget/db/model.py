@@ -105,9 +105,8 @@ class Category(Base):
     group: Mapped[Optional[str]] = mapped_column(ForeignKey(CategoryGroup.name))
 
     rules: Mapped[Optional[set[CategoryRule]]] = relationship(
-        back_populates="category", cascade="all, delete-orphan", passive_deletes=True
+        cascade="all, delete-orphan", passive_deletes=True
     )
-    categorygroup: Mapped[Optional[CategoryGroup]] = relationship()
 
 
 class TransactionCategory(Base):
@@ -117,7 +116,6 @@ class TransactionCategory(Base):
     name: Mapped[str] = mapped_column(ForeignKey(Category.name))
 
     original: Mapped[Transaction] = relationship(back_populates="category")
-    category: Mapped[Category] = relationship()
 
     def __repr__(self) -> str:
         return f"Category({self.name})"
@@ -162,5 +160,3 @@ class CategoryRule(Base):
         ForeignKey(Category.name, ondelete="CASCADE"), primary_key=True
     )
     rule: Mapped[str] = mapped_column(primary_key=True)
-
-    category: Mapped[Category] = relationship(back_populates="rules")

@@ -112,7 +112,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_categorize.set_defaults(
-        func=lambda args: categorize_data(DatabaseClient(args.database))
+        func=lambda args: manager.categorize(vars(args))
     )
 
     """

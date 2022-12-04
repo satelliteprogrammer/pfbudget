@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from pfbudget.db.model import Bank, Transaction
+from pfbudget.db.model import Bank, Category, Transaction
 
 # import logging
 
@@ -55,3 +55,30 @@ class DbClient:
     @property
     def engine(self):
         return self._engine
+
+    class ClientSession:
+        def __init__(self, engine):
+            self.__engine = engine
+
+        def __enter__(self):
+            self.__session = Session(self.__engine)
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_tb):
+            self.__session.close()
+
+        def commit(self):
+            self.__session.commit()
+
+        def add(self, transactions: list[Transaction]):
+            self.__session.add_all(transactions)
+
+        def addcategory(self, category: Category):
+            self.__session.add(category)
+
+        def uncategorized(self) -> list[Transaction]:
+            stmt = select(Transaction).where(~Transaction.category.has())
+            return self.__session.scalars(stmt).all()
+
+    def session(self):
+        return self.ClientSession(self.engine)
