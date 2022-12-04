@@ -92,14 +92,32 @@ idfk = Annotated[
 ]
 
 
+class CategoryGroup(Base):
+    __tablename__ = "categories_groups"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+
+
+class Category(Base):
+    __tablename__ = "categories_available"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+    group: Mapped[Optional[str]] = mapped_column(ForeignKey(CategoryGroup.name))
+
+    rules: Mapped[Optional[set[CategoryRule]]] = relationship(
+        back_populates="category", cascade="all, delete-orphan", passive_deletes=True
+    )
+    categorygroup: Mapped[Optional[CategoryGroup]] = relationship()
+
+
 class TransactionCategory(Base):
     __tablename__ = "categorized"
 
     id: Mapped[idfk] = mapped_column(primary_key=True)
-    name: Mapped[str]
+    name: Mapped[str] = mapped_column(ForeignKey(Category.name))
 
     original: Mapped[Transaction] = relationship(back_populates="category")
-    category: Mapped[AvailableCategory] = relationship(back_populates="category")
+    category: Mapped[Category] = relationship()
 
     def __repr__(self) -> str:
         return f"Category({self.name})"
@@ -137,23 +155,12 @@ class Tag(Base):
     original: Mapped[Transaction] = relationship(back_populates="tags")
 
 
-class AvailableCategory(Base):
-    __tablename__ = "categories_available"
-
-    name: Mapped[str] = mapped_column(primary_key=True)
-
-    rules: Mapped[Optional[set[CategoryRule]]] = relationship(
-        back_populates="original", cascade="all, delete-orphan", passive_deletes=True
-    )
-    category: Mapped[TransactionCategory] = relationship(back_populates="category")
-
-
 class CategoryRule(Base):
     __tablename__ = "categories_rules"
 
     name: Mapped[str] = mapped_column(
-        ForeignKey(AvailableCategory.name, ondelete="CASCADE"), primary_key=True
+        ForeignKey(Category.name, ondelete="CASCADE"), primary_key=True
     )
     rule: Mapped[str] = mapped_column(primary_key=True)
 
-    category: Mapped[AvailableCategory] = relationship(back_populates="rules")
+    category: Mapped[Category] = relationship(back_populates="rules")
