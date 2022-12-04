@@ -75,7 +75,7 @@ class Transaction(Base):
     bank: Mapped[bankfk]
     amount: Mapped[money]
 
-    category: Mapped[Optional[Category]] = relationship(
+    category: Mapped[Optional[TransactionCategory]] = relationship(
         back_populates="original", lazy="joined"
     )
     note: Mapped[Optional[Note]] = relationship(back_populates="original")
@@ -92,16 +92,17 @@ idfk = Annotated[
 ]
 
 
-class Category(Base):
+class TransactionCategory(Base):
     __tablename__ = "categorized"
 
     id: Mapped[idfk] = mapped_column(primary_key=True)
-    category: Mapped[str]
+    name: Mapped[str]
 
     original: Mapped[Transaction] = relationship(back_populates="category")
+    category: Mapped[AvailableCategory] = relationship(back_populates="category")
 
     def __repr__(self) -> str:
-        return f"Category({self.category})"
+        return f"Category({self.name})"
 
 
 class Note(Base):
@@ -134,3 +135,25 @@ class Tag(Base):
     tag: Mapped[str] = mapped_column(primary_key=True)
 
     original: Mapped[Transaction] = relationship(back_populates="tags")
+
+
+class AvailableCategory(Base):
+    __tablename__ = "categories_available"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+
+    rules: Mapped[Optional[set[CategoryRule]]] = relationship(
+        back_populates="original", cascade="all, delete-orphan", passive_deletes=True
+    )
+    category: Mapped[TransactionCategory] = relationship(back_populates="category")
+
+
+class CategoryRule(Base):
+    __tablename__ = "categories_rules"
+
+    name: Mapped[str] = mapped_column(
+        ForeignKey(AvailableCategory.name, ondelete="CASCADE"), primary_key=True
+    )
+    rule: Mapped[str] = mapped_column(primary_key=True)
+
+    category: Mapped[AvailableCategory] = relationship(back_populates="rules")
