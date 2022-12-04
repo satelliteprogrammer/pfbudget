@@ -2,8 +2,8 @@ from pathlib import Path
 import argparse
 import re
 
+from pfbudget.common.types import Command
 from pfbudget.core.categories import categorize_data
-from pfbudget.core.manager import Manager
 from pfbudget.input.json import JsonParser
 from pfbudget.input.nordigen import NordigenInput
 from pfbudget.db.sqlite import DatabaseClient
@@ -27,7 +27,7 @@ class DataFileMissing(Exception):
     pass
 
 
-def argparser(manager: Manager) -> argparse.ArgumentParser:
+def argparser() -> argparse.ArgumentParser:
 
     help = argparse.ArgumentParser(add_help=False)
     help.add_argument(
@@ -74,7 +74,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_init.set_defaults(func=lambda args: manager.init())
+    p_init.set_defaults(command=Command.Init)
 
     """
     Exporting
@@ -100,7 +100,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_parse.add_argument("--bank", nargs=1, type=str)
     p_parse.add_argument("--creditcard", nargs=1, type=str)
     p_parse.add_argument("--category", nargs=1, type=int)
-    p_parse.set_defaults(func=lambda args: parse(manager, args))
+    p_parse.set_defaults(command=Command.Parse)
 
     """
     Categorizing
@@ -111,9 +111,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_categorize.set_defaults(
-        func=lambda args: manager.categorize(vars(args))
-    )
+    p_categorize.set_defaults(command=Command.Categorize)
 
     """
     Graph
@@ -168,7 +166,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         "--requisition", type=str, nargs=1, help="requisition option help"
     )
     p_register.add_argument("--invert", action="store_true")
-    p_register.set_defaults(func=lambda args: manager.register(vars(args)))
+    p_register.set_defaults(command=Command.Register)
 
     """
     Unregister bank
@@ -180,7 +178,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_register.add_argument("bank", type=str, nargs=1, help="bank option help")
-    p_register.set_defaults(func=lambda args: manager.unregister(vars(args)))
+    p_register.set_defaults(command=Command.Unregister)
 
     """
     Nordigen API
@@ -191,7 +189,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
         parents=[help],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_nordigen_access.set_defaults(func=lambda args: NordigenInput(manager).token())
+    p_nordigen_access.set_defaults(command=Command.Token)
 
     """
     (Re)new bank requisition ID
@@ -204,11 +202,7 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     )
     p_nordigen_access.add_argument("name", nargs=1, type=str)
     p_nordigen_access.add_argument("country", nargs=1, type=str)
-    p_nordigen_access.set_defaults(
-        func=lambda args: NordigenInput(manager).requisition(
-            args.name[0], args.country[0]
-        )
-    )
+    p_nordigen_access.set_defaults(command=Command.Renew)
 
     """
     Downloading through Nordigen API
@@ -222,40 +216,40 @@ def argparser(manager: Manager) -> argparse.ArgumentParser:
     p_nordigen_download.add_argument("--id", nargs="+", type=str)
     p_nordigen_download.add_argument("--name", nargs="+", type=str)
     p_nordigen_download.add_argument("--all", action="store_true")
-    p_nordigen_download.set_defaults(func=lambda args: download(manager, args))
+    p_nordigen_download.set_defaults(command=Command.Download)
 
-    """
-    List available banks on Nordigen API
-    """
-    p_nordigen_list = subparsers.add_parser(
-        "list",
-        description="Lists banks in {country}",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_nordigen_list.add_argument("country", nargs=1, type=str)
-    p_nordigen_list.set_defaults(func=lambda args: nordigen_banks(manager, args))
+    # """
+    # List available banks on Nordigen API
+    # """
+    # p_nordigen_list = subparsers.add_parser(
+    #     "list",
+    #     description="Lists banks in {country}",
+    #     parents=[help],
+    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    # )
+    # p_nordigen_list.add_argument("country", nargs=1, type=str)
+    # p_nordigen_list.set_defaults(func=lambda args: nordigen_banks(manager, args))
 
-    """
-    Nordigen JSONs
-    """
-    p_nordigen_json = subparsers.add_parser(
-        "json",
-        description="",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_nordigen_json.add_argument("json", nargs=1, type=str)
-    p_nordigen_json.add_argument("bank", nargs=1, type=str)
-    p_nordigen_json.add_argument("--invert", action=argparse.BooleanOptionalAction)
-    p_nordigen_json.set_defaults(
-        func=lambda args: manager.parser(JsonParser(vars(args)))
-    )
+    # """
+    # Nordigen JSONs
+    # """
+    # p_nordigen_json = subparsers.add_parser(
+    #     "json",
+    #     description="",
+    #     parents=[help],
+    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    # )
+    # p_nordigen_json.add_argument("json", nargs=1, type=str)
+    # p_nordigen_json.add_argument("bank", nargs=1, type=str)
+    # p_nordigen_json.add_argument("--invert", action=argparse.BooleanOptionalAction)
+    # p_nordigen_json.set_defaults(
+    #     func=lambda args: manager.parser(JsonParser(vars(args)))
+    # )
 
     return parser
 
 
-def parse(manager: Manager, args):
+def parse(manager, args):
     """Parses the contents of the path in args to the selected database.
 
     Args:
@@ -305,17 +299,17 @@ def report(args):
         pfbudget.reporting.report.detailed(DatabaseClient(args.database), start, end)
 
 
-def nordigen_banks(manager: Manager, args):
-    input = NordigenInput(manager)
-    input.list(vars(args)["country"][0])
+# def nordigen_banks(manager: Manager, args):
+#     input = NordigenInput(manager)
+#     input.list(vars(args)["country"][0])
 
 
-def download(manager: Manager, args):
+def download(manager, args: dict):
     start, end = pfbudget.utils.parse_args_period(args)
-    manager.parser(NordigenInput(manager, vars(args), start, end))
+    manager.parser(NordigenInput(manager, args, start, end))
 
 
 def run():
-    manager = Manager(DEFAULT_DB)
-    args = argparser(manager).parse_args()
-    args.func(args)
+    args = vars(argparser().parse_args())
+    assert "command" in args, "No command selected"
+    return args["command"], args

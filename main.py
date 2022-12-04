@@ -1,4 +1,5 @@
-from pfbudget import run
+from pfbudget import Manager, run
 
 if __name__ == "__main__":
-    run()
+    command, args = run()
+    Manager(command).start(args)

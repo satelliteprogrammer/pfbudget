@@ -6,7 +6,7 @@ from datetime import timedelta
 class Categorizer:
     options = {}
 
-    def __init__(self, args: dict):
+    def __init__(self):
         self.options["null_days"] = 4
 
     def categorize(self, transactions: list[Transaction]):
@@ -21,6 +21,7 @@ class Categorizer:
         self._nullify(transactions)
 
     def _nullify(self, transactions: list[Transaction]):
+        count = 0
         matching = []
         for transaction in transactions:
             for cancel in (
@@ -40,4 +41,7 @@ class Categorizer:
                 transaction.category = TransactionCategory(name="null")
                 cancel.category = TransactionCategory(name="null")
                 matching.extend([transaction, cancel])
+                count += 2
                 break
+
+        print(f"Nullified {count} transactions")

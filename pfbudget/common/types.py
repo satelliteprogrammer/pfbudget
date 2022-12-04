@@ -4,6 +4,17 @@ from decimal import Decimal, InvalidOperation
 from enum import Enum, auto
 
 
+class Command(Enum):
+    Init = auto()
+    Parse = auto()
+    Download = auto()
+    Categorize = auto()
+    Register = auto()
+    Unregister = auto()
+    Token = auto()
+    Renew = auto()
+
+
 class TransactionError(Exception):
     pass
 
