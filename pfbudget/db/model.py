@@ -107,11 +107,18 @@ class Category(Base):
     rules: Mapped[Optional[set[CategoryRule]]] = relationship(
         cascade="all, delete-orphan", passive_deletes=True
     )
+    schedule: Mapped[CategorySchedule] = relationship()
 
     def __repr__(self) -> str:
         return (
             f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)})"
         )
+
+
+catfk = Annotated[
+    str,
+    mapped_column(ForeignKey(Category.name, ondelete="CASCADE")),
+]
 
 
 class TransactionCategory(Base):
@@ -125,12 +132,6 @@ class TransactionCategory(Base):
 
     def __repr__(self) -> str:
         return f"Category({self.name})"
-
-
-catfk = Annotated[
-    int,
-    mapped_column(BigInteger, ForeignKey(TransactionCategory.id, ondelete="CASCADE")),
-]
 
 
 class Note(Base):
@@ -192,7 +193,29 @@ categoryselector = Annotated[
 class CategorySelector(Base):
     __tablename__ = "categories_selector"
 
-    id: Mapped[catfk] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(TransactionCategory.id, ondelete="CASCADE"),
+        primary_key=True,
+    )
     selector: Mapped[categoryselector]
 
     category: Mapped[TransactionCategory] = relationship(back_populates="selector")
+
+
+class Period(enum.Enum):
+    daily = enum.auto()
+    monthly = enum.auto()
+    yearly = enum.auto()
+
+
+scheduleperiod = Annotated[Selector, mapped_column(Enum(Period, inherit_schema=True))]
+
+
+class CategorySchedule(Base):
+    __tablename__ = "categories_schedules"
+
+    name: Mapped[catfk] = mapped_column(primary_key=True)
+    recurring: Mapped[bool]
+    period: Mapped[Optional[scheduleperiod]]
+    period_multiplier: Mapped[Optional[int]]
