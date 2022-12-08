@@ -13,6 +13,15 @@ class Command(Enum):
     Unregister = auto()
     Token = auto()
     Renew = auto()
+    Category = auto()
+
+
+class Operation(Enum):
+    Add = auto()
+    Remove = auto()
+    AddGroup = auto()
+    RemoveGroup = auto()
+    UpdateGroup = auto()
 
 
 class TransactionError(Exception):

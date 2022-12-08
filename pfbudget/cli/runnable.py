@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import re
 
-from pfbudget.common.types import Command
+from pfbudget.common.types import Command, Operation
 from pfbudget.core.categories import categorize_data
 from pfbudget.input.json import JsonParser
 from pfbudget.input.nordigen import NordigenInput
@@ -39,6 +39,9 @@ def argparser() -> argparse.ArgumentParser:
     )
     help.add_argument(
         "-q", "--quiet", action="store_true", help="reduces the amount of verbose"
+    )
+    help.add_argument(
+        "-v", "--verbose", action="store_true", help="increases the amount of verbose"
     )
 
     period = argparse.ArgumentParser(add_help=False).add_mutually_exclusive_group()
@@ -245,6 +248,56 @@ def argparser() -> argparse.ArgumentParser:
     # p_nordigen_json.set_defaults(
     #     func=lambda args: manager.parser(JsonParser(vars(args)))
     # )
+
+    # Add category
+    p_categories = subparsers.add_parser(
+        "category",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_categories_commands = p_categories.add_subparsers(dest="command", required=True)
+    p_categories_add = p_categories_commands.add_parser(
+        "add",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_categories_add.add_argument("category", nargs="+", type=str)
+    p_categories_add.add_argument("--group", nargs="?", type=str)
+    p_categories_add.set_defaults(command=Command.Category, op=Operation.Add)
+
+    p_categories_remove = p_categories_commands.add_parser(
+        "remove",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_categories_remove.add_argument("category", nargs="+", type=str)
+    p_categories_remove.add_argument("--group", nargs="?", type=str)
+    p_categories_remove.set_defaults(command=Command.Category, op=Operation.Remove)
+
+    p_categories_addgroup = p_categories_commands.add_parser(
+        "addgroup",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_categories_addgroup.add_argument("group", nargs="+", type=str)
+    p_categories_addgroup.set_defaults(command=Command.Category, op=Operation.AddGroup)
+
+    p_categories_removegroup = p_categories_commands.add_parser(
+        "removegroup",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_categories_removegroup.add_argument("group", nargs="+", type=str)
+    p_categories_removegroup.set_defaults(command=Command.Category, op=Operation.RemoveGroup)
+
+    p_categories_updategroup = p_categories_commands.add_parser(
+        "updategroup",
+        parents=[help],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_categories_updategroup.add_argument("category", nargs="+", type=str)
+    p_categories_updategroup.add_argument("--group", nargs=1, type=str)
+    p_categories_updategroup.set_defaults(command=Command.Category, op=Operation.UpdateGroup)
 
     return parser
 

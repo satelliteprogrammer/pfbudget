@@ -108,6 +108,11 @@ class Category(Base):
         cascade="all, delete-orphan", passive_deletes=True
     )
 
+    def __repr__(self) -> str:
+        return (
+            f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)})"
+        )
+
 
 class TransactionCategory(Base):
     __tablename__ = "categorized"

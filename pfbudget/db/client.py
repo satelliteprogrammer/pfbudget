@@ -1,7 +1,7 @@
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, delete, select, update
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from pfbudget.db.model import Bank, Category, Transaction
+from pfbudget.db.model import Bank, Category, CategoryGroup, Transaction
 
 # import logging
 
@@ -16,8 +16,8 @@ class DbClient:
 
     __sessions: list[Session]
 
-    def __init__(self, url: str) -> None:
-        self._engine = create_engine(url)
+    def __init__(self, url: str, echo=False) -> None:
+        self._engine = create_engine(url, echo=echo)
 
     def get_transactions(self):
         """¿Non-optimized? get_transactions, will load the entire Transaction"""
@@ -65,6 +65,7 @@ class DbClient:
             return self
 
         def __exit__(self, exc_type, exc_value, exc_tb):
+            self.commit()
             self.__session.close()
 
         def commit(self):
@@ -76,9 +77,32 @@ class DbClient:
         def addcategory(self, category: Category):
             self.__session.add(category)
 
+        def removecategory(self, categories: list[Category]):
+            stmt = delete(Category).where(
+                Category.name.in_([cat.name for cat in categories])
+            )
+            self.__session.execute(stmt)
+
+        def updategroup(self, categories: list[Category], group: CategoryGroup):
+            stmt = (
+                update(Category)
+                .where(Category.name.in_([cat.name for cat in categories]))
+                .values(group=group)
+            )
+            self.__session.execute(stmt)
+
+        def addcategorygroup(self, group: CategoryGroup):
+            self.__session.add(group)
+
+        def removecategorygroup(self, groups: list[CategoryGroup]):
+            stmt = delete(CategoryGroup).where(
+                CategoryGroup.name.in_([grp.name for grp in groups])
+            )
+            self.__session.execute(stmt)
+
         def uncategorized(self) -> list[Transaction]:
             stmt = select(Transaction).where(~Transaction.category.has())
             return self.__session.scalars(stmt).all()
 
-    def session(self):
+    def session(self) -> ClientSession:
         return self.ClientSession(self.engine)
