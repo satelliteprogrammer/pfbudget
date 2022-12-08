@@ -1,7 +1,16 @@
+from copy import deepcopy
+from dataclasses import asdict
 from sqlalchemy import create_engine, delete, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from pfbudget.db.model import Bank, Category, CategoryGroup, Transaction
+from pfbudget.db.model import (
+    Bank,
+    Category,
+    CategoryGroup,
+    CategorySchedule,
+    Transaction,
+)
 
 # import logging
 
@@ -88,6 +97,30 @@ class DbClient:
                 update(Category)
                 .where(Category.name.in_([cat.name for cat in categories]))
                 .values(group=group)
+            )
+            self.__session.execute(stmt)
+
+        def updateschedules(
+            self, categories: list[Category], schedule: CategorySchedule
+        ):
+            stmt = insert(CategorySchedule).values(
+                [
+                    dict(
+                        name=cat.name,
+                        recurring=schedule.recurring,
+                        period=schedule.period,
+                        period_multiplier=schedule.period_multiplier,
+                    )
+                    for cat in categories
+                ]
+            )
+            stmt = stmt.on_conflict_do_update(
+                index_elements=[CategorySchedule.name],
+                set_=dict(
+                    recurring=stmt.excluded.recurring,
+                    period=stmt.excluded.period,
+                    period_multiplier=stmt.excluded.period_multiplier,
+                ),
             )
             self.__session.execute(stmt)
 

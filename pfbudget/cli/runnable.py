@@ -4,6 +4,7 @@ import re
 
 from pfbudget.common.types import Operation
 from pfbudget.core.categories import categorize_data
+from pfbudget.db.model import Period
 from pfbudget.input.json import JsonParser
 from pfbudget.input.nordigen import NordigenInput
 from pfbudget.db.sqlite import DatabaseClient
@@ -332,6 +333,12 @@ def category(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser
     update.set_defaults(op=Operation.CategoryUpdate)
     update.add_argument("category", nargs="+", type=str)
     update.add_argument("--group", nargs="?", type=str)
+
+    schedule = commands.add_parser("schedule", parents=[universal])
+    schedule.set_defaults(op=Operation.CategorySchedule)
+    schedule.add_argument("category", nargs="+", type=str)
+    schedule.add_argument("period", nargs=1, choices=[e.value for e in Period])
+    schedule.add_argument("--frequency", nargs=1, default=[1], type=int)
 
     group = commands.add_parser("group", parents=[universal])
     category_group(group, universal)

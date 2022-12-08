@@ -107,12 +107,10 @@ class Category(Base):
     rules: Mapped[Optional[set[CategoryRule]]] = relationship(
         cascade="all, delete-orphan", passive_deletes=True
     )
-    schedule: Mapped[CategorySchedule] = relationship()
+    schedule: Mapped[CategorySchedule] = relationship(back_populates="category")
 
     def __repr__(self) -> str:
-        return (
-            f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)})"
-        )
+        return f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)}, schedule={self.schedule})"
 
 
 catfk = Annotated[
@@ -220,3 +218,12 @@ class CategorySchedule(Base):
     recurring: Mapped[bool]
     period: Mapped[Optional[scheduleperiod]]
     period_multiplier: Mapped[Optional[int]]
+
+    category: Mapped[Category] = relationship(back_populates="schedule")
+
+    def __repr__(self) -> str:
+        return (
+            f"{self.name} schedule=Schedule(period={self.period}, multiplier={self.period_multiplier})"
+            if self.recurring
+            else f"{self.name} has no Schedule"
+        )
