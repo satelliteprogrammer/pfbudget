@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from enum import Enum, auto
 
 
-class Command(Enum):
+class Operation(Enum):
     Init = auto()
     Parse = auto()
     Download = auto()
@@ -13,15 +13,11 @@ class Command(Enum):
     Unregister = auto()
     Token = auto()
     Renew = auto()
-    Category = auto()
-
-
-class Operation(Enum):
-    Add = auto()
-    Remove = auto()
-    AddGroup = auto()
-    RemoveGroup = auto()
-    UpdateGroup = auto()
+    CategoryAdd = auto()
+    CategoryUpdate = auto()
+    CategoryRemove = auto()
+    GroupAdd = auto()
+    GroupRemove = auto()
 
 
 class TransactionError(Exception):

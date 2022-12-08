@@ -3,7 +3,7 @@ from pfbudget.input.nordigen import NordigenClient
 from pfbudget.input.parsers import parse_data
 from pfbudget.db.client import DbClient
 from pfbudget.db.model import Category, CategoryGroup
-from pfbudget.common.types import Command, Operation
+from pfbudget.common.types import Operation
 from pfbudget.core.categorizer import Categorizer
 from pfbudget.utils import convert
 
@@ -11,99 +11,72 @@ from pfbudget.cli.runnable import download, parse
 
 
 class Manager:
-    def __init__(self, command: Command, args: dict):
-        self.__command = command
+    def __init__(self, op: Operation, args: dict):
+        self._operation = op
         self._args = args
-        match (command):
-            case Command.Init:
-                pass
-            case Command.Parse:
-                pass
-            case Command.Download:
-                pass
-            case Command.Categorize:
-                pass
-            case Command.Register:
-                pass
-            case Command.Unregister:
-                pass
-            case Command.Token:
-                pass
-            case Command.Renew:
-                pass
-            case Command.Category:
-                pass
 
         assert "database" in args, "ArgParser didn't include db"
         self._db = args["database"]
 
     def start(self):
-        match (self.__command):
-            case Command.Init:
+        match (self._operation):
+            case Operation.Init:
                 pass
-            case Command.Parse:
+            case Operation.Parse:
                 # TODO this is a monstrosity, remove when possible
                 parse(self, self.args)
-            case Command.Download:
+            case Operation.Download:
                 # TODO this is a monstrosity, remove when possible
                 download(self, self.args)
-            case Command.Categorize:
-                self.categorize(self.args)
-            case Command.Register:
+            case Operation.Categorize:
+                self.categorize()
+
+            case Operation.Register:
                 # self._db = DbClient(args["database"])
                 # self.register(args)
                 pass
-            case Command.Unregister:
+            case Operation.Unregister:
                 # self._db = DbClient(args["database"])
                 # self.unregister(args)
                 pass
-            case Command.Token:
+            case Operation.Token:
                 NordigenClient(self).token()
 
-            case Command.Renew:
+            case Operation.Renew:
                 NordigenClient(self).requisition(
                     self.args["name"], self.args["country"]
                 )
 
-            case Command.Category:
-                assert "op" in self.args, "category operation not defined"
-
+            case Operation.CategoryAdd:
                 with self.db.session() as session:
-                    match self.args["op"]:
-                        case Operation.Add:
-                            for category in self.args["category"]:
-                                session.addcategory(
-                                    Category(name=category, group=self.args["group"])
-                                )
+                    for category in self.args["category"]:
+                        session.addcategory(
+                            Category(name=category, group=self.args["group"])
+                        )
 
-                        case Operation.Remove:
-                            session.removecategory(
-                                [
-                                    Category(name=category)
-                                    for category in self.args["category"]
-                                ]
-                            )
+            case Operation.CategoryUpdate:
+                with self.db.session() as session:
+                    session.updategroup(
+                        [Category(name=category) for category in self.args["category"]],
+                        self.args["group"][0],
+                    )
 
-                        case Operation.UpdateGroup:
-                            session.updategroup(
-                                [
-                                    Category(name=category)
-                                    for category in self.args["category"]
-                                ],
-                                self.args["group"][0],
-                            )
+            case Operation.CategoryRemove:
+                with self.db.session() as session:
+                    session.removecategory(
+                        [Category(name=category) for category in self.args["category"]]
+                    )
 
-                        case Operation.AddGroup:
-                            for group in self.args["group"]:
-                                session.addcategorygroup(CategoryGroup(name=group))
+            case Operation.GroupAdd:
+                with self.db.session() as session:
+                    for group in self.args["group"]:
+                        session.addcategorygroup(CategoryGroup(name=group))
 
-                        case Operation.RemoveGroup:
-                            session.removecategorygroup(
-                                [
-                                    CategoryGroup(name=group)
-                                    for group in self.args["group"]
-                                ]
-                            )
+            case Operation.GroupRemove:
+                with self.db.session() as session:
+                    session.removecategorygroup(
+                        [CategoryGroup(name=group) for group in self.args["group"]]
+                    )
 
     # def init(self):
     #     client = DatabaseClient(self.__db)

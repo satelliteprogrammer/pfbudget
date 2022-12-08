@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import re
 
-from pfbudget.common.types import Command, Operation
+from pfbudget.common.types import Operation
 from pfbudget.core.categories import categorize_data
 from pfbudget.input.json import JsonParser
 from pfbudget.input.nordigen import NordigenInput
@@ -29,18 +29,18 @@ class DataFileMissing(Exception):
 
 def argparser() -> argparse.ArgumentParser:
 
-    help = argparse.ArgumentParser(add_help=False)
-    help.add_argument(
+    universal = argparse.ArgumentParser(add_help=False)
+    universal.add_argument(
         "-db",
         "--database",
         nargs="?",
         help="select current database",
         default=DEFAULT_DB,
     )
-    help.add_argument(
+    universal.add_argument(
         "-q", "--quiet", action="store_true", help="reduces the amount of verbose"
     )
-    help.add_argument(
+    universal.add_argument(
         "-v", "--verbose", action="store_true", help="increases the amount of verbose"
     )
 
@@ -54,7 +54,7 @@ def argparser() -> argparse.ArgumentParser:
 
     parser = argparse.ArgumentParser(
         description="does cool finance stuff",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -66,7 +66,7 @@ def argparser() -> argparse.ArgumentParser:
         ).group(1),
     )
 
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(required=True)
 
     """
     Init
@@ -74,10 +74,10 @@ def argparser() -> argparse.ArgumentParser:
     p_init = subparsers.add_parser(
         "init",
         description="Initializes the SQLite3 database",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_init.set_defaults(command=Command.Init)
+    p_init.set_defaults(command=Operation.Init)
 
     """
     Exporting
@@ -85,7 +85,7 @@ def argparser() -> argparse.ArgumentParser:
     p_export = subparsers.add_parser(
         "export",
         description="Exports the selected database to a .csv file",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_export.set_defaults(func=lambda args: DatabaseClient(args.database).export())
@@ -96,14 +96,14 @@ def argparser() -> argparse.ArgumentParser:
     p_parse = subparsers.add_parser(
         "parse",
         description="Parses and adds the requested transactions into the selected database",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_parse.add_argument("path", nargs="+", type=str)
     p_parse.add_argument("--bank", nargs=1, type=str)
     p_parse.add_argument("--creditcard", nargs=1, type=str)
     p_parse.add_argument("--category", nargs=1, type=int)
-    p_parse.set_defaults(command=Command.Parse)
+    p_parse.set_defaults(command=Operation.Parse)
 
     """
     Categorizing
@@ -111,10 +111,10 @@ def argparser() -> argparse.ArgumentParser:
     p_categorize = subparsers.add_parser(
         "categorize",
         description="Categorizes the transactions in the selected database",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_categorize.set_defaults(command=Command.Categorize)
+    p_categorize.set_defaults(command=Operation.Categorize)
 
     """
     Graph
@@ -122,7 +122,7 @@ def argparser() -> argparse.ArgumentParser:
     p_graph = subparsers.add_parser(
         "graph",
         description="Graph of the transactions",
-        parents=[help, period],
+        parents=[universal, period],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_graph.add_argument(
@@ -142,7 +142,7 @@ def argparser() -> argparse.ArgumentParser:
     p_report = subparsers.add_parser(
         "report",
         description="Prints report of transaction groups",
-        parents=[help, period],
+        parents=[universal, period],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_report.add_argument(
@@ -161,7 +161,7 @@ def argparser() -> argparse.ArgumentParser:
     p_register = subparsers.add_parser(
         "register",
         description="Register a bank",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_register.add_argument("bank", type=str, nargs=1, help="bank option help")
@@ -169,7 +169,7 @@ def argparser() -> argparse.ArgumentParser:
         "--requisition", type=str, nargs=1, help="requisition option help"
     )
     p_register.add_argument("--invert", action="store_true")
-    p_register.set_defaults(command=Command.Register)
+    p_register.set_defaults(command=Operation.Register)
 
     """
     Unregister bank
@@ -177,11 +177,11 @@ def argparser() -> argparse.ArgumentParser:
     p_register = subparsers.add_parser(
         "unregister",
         description="Unregister a bank",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_register.add_argument("bank", type=str, nargs=1, help="bank option help")
-    p_register.set_defaults(command=Command.Unregister)
+    p_register.set_defaults(command=Operation.Unregister)
 
     """
     Nordigen API
@@ -189,10 +189,10 @@ def argparser() -> argparse.ArgumentParser:
     p_nordigen_access = subparsers.add_parser(
         "token",
         description="Get new access token",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_nordigen_access.set_defaults(command=Command.Token)
+    p_nordigen_access.set_defaults(command=Operation.Token)
 
     """
     (Re)new bank requisition ID
@@ -200,12 +200,12 @@ def argparser() -> argparse.ArgumentParser:
     p_nordigen_access = subparsers.add_parser(
         "renew",
         description="(Re)new the Bank requisition ID",
-        parents=[help],
+        parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_nordigen_access.add_argument("name", nargs=1, type=str)
     p_nordigen_access.add_argument("country", nargs=1, type=str)
-    p_nordigen_access.set_defaults(command=Command.Renew)
+    p_nordigen_access.set_defaults(command=Operation.Renew)
 
     """
     Downloading through Nordigen API
@@ -213,13 +213,13 @@ def argparser() -> argparse.ArgumentParser:
     p_nordigen_download = subparsers.add_parser(
         "download",
         description="Downloads transactions using Nordigen API",
-        parents=[help, period],
+        parents=[universal, period],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     p_nordigen_download.add_argument("--id", nargs="+", type=str)
     p_nordigen_download.add_argument("--name", nargs="+", type=str)
     p_nordigen_download.add_argument("--all", action="store_true")
-    p_nordigen_download.set_defaults(command=Command.Download)
+    p_nordigen_download.set_defaults(command=Operation.Download)
 
     # """
     # List available banks on Nordigen API
@@ -249,55 +249,9 @@ def argparser() -> argparse.ArgumentParser:
     #     func=lambda args: manager.parser(JsonParser(vars(args)))
     # )
 
-    # Add category
-    p_categories = subparsers.add_parser(
-        "category",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_categories_commands = p_categories.add_subparsers(dest="command", required=True)
-    p_categories_add = p_categories_commands.add_parser(
-        "add",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_categories_add.add_argument("category", nargs="+", type=str)
-    p_categories_add.add_argument("--group", nargs="?", type=str)
-    p_categories_add.set_defaults(command=Command.Category, op=Operation.Add)
-
-    p_categories_remove = p_categories_commands.add_parser(
-        "remove",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_categories_remove.add_argument("category", nargs="+", type=str)
-    p_categories_remove.add_argument("--group", nargs="?", type=str)
-    p_categories_remove.set_defaults(command=Command.Category, op=Operation.Remove)
-
-    p_categories_addgroup = p_categories_commands.add_parser(
-        "addgroup",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_categories_addgroup.add_argument("group", nargs="+", type=str)
-    p_categories_addgroup.set_defaults(command=Command.Category, op=Operation.AddGroup)
-
-    p_categories_removegroup = p_categories_commands.add_parser(
-        "removegroup",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_categories_removegroup.add_argument("group", nargs="+", type=str)
-    p_categories_removegroup.set_defaults(command=Command.Category, op=Operation.RemoveGroup)
-
-    p_categories_updategroup = p_categories_commands.add_parser(
-        "updategroup",
-        parents=[help],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_categories_updategroup.add_argument("category", nargs="+", type=str)
-    p_categories_updategroup.add_argument("--group", nargs=1, type=str)
-    p_categories_updategroup.set_defaults(command=Command.Category, op=Operation.UpdateGroup)
+    # Categories
+    category_parser = subparsers.add_parser("category", parents=[universal])
+    category(category_parser, universal)
 
     return parser
 
@@ -362,7 +316,40 @@ def download(manager, args: dict):
     manager.parser(NordigenInput(manager, args, start, end))
 
 
+def category(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+    commands = parser.add_subparsers(required=True)
+
+    add = commands.add_parser("add", parents=[universal])
+    add.set_defaults(op=Operation.CategoryAdd)
+    add.add_argument("category", nargs="+", type=str)
+    add.add_argument("--group", nargs="?", type=str)
+
+    remove = commands.add_parser("remove", parents=[universal])
+    remove.set_defaults(op=Operation.CategoryRemove)
+    remove.add_argument("category", nargs="+", type=str)
+
+    update = commands.add_parser("update", parents=[universal])
+    update.set_defaults(op=Operation.CategoryUpdate)
+    update.add_argument("category", nargs="+", type=str)
+    update.add_argument("--group", nargs="?", type=str)
+
+    group = commands.add_parser("group", parents=[universal])
+    category_group(group, universal)
+
+
+def category_group(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+    commands = parser.add_subparsers(required=True)
+
+    add = commands.add_parser("add", parents=[universal])
+    add.set_defaults(op=Operation.GroupAdd)
+    add.add_argument("group", nargs="+", type=str)
+
+    remove = commands.add_parser("remove", parents=[universal])
+    remove.set_defaults(op=Operation.GroupRemove)
+    remove.add_argument("group", nargs="+", type=str)
+
+
 def run():
     args = vars(argparser().parse_args())
-    assert "command" in args, "No command selected"
-    return args["command"], args
+    assert "op" in args, "No operation selected"
+    return args["op"], args
