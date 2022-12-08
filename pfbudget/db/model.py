@@ -121,9 +121,16 @@ class TransactionCategory(Base):
     name: Mapped[str] = mapped_column(ForeignKey(Category.name))
 
     original: Mapped[Transaction] = relationship(back_populates="category")
+    selector: Mapped[CategorySelector] = relationship(back_populates="category")
 
     def __repr__(self) -> str:
         return f"Category({self.name})"
+
+
+catfk = Annotated[
+    int,
+    mapped_column(BigInteger, ForeignKey(TransactionCategory.id, ondelete="CASCADE")),
+]
 
 
 class Note(Base):
@@ -165,3 +172,27 @@ class CategoryRule(Base):
         ForeignKey(Category.name, ondelete="CASCADE"), primary_key=True
     )
     rule: Mapped[str] = mapped_column(primary_key=True)
+
+
+class Selector(enum.Enum):
+    unknown = enum.auto()
+    nullifier = enum.auto()
+    vacations = enum.auto()
+    rules = enum.auto()
+    algorithm = enum.auto()
+    manual = enum.auto()
+
+
+categoryselector = Annotated[
+    Selector,
+    mapped_column(Enum(Selector, inherit_schema=True), default=Selector.unknown),
+]
+
+
+class CategorySelector(Base):
+    __tablename__ = "categories_selector"
+
+    id: Mapped[catfk] = mapped_column(primary_key=True)
+    selector: Mapped[categoryselector]
+
+    category: Mapped[TransactionCategory] = relationship(back_populates="selector")
