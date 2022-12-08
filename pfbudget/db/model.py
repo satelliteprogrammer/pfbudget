@@ -204,9 +204,10 @@ class CategorySelector(Base):
 
 
 class Period(enum.Enum):
-    daily = enum.auto()
-    monthly = enum.auto()
-    yearly = enum.auto()
+    daily = "daily"
+    weekly = "weekly"
+    monthly = "monthly"
+    yearly = "yearly"
 
 
 scheduleperiod = Annotated[Selector, mapped_column(Enum(Period, inherit_schema=True))]
