@@ -11,15 +11,14 @@ from pfbudget.cli.runnable import download, parse
 
 
 class Manager:
-    def __init__(self, op: Operation, args: dict):
-        self._operation = op
+    def __init__(self, db: str, args: dict):
         self._args = args
+        print(args)
 
-        assert "database" in args, "ArgParser didn't include db"
-        self._db = args["database"]
+        self._db = db
 
-    def start(self):
-        match (self._operation):
+    def action(self, op: Operation, params: list):
+        match (op):
             case Operation.Init:
                 pass
             case Operation.Parse:
@@ -49,28 +48,19 @@ class Manager:
 
             case Operation.CategoryAdd:
                 with self.db.session() as session:
-                    for category in self.args["category"]:
-                        session.addcategory(
-                            Category(name=category, group=self.args["group"])
-                        )
+                    session.addcategories(params)
 
             case Operation.CategoryUpdate:
                 with self.db.session() as session:
-                    session.updategroup(
-                        [Category(name=category) for category in self.args["category"]],
-                        self.args["group"][0],
-                    )
+                    session.updategroup(*params)
 
             case Operation.CategoryRemove:
                 with self.db.session() as session:
-                    session.removecategory(
-                        [Category(name=category) for category in self.args["category"]]
-                    )
+                    session.removecategories(params)
 
             case Operation.CategorySchedule:
-                assert (
-                    "period" in self.args and "frequency" in self.args
-                ), "Schedule not well defined"
+                with self.db.session() as session:
+                    session.updateschedules(params)
 
             case Operation.CategoryRule:
                 with self.db.session() as session:

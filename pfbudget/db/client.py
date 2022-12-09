@@ -84,10 +84,10 @@ class DbClient:
         def add(self, transactions: list[Transaction]):
             self.__session.add_all(transactions)
 
-        def addcategory(self, category: Category):
-            self.__session.add(category)
+        def addcategories(self, category: list[Category]):
+            self.__session.add_all(category)
 
-        def removecategory(self, categories: list[Category]):
+        def removecategories(self, categories: list[Category]):
             stmt = delete(Category).where(
                 Category.name.in_([cat.name for cat in categories])
             )
@@ -101,20 +101,8 @@ class DbClient:
             )
             self.__session.execute(stmt)
 
-        def updateschedules(
-            self, categories: list[Category], schedule: CategorySchedule
-        ):
-            stmt = insert(CategorySchedule).values(
-                [
-                    dict(
-                        name=cat.name,
-                        recurring=schedule.recurring,
-                        period=schedule.period,
-                        period_multiplier=schedule.period_multiplier,
-                    )
-                    for cat in categories
-                ]
-            )
+        def updateschedules(self, schedules: list[CategorySchedule]):
+            stmt = insert(CategorySchedule).values([asdict(s) for s in schedules])
             stmt = stmt.on_conflict_do_update(
                 index_elements=[CategorySchedule.name],
                 set_=dict(
