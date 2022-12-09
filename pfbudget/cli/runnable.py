@@ -340,6 +340,15 @@ def category(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser
     schedule.add_argument("period", nargs=1, choices=[e.value for e in Period])
     schedule.add_argument("--frequency", nargs=1, default=[1], type=int)
 
+    rule = commands.add_parser("rule", parents=[universal])
+    rule.set_defaults(op=Operation.CategoryRule)
+    rule.add_argument("category", nargs="+", type=str)
+    rule.add_argument("--date", nargs=1, type=str)
+    rule.add_argument("--description", nargs=1, type=str)
+    rule.add_argument("--bank", nargs=1, type=str)
+    rule.add_argument("--min", nargs=1, type=float)
+    rule.add_argument("--max", nargs=1, type=float)
+
     group = commands.add_parser("group", parents=[universal])
     category_group(group, universal)
 

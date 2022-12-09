@@ -8,6 +8,7 @@ from pfbudget.db.model import (
     Bank,
     Category,
     CategoryGroup,
+    CategoryRule,
     CategorySchedule,
     Transaction,
 )
@@ -123,6 +124,9 @@ class DbClient:
                 ),
             )
             self.__session.execute(stmt)
+
+        def addrules(self, rules: list[CategoryRule]):
+            self.__session.add_all(rules)
 
         def addcategorygroup(self, group: CategoryGroup):
             self.__session.add(group)

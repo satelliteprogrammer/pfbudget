@@ -17,6 +17,7 @@ class Operation(Enum):
     CategoryUpdate = auto()
     CategoryRemove = auto()
     CategorySchedule = auto()
+    CategoryRule = auto()
     GroupAdd = auto()
     GroupRemove = auto()
 

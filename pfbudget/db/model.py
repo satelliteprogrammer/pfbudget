@@ -9,7 +9,13 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    MappedAsDataclass,
+    relationship,
+)
 
 from decimal import Decimal
 from typing import Annotated, Optional
@@ -17,7 +23,7 @@ import datetime as dt
 import enum
 
 
-class Base(DeclarativeBase):
+class Base(MappedAsDataclass, DeclarativeBase):
     __table_args__ = {"schema": "transactions"}
     metadata = MetaData(
         naming_convention={
@@ -69,18 +75,21 @@ money = Annotated[Decimal, mapped_column(Numeric(16, 2), nullable=False)]
 class Transaction(Base):
     __tablename__ = "originals"
 
-    id: Mapped[idpk] = mapped_column(autoincrement=True)
+    id: Mapped[idpk] = mapped_column(autoincrement=True, init=False)
     date: Mapped[dt.date]
     description: Mapped[Optional[str]]
     bank: Mapped[bankfk]
     amount: Mapped[money]
 
     category: Mapped[Optional[TransactionCategory]] = relationship(
-        back_populates="original", lazy="joined"
+        back_populates="original", lazy="joined", default=None
     )
-    note: Mapped[Optional[Note]] = relationship(back_populates="original")
+    note: Mapped[Optional[Note]] = relationship(back_populates="original", default=None)
     tags: Mapped[Optional[set[Tag]]] = relationship(
-        back_populates="original", cascade="all, delete-orphan", passive_deletes=True
+        back_populates="original",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        default=None,
     )
 
     def __repr__(self) -> str:
@@ -102,12 +111,16 @@ class Category(Base):
     __tablename__ = "categories_available"
 
     name: Mapped[str] = mapped_column(primary_key=True)
-    group: Mapped[Optional[str]] = mapped_column(ForeignKey(CategoryGroup.name))
+    group: Mapped[Optional[str]] = mapped_column(
+        ForeignKey(CategoryGroup.name), default=None
+    )
 
     rules: Mapped[Optional[set[CategoryRule]]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True
+        cascade="all, delete-orphan", passive_deletes=True, default=None
     )
-    schedule: Mapped[CategorySchedule] = relationship(back_populates="category")
+    schedule: Mapped[CategorySchedule] = relationship(
+        back_populates="category", default=None
+    )
 
     def __repr__(self) -> str:
         return f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)}, schedule={self.schedule})"
@@ -122,7 +135,7 @@ catfk = Annotated[
 class TransactionCategory(Base):
     __tablename__ = "categorized"
 
-    id: Mapped[idfk] = mapped_column(primary_key=True)
+    id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     name: Mapped[str] = mapped_column(ForeignKey(Category.name))
 
     original: Mapped[Transaction] = relationship(back_populates="category")
@@ -167,10 +180,13 @@ class Tag(Base):
 class CategoryRule(Base):
     __tablename__ = "categories_rules"
 
-    name: Mapped[str] = mapped_column(
-        ForeignKey(Category.name, ondelete="CASCADE"), primary_key=True
-    )
-    rule: Mapped[str] = mapped_column(primary_key=True)
+    id: Mapped[idpk] = mapped_column(autoincrement=True, init=False)
+    name: Mapped[catfk] = mapped_column()
+    date: Mapped[Optional[str]] = mapped_column()
+    description: Mapped[Optional[str]] = mapped_column()
+    bank: Mapped[Optional[str]] = mapped_column()
+    min_amount: Mapped[Optional[float]] = mapped_column()
+    max_amount: Mapped[Optional[float]] = mapped_column()
 
 
 class Selector(enum.Enum):

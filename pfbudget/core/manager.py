@@ -2,7 +2,7 @@ from pfbudget.input.input import Input
 from pfbudget.input.nordigen import NordigenClient
 from pfbudget.input.parsers import parse_data
 from pfbudget.db.client import DbClient
-from pfbudget.db.model import Category, CategoryGroup, CategorySchedule
+from pfbudget.db.model import Category, CategoryGroup, CategoryRule, CategorySchedule
 from pfbudget.common.types import Operation
 from pfbudget.core.categorizer import Categorizer
 from pfbudget.utils import convert
@@ -72,15 +72,9 @@ class Manager:
                     "period" in self.args and "frequency" in self.args
                 ), "Schedule not well defined"
 
+            case Operation.CategoryRule:
                 with self.db.session() as session:
-                    session.updateschedules(
-                        [Category(name=category) for category in self.args["category"]],
-                        CategorySchedule(
-                            recurring=True,
-                            period=self.args["period"][0],
-                            period_multiplier=self.args["frequency"][0],
-                        ),
-                    )
+                    session.addrules(params)
 
             case Operation.GroupAdd:
                 with self.db.session() as session:
