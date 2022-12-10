@@ -28,7 +28,10 @@ class Manager:
                 # TODO this is a monstrosity, remove when possible
                 download(self, self.args)
             case Operation.Categorize:
-                self.categorize()
+                with self.db.session() as session:
+                    uncategorized = session.uncategorized()
+                    categories = session.categories()
+                    Categorizer().categorize(uncategorized, categories)
 
             case Operation.Register:
                 # self._db = DbClient(args["database"])
@@ -105,11 +108,6 @@ class Manager:
     def add_transactions(self, transactions):
         with self.db.session() as session:
             session.add(transactions)
-
-    def categorize(self):
-        with self.db.session() as session:
-            uncategorized = session.uncategorized()
-            Categorizer().categorize(uncategorized)
 
     # def get_bank_by(self, key: str, value: str) -> Bank:
     #     client = DatabaseClient(self.__db)

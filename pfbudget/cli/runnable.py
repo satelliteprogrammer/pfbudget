@@ -1,5 +1,6 @@
 from pathlib import Path
 import argparse
+import datetime as dt
 import re
 
 from pfbudget.common.types import Operation
@@ -109,13 +110,12 @@ def argparser() -> argparse.ArgumentParser:
     """
     Categorizing
     """
-    p_categorize = subparsers.add_parser(
+    categorize = subparsers.add_parser(
         "categorize",
         description="Categorizes the transactions in the selected database",
         parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    p_categorize.set_defaults(command=Operation.Categorize)
+    categorize.set_defaults(op=Operation.Categorize)
 
     """
     Graph
@@ -343,7 +343,7 @@ def category(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser
     rule = commands.add_parser("rule", parents=[universal])
     rule.set_defaults(op=Operation.CategoryRule)
     rule.add_argument("category", nargs="+", type=str)
-    rule.add_argument("--date", nargs=1, type=str)
+    rule.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
     rule.add_argument("--description", nargs=1, type=str)
     rule.add_argument("--bank", nargs=1, type=str)
     rule.add_argument("--min", nargs=1, type=float)

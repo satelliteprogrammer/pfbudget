@@ -129,5 +129,9 @@ class DbClient:
             stmt = select(Transaction).where(~Transaction.category.has())
             return self.__session.scalars(stmt).all()
 
+        def categories(self) -> list[Category]:
+            stmt = select(Category)
+            return self.__session.scalars(stmt).all()
+
     def session(self) -> ClientSession:
         return self.ClientSession(self.engine)

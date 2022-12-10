@@ -81,9 +81,7 @@ class Transaction(Base):
     bank: Mapped[bankfk]
     amount: Mapped[money]
 
-    category: Mapped[Optional[TransactionCategory]] = relationship(
-        back_populates="original", lazy="joined", default=None
-    )
+    category: Mapped[Optional[TransactionCategory]] = relationship()
     note: Mapped[Optional[Note]] = relationship(back_populates="original", default=None)
     tags: Mapped[Optional[set[Tag]]] = relationship(
         back_populates="original",
@@ -138,8 +136,7 @@ class TransactionCategory(Base):
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     name: Mapped[str] = mapped_column(ForeignKey(Category.name))
 
-    original: Mapped[Transaction] = relationship(back_populates="category")
-    selector: Mapped[CategorySelector] = relationship(back_populates="category")
+    selector: Mapped[CategorySelector] = relationship()
 
     def __repr__(self) -> str:
         return f"Category({self.name})"
@@ -182,11 +179,14 @@ class CategoryRule(Base):
 
     id: Mapped[idpk] = mapped_column(autoincrement=True, init=False)
     name: Mapped[catfk] = mapped_column()
-    date: Mapped[Optional[str]] = mapped_column()
+    date: Mapped[Optional[dt.date]] = mapped_column()
     description: Mapped[Optional[str]] = mapped_column()
     bank: Mapped[Optional[str]] = mapped_column()
     min_amount: Mapped[Optional[float]] = mapped_column()
     max_amount: Mapped[Optional[float]] = mapped_column()
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Selector(enum.Enum):
@@ -211,10 +211,9 @@ class CategorySelector(Base):
         BigInteger,
         ForeignKey(TransactionCategory.id, ondelete="CASCADE"),
         primary_key=True,
+        init=False,
     )
     selector: Mapped[categoryselector]
-
-    category: Mapped[TransactionCategory] = relationship(back_populates="selector")
 
 
 class Period(enum.Enum):
