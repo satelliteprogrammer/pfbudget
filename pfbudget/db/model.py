@@ -231,15 +231,11 @@ class CategorySchedule(Base):
     __tablename__ = "categories_schedules"
 
     name: Mapped[catfk] = mapped_column(primary_key=True)
-    recurring: Mapped[bool]
     period: Mapped[Optional[scheduleperiod]]
     period_multiplier: Mapped[Optional[int]]
+    amount: Mapped[Optional[int]]
 
     category: Mapped[Category] = relationship(back_populates="schedule")
 
     def __repr__(self) -> str:
-        return (
-            f"{self.name} schedule=Schedule(period={self.period}, multiplier={self.period_multiplier})"
-            if self.recurring
-            else f"{self.name} has no Schedule"
-        )
+        return f"{self.name} schedule=Schedule(period={self.period}, multiplier={self.period_multiplier}, amount={self.amount})"
