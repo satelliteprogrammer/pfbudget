@@ -178,12 +178,13 @@ class CategoryRule(Base):
     __tablename__ = "categories_rules"
 
     id: Mapped[idpk] = mapped_column(autoincrement=True, init=False)
-    name: Mapped[catfk] = mapped_column()
-    date: Mapped[Optional[dt.date]] = mapped_column()
-    description: Mapped[Optional[str]] = mapped_column()
-    bank: Mapped[Optional[str]] = mapped_column()
-    min_amount: Mapped[Optional[float]] = mapped_column()
-    max_amount: Mapped[Optional[float]] = mapped_column()
+    name: Mapped[catfk]
+    date: Mapped[Optional[dt.date]]
+    description: Mapped[Optional[str]]
+    regex: Mapped[Optional[str]]
+    bank: Mapped[Optional[str]]
+    min_amount: Mapped[Optional[float]]
+    max_amount: Mapped[Optional[float]]
 
     def __hash__(self):
         return hash(self.id)

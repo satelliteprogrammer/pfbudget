@@ -341,13 +341,7 @@ def category(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser
     schedule.add_argument("--frequency", nargs=1, default=[1], type=int)
 
     rule = commands.add_parser("rule", parents=[universal])
-    rule.set_defaults(op=Operation.CategoryRule)
-    rule.add_argument("category", nargs="+", type=str)
-    rule.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
-    rule.add_argument("--description", nargs=1, type=str)
-    rule.add_argument("--bank", nargs=1, type=str)
-    rule.add_argument("--min", nargs=1, type=float)
-    rule.add_argument("--max", nargs=1, type=float)
+    category_rule(rule, universal)
 
     group = commands.add_parser("group", parents=[universal])
     category_group(group, universal)
@@ -363,6 +357,24 @@ def category_group(parser: argparse.ArgumentParser, universal: argparse.Argument
     remove = commands.add_parser("remove", parents=[universal])
     remove.set_defaults(op=Operation.GroupRemove)
     remove.add_argument("group", nargs="+", type=str)
+
+
+def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+    commands = parser.add_subparsers(required=True)
+
+    add = commands.add_parser("add", parents=[universal])
+    add.set_defaults(op=Operation.RuleAdd)
+    add.add_argument("category", nargs="+", type=str)
+    add.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
+    add.add_argument("--description", nargs=1, type=str)
+    add.add_argument("--regex", nargs=1, type=str)
+    add.add_argument("--bank", nargs=1, type=str)
+    add.add_argument("--min", nargs=1, type=float)
+    add.add_argument("--max", nargs=1, type=float)
+
+    remove = commands.add_parser("remove", parents=[universal])
+    remove.set_defaults(op=Operation.RuleRemove)
+    remove.add_argument("id", nargs="+", type=int)
 
 
 def run():

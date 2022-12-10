@@ -7,6 +7,7 @@ from pfbudget.db.model import (
 )
 
 from datetime import timedelta
+import re
 
 
 class Categorizer:
@@ -64,8 +65,12 @@ class Categorizer:
                     if rule.date:
                         if rule.date < transaction.date:
                             continue
-                    if rule.description:
+                    if rule.description and transaction.description:
                         if rule.description not in transaction.description:
+                            continue
+                    if rule.regex and transaction.description:
+                        p = re.compile(rule.regex, re.IGNORECASE)
+                        if not p.search(transaction.description):
                             continue
                     if rule.bank:
                         if rule.bank != transaction.bank:

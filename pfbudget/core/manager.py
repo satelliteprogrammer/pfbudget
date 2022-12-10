@@ -65,20 +65,23 @@ class Manager:
                 with self.db.session() as session:
                     session.updateschedules(params)
 
-            case Operation.CategoryRule:
+            case Operation.RuleAdd:
                 with self.db.session() as session:
                     session.addrules(params)
 
+            case Operation.RuleRemove:
+                assert all(isinstance(param, int) for param in params)
+                with self.db.session() as session:
+                    session.removerules(params)
+
             case Operation.GroupAdd:
                 with self.db.session() as session:
-                    for group in self.args["group"]:
-                        session.addcategorygroup(CategoryGroup(name=group))
+                    session.addgroups(CategoryGroup(params))
 
             case Operation.GroupRemove:
+                assert all(isinstance(param, CategoryGroup) for param in params)
                 with self.db.session() as session:
-                    session.removecategorygroup(
-                        [CategoryGroup(name=group) for group in self.args["group"]]
-                    )
+                    session.removegroups(params)
 
     # def init(self):
     #     client = DatabaseClient(self.__db)

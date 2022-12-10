@@ -43,7 +43,7 @@ if __name__ == "__main__":
                 for cat in args["category"]
             ]
 
-        case pfbudget.Operation.CategoryRule:
+        case pfbudget.Operation.RuleAdd:
             assert args.keys() >= {
                 "category",
                 "date",
@@ -58,12 +58,17 @@ if __name__ == "__main__":
                     cat,
                     args["date"][0] if args["date"] else None,
                     args["description"][0] if args["description"] else None,
+                    args["regex"][0] if args["regex"] else None,
                     args["bank"][0] if args["bank"] else None,
                     args["min"][0] if args["min"] else None,
                     args["max"][0] if args["max"] else None,
                 )
                 for cat in args["category"]
             ]
+
+        case pfbudget.Operation.RuleRemove:
+            assert args.keys() >= {"id"}, "argparser ill defined"
+            params = args["id"]
 
         case pfbudget.Operation.GroupAdd:
             assert "group" in args, "argparser ill defined"

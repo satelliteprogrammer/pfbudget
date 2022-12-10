@@ -116,10 +116,16 @@ class DbClient:
         def addrules(self, rules: list[CategoryRule]):
             self.__session.add_all(rules)
 
-        def addcategorygroup(self, group: CategoryGroup):
-            self.__session.add(group)
+        def removerules(self, ids: list[int]):
+            stmt = delete(CategoryRule).where(
+                CategoryRule.id.in_(ids)
+            )
+            self.__session.execute(stmt)
 
-        def removecategorygroup(self, groups: list[CategoryGroup]):
+        def addgroups(self, groups: list[CategoryGroup]):
+            self.__session.add_all(groups)
+
+        def removegroups(self, groups: list[CategoryGroup]):
             stmt = delete(CategoryGroup).where(
                 CategoryGroup.name.in_([grp.name for grp in groups])
             )
