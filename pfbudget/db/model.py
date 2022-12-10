@@ -69,7 +69,7 @@ class Bank(Base):
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
 
 idpk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
-money = Annotated[Decimal, mapped_column(Numeric(16, 2), nullable=False)]
+money = Annotated[Decimal, mapped_column(Numeric(16, 2))]
 
 
 class Transaction(Base):
@@ -183,8 +183,8 @@ class CategoryRule(Base):
     description: Mapped[Optional[str]]
     regex: Mapped[Optional[str]]
     bank: Mapped[Optional[str]]
-    min_amount: Mapped[Optional[float]]
-    max_amount: Mapped[Optional[float]]
+    min_amount: Mapped[Optional[money]]
+    max_amount: Mapped[Optional[money]]
 
     def __hash__(self):
         return hash(self.id)

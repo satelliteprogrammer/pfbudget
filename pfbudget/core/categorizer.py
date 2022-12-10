@@ -79,7 +79,7 @@ class Categorizer:
                         if rule.min_amount > transaction.amount:
                             continue
                     if rule.max_amount:
-                        if rule.max_amount <= transaction.amount:
+                        if rule.max_amount < transaction.amount:
                             continue
 
                     # passed all conditions, assign category

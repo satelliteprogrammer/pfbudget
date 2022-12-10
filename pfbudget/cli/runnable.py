@@ -1,6 +1,7 @@
 from pathlib import Path
 import argparse
 import datetime as dt
+import decimal
 import re
 
 from pfbudget.common.types import Operation
@@ -369,8 +370,8 @@ def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentP
     add.add_argument("--description", nargs=1, type=str)
     add.add_argument("--regex", nargs=1, type=str)
     add.add_argument("--bank", nargs=1, type=str)
-    add.add_argument("--min", nargs=1, type=float)
-    add.add_argument("--max", nargs=1, type=float)
+    add.add_argument("--min", nargs=1, type=decimal.Decimal)
+    add.add_argument("--max", nargs=1, type=decimal.Decimal)
 
     remove = commands.add_parser("remove", parents=[universal])
     remove.set_defaults(op=Operation.RuleRemove)
