@@ -377,6 +377,18 @@ def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentP
     remove.set_defaults(op=Operation.RuleRemove)
     remove.add_argument("id", nargs="+", type=int)
 
+    modify = commands.add_parser("modify", parents=[universal])
+    modify.set_defaults(op=Operation.RuleModify)
+    modify.add_argument("id", nargs="+", type=int)
+    modify.add_argument("--category", nargs=1, type=str)
+    modify.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
+    modify.add_argument("--description", nargs=1, type=str)
+    modify.add_argument("--regex", nargs=1, type=str)
+    modify.add_argument("--bank", nargs=1, type=str)
+    modify.add_argument("--min", nargs=1, type=decimal.Decimal)
+    modify.add_argument("--max", nargs=1, type=decimal.Decimal)
+    modify.add_argument("--remove", nargs="*", default=[], type=str)
+
 
 def run():
     args = vars(argparser().parse_args())

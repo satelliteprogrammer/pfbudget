@@ -74,6 +74,11 @@ class Manager:
                 with self.db.session() as session:
                     session.removerules(params)
 
+            case Operation.RuleModify:
+                assert all(isinstance(param, dict) for param in params)
+                with self.db.session() as session:
+                    session.updaterules(params)
+
             case Operation.GroupAdd:
                 with self.db.session() as session:
                     session.addgroups(CategoryGroup(params))

@@ -114,7 +114,7 @@ class Category(Base):
     )
 
     rules: Mapped[Optional[set[CategoryRule]]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True, default=None
+        cascade="all, delete-orphan", passive_deletes=True, default_factory=set
     )
     schedule: Mapped[CategorySchedule] = relationship(
         back_populates="category", default=None

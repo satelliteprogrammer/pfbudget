@@ -69,6 +69,27 @@ if __name__ == "__main__":
             assert args.keys() >= {"id"}, "argparser ill defined"
             params = args["id"]
 
+        case pfbudget.Operation.RuleModify:
+            assert args.keys() >= {
+                "id",
+                "category",
+                "date",
+                "description",
+                "bank",
+                "min",
+                "max",
+                "remove",
+            }, "argparser ill defined"
+
+            nargs_1 = ["category", "date", "description", "regex", "bank", "min", "max"]
+            params = []
+            for id in args["id"]:
+                param = {"id": id}
+                param |= {k: v[0] for k, v in args.items() if k in nargs_1 and args[k]}
+                param |= {k: None for k in args["remove"] if k in nargs_1}
+
+                params.append(param)
+
         case pfbudget.Operation.GroupAdd:
             assert "group" in args, "argparser ill defined"
             params = [pfbudget.types.CategoryGroup(group) for group in args["group"]]

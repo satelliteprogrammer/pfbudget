@@ -117,10 +117,11 @@ class DbClient:
             self.__session.add_all(rules)
 
         def removerules(self, ids: list[int]):
-            stmt = delete(CategoryRule).where(
-                CategoryRule.id.in_(ids)
-            )
+            stmt = delete(CategoryRule).where(CategoryRule.id.in_(ids))
             self.__session.execute(stmt)
+
+        def updaterules(self, rules: list[dict]):
+            self.__session.execute(update(CategoryRule), rules)
 
         def addgroups(self, groups: list[CategoryGroup]):
             self.__session.add_all(groups)
