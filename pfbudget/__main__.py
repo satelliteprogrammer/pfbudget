@@ -16,14 +16,13 @@ if __name__ == "__main__":
         case pfbudget.Operation.CategoryAdd:
             assert args.keys() >= {"category", "group"}, "argparser ill defined"
             params = [
-                pfbudget.types.Category(cat, args["group"][0])
-                for cat in args["category"]
+                pfbudget.types.Category(cat, args["group"]) for cat in args["category"]
             ]
 
         case pfbudget.Operation.CategoryUpdate:
             assert args.keys() >= {"category", "group"}, "argparser ill defined"
             params = [pfbudget.types.Category(cat) for cat in args["category"]]
-            params.append(args["group"][0])
+            params.append(args["group"])
 
         case pfbudget.Operation.CategoryRemove:
             assert "category" in args, "argparser ill defined"
