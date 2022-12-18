@@ -22,6 +22,11 @@ class Operation(Enum):
     RuleModify = auto()
     GroupAdd = auto()
     GroupRemove = auto()
+    TagAdd = auto()
+    TagRemove = auto()
+    TagRuleAdd = auto()
+    TagRuleRemove = auto()
+    TagRuleModify = auto()
 
 
 class TransactionError(Exception):

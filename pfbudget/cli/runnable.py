@@ -255,6 +255,9 @@ def argparser() -> argparse.ArgumentParser:
     category_parser = subparsers.add_parser("category", parents=[universal])
     category(category_parser, universal)
 
+    # Tag
+    tags(subparsers.add_parser("tag", parents=[universal]), universal)
+
     return parser
 
 
@@ -366,12 +369,7 @@ def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentP
     add = commands.add_parser("add", parents=[universal])
     add.set_defaults(op=Operation.RuleAdd)
     add.add_argument("category", nargs="+", type=str)
-    add.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
-    add.add_argument("--description", nargs=1, type=str)
-    add.add_argument("--regex", nargs=1, type=str)
-    add.add_argument("--bank", nargs=1, type=str)
-    add.add_argument("--min", nargs=1, type=decimal.Decimal)
-    add.add_argument("--max", nargs=1, type=decimal.Decimal)
+    rules(add)
 
     remove = commands.add_parser("remove", parents=[universal])
     remove.set_defaults(op=Operation.RuleRemove)
@@ -381,13 +379,51 @@ def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentP
     modify.set_defaults(op=Operation.RuleModify)
     modify.add_argument("id", nargs="+", type=int)
     modify.add_argument("--category", nargs=1, type=str)
-    modify.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
-    modify.add_argument("--description", nargs=1, type=str)
-    modify.add_argument("--regex", nargs=1, type=str)
-    modify.add_argument("--bank", nargs=1, type=str)
-    modify.add_argument("--min", nargs=1, type=decimal.Decimal)
-    modify.add_argument("--max", nargs=1, type=decimal.Decimal)
-    modify.add_argument("--remove", nargs="*", default=[], type=str)
+    rules(modify)
+
+
+def tags(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+
+    commands = parser.add_subparsers(required=True)
+
+    add = commands.add_parser("add", parents=[universal])
+    add.set_defaults(op=Operation.TagAdd)
+    add.add_argument("tag", nargs="+", type=str)
+
+    remove = commands.add_parser("remove", parents=[universal])
+    remove.set_defaults(op=Operation.TagRemove)
+    remove.add_argument("tag", nargs="+", type=str)
+
+    rule = commands.add_parser("rule", parents=[universal])
+    tag_rule(rule, universal)
+
+
+def tag_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+    commands = parser.add_subparsers(required=True)
+
+    add = commands.add_parser("add", parents=[universal])
+    add.set_defaults(op=Operation.TagRuleAdd)
+    add.add_argument("tag", nargs="+", type=str)
+    rules(add)
+
+    remove = commands.add_parser("remove", parents=[universal])
+    remove.set_defaults(op=Operation.TagRuleRemove)
+    remove.add_argument("id", nargs="+", type=int)
+
+    modify = commands.add_parser("modify", parents=[universal])
+    modify.set_defaults(op=Operation.TagRuleModify)
+    modify.add_argument("id", nargs="+", type=int)
+    modify.add_argument("--tag", nargs=1, type=str)
+    rules(modify)
+
+
+def rules(parser: argparse.ArgumentParser):
+    parser.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
+    parser.add_argument("--description", nargs=1, type=str)
+    parser.add_argument("--regex", nargs=1, type=str)
+    parser.add_argument("--bank", nargs=1, type=str)
+    parser.add_argument("--min", nargs=1, type=decimal.Decimal)
+    parser.add_argument("--max", nargs=1, type=decimal.Decimal)
 
 
 def run():

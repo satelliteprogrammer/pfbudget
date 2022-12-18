@@ -68,14 +68,16 @@ class Bank(Base):
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
 
-idpk = Annotated[int, mapped_column(BigInteger, primary_key=True)]
+idpk = Annotated[
+    int, mapped_column(BigInteger, primary_key=True, autoincrement=True, init=False)
+]
 money = Annotated[Decimal, mapped_column(Numeric(16, 2))]
 
 
 class Transaction(Base):
     __tablename__ = "originals"
 
-    id: Mapped[idpk] = mapped_column(autoincrement=True, init=False)
+    id: Mapped[idpk]
     date: Mapped[dt.date]
     description: Mapped[Optional[str]]
     bank: Mapped[bankfk]
@@ -83,7 +85,7 @@ class Transaction(Base):
 
     category: Mapped[Optional[TransactionCategory]] = relationship()
     note: Mapped[Optional[Note]] = relationship(back_populates="original", default=None)
-    tags: Mapped[Optional[set[Tag]]] = relationship(
+    tags: Mapped[Optional[set[TransactionTag]]] = relationship(
         back_populates="original",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -166,10 +168,20 @@ class Nordigen(Base):
 
 
 class Tag(Base):
+    __tablename__ = "tags_available"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+
+    rules: Mapped[Optional[set[TagRule]]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, default_factory=set
+    )
+
+
+class TransactionTag(Base):
     __tablename__ = "tags"
 
     id: Mapped[idfk] = mapped_column(primary_key=True)
-    tag: Mapped[str] = mapped_column(primary_key=True)
+    tag: Mapped[str] = mapped_column(ForeignKey(Tag.name), primary_key=True)
 
     original: Mapped[Transaction] = relationship(back_populates="tags")
 
@@ -177,7 +189,7 @@ class Tag(Base):
 class CategoryRule(Base):
     __tablename__ = "categories_rules"
 
-    id: Mapped[idpk] = mapped_column(autoincrement=True, init=False)
+    id: Mapped[idpk]
     name: Mapped[catfk]
     date: Mapped[Optional[dt.date]]
     description: Mapped[Optional[str]]
@@ -239,3 +251,16 @@ class CategorySchedule(Base):
 
     def __repr__(self) -> str:
         return f"{self.name} schedule=Schedule(period={self.period}, multiplier={self.period_multiplier}, amount={self.amount})"
+
+
+class TagRule(Base):
+    __tablename__ = "tag_rules"
+
+    id: Mapped[idpk]
+    tag: Mapped[str] = mapped_column(ForeignKey(Tag.name, ondelete="CASCADE"))
+    date: Mapped[Optional[dt.date]]
+    description: Mapped[Optional[str]]
+    regex: Mapped[Optional[str]]
+    bank: Mapped[Optional[str]]
+    min: Mapped[Optional[money]]
+    max: Mapped[Optional[money]]

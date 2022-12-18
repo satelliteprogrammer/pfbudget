@@ -10,6 +10,8 @@ from pfbudget.db.model import (
     CategoryGroup,
     CategoryRule,
     CategorySchedule,
+    Tag,
+    TagRule,
     Transaction,
 )
 
@@ -81,16 +83,16 @@ class DbClient:
         def commit(self):
             self.__session.commit()
 
-        def add(self, transactions: list[Transaction]):
-            self.__session.add_all(transactions)
+        def add(
+            self,
+            rows: list[
+                Category | CategoryGroup | CategoryRule | Tag | TagRule | Transaction
+            ],
+        ):
+            self.__session.add_all(rows)
 
-        def addcategories(self, category: list[Category]):
-            self.__session.add_all(category)
-
-        def removecategories(self, categories: list[Category]):
-            stmt = delete(Category).where(
-                Category.name.in_([cat.name for cat in categories])
-            )
+        def remove_by_name(self, type: Category | Tag | Transaction, rows: list):
+            stmt = delete(type).where(type.name.in_([row.name for row in rows]))
             self.__session.execute(stmt)
 
         def updategroup(self, categories: list[Category], group: CategoryGroup):
@@ -113,24 +115,12 @@ class DbClient:
             )
             self.__session.execute(stmt)
 
-        def addrules(self, rules: list[CategoryRule]):
-            self.__session.add_all(rules)
-
-        def removerules(self, ids: list[int]):
-            stmt = delete(CategoryRule).where(CategoryRule.id.in_(ids))
+        def remove_by_id(self, type: CategoryRule | TagRule, ids: list[int]):
+            stmt = delete(type).where(type.id.in_(ids))
             self.__session.execute(stmt)
 
         def updaterules(self, rules: list[dict]):
             self.__session.execute(update(CategoryRule), rules)
-
-        def addgroups(self, groups: list[CategoryGroup]):
-            self.__session.add_all(groups)
-
-        def removegroups(self, groups: list[CategoryGroup]):
-            stmt = delete(CategoryGroup).where(
-                CategoryGroup.name.in_([grp.name for grp in groups])
-            )
-            self.__session.execute(stmt)
 
         def uncategorized(self) -> list[Transaction]:
             stmt = select(Transaction).where(~Transaction.category.has())

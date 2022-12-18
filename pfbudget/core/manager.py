@@ -2,7 +2,14 @@ from pfbudget.input.input import Input
 from pfbudget.input.nordigen import NordigenClient
 from pfbudget.input.parsers import parse_data
 from pfbudget.db.client import DbClient
-from pfbudget.db.model import Category, CategoryGroup, CategoryRule, CategorySchedule
+from pfbudget.db.model import (
+    Category,
+    CategoryGroup,
+    CategoryRule,
+    CategorySchedule,
+    Tag,
+    TagRule,
+)
 from pfbudget.common.types import Operation
 from pfbudget.core.categorizer import Categorizer
 from pfbudget.utils import convert
@@ -49,9 +56,9 @@ class Manager:
                     self.args["name"], self.args["country"]
                 )
 
-            case Operation.CategoryAdd:
+            case Operation.CategoryAdd | Operation.TagAdd:
                 with self.db.session() as session:
-                    session.addcategories(params)
+                    session.add(params)
 
             case Operation.CategoryUpdate:
                 with self.db.session() as session:
@@ -59,34 +66,43 @@ class Manager:
 
             case Operation.CategoryRemove:
                 with self.db.session() as session:
-                    session.removecategories(params)
+                    session.remove_by_name(Category, params)
 
             case Operation.CategorySchedule:
                 with self.db.session() as session:
                     session.updateschedules(params)
 
-            case Operation.RuleAdd:
+            case Operation.RuleAdd | Operation.TagRuleAdd:
                 with self.db.session() as session:
-                    session.addrules(params)
+                    session.add(params)
 
             case Operation.RuleRemove:
                 assert all(isinstance(param, int) for param in params)
                 with self.db.session() as session:
-                    session.removerules(params)
+                    session.remove_by_id(CategoryRule, params)
 
-            case Operation.RuleModify:
+            case Operation.TagRemove:
+                with self.db.session() as session:
+                    session.remove_by_name(Tag, params)
+
+            case Operation.TagRuleRemove:
+                assert all(isinstance(param, int) for param in params)
+                with self.db.session() as session:
+                    session.remove_by_id(TagRule, params)
+
+            case Operation.RuleModify | Operation.TagRuleModify:
                 assert all(isinstance(param, dict) for param in params)
                 with self.db.session() as session:
                     session.updaterules(params)
 
             case Operation.GroupAdd:
                 with self.db.session() as session:
-                    session.addgroups(CategoryGroup(params))
+                    session.add(CategoryGroup(params))
 
             case Operation.GroupRemove:
                 assert all(isinstance(param, CategoryGroup) for param in params)
                 with self.db.session() as session:
-                    session.removegroups(params)
+                    session.remove_by_name(CategoryGroup, params)
 
     # def init(self):
     #     client = DatabaseClient(self.__db)
