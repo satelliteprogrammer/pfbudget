@@ -183,8 +183,8 @@ class CategoryRule(Base):
     description: Mapped[Optional[str]]
     regex: Mapped[Optional[str]]
     bank: Mapped[Optional[str]]
-    min_amount: Mapped[Optional[money]]
-    max_amount: Mapped[Optional[money]]
+    min: Mapped[Optional[money]]
+    max: Mapped[Optional[money]]
 
     def __hash__(self):
         return hash(self.id)

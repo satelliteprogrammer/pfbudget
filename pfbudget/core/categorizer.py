@@ -75,11 +75,11 @@ class Categorizer:
                     if rule.bank:
                         if rule.bank != transaction.bank:
                             continue
-                    if rule.min_amount:
-                        if rule.min_amount > transaction.amount:
+                    if rule.min:
+                        if rule.min > transaction.amount:
                             continue
-                    if rule.max_amount:
-                        if rule.max_amount < transaction.amount:
+                    if rule.max:
+                        if rule.max < transaction.amount:
                             continue
 
                     # passed all conditions, assign category
