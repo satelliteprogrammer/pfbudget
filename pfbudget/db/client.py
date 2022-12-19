@@ -130,5 +130,9 @@ class DbClient:
             stmt = select(Category)
             return self.__session.scalars(stmt).all()
 
+        def tags(self) -> list[Tag]:
+            stmt = select(Tag)
+            return self.__session.scalars(stmt).all()
+
     def session(self) -> ClientSession:
         return self.ClientSession(self.engine)

@@ -34,11 +34,13 @@ class Manager:
             case Operation.Download:
                 # TODO this is a monstrosity, remove when possible
                 download(self, self.args)
+
             case Operation.Categorize:
                 with self.db.session() as session:
                     uncategorized = session.uncategorized()
                     categories = session.categories()
-                    Categorizer().categorize(uncategorized, categories)
+                    tags = session.tags()
+                    Categorizer().categorize(uncategorized, categories, tags)
 
             case Operation.Register:
                 # self._db = DbClient(args["database"])
@@ -56,7 +58,7 @@ class Manager:
                     self.args["name"], self.args["country"]
                 )
 
-            case Operation.CategoryAdd | Operation.TagAdd:
+            case Operation.CategoryAdd | Operation.RuleAdd | Operation.TagAdd | Operation.TagRuleAdd:
                 with self.db.session() as session:
                     session.add(params)
 
@@ -71,10 +73,6 @@ class Manager:
             case Operation.CategorySchedule:
                 with self.db.session() as session:
                     session.updateschedules(params)
-
-            case Operation.RuleAdd | Operation.TagRuleAdd:
-                with self.db.session() as session:
-                    session.add(params)
 
             case Operation.RuleRemove:
                 assert all(isinstance(param, int) for param in params)

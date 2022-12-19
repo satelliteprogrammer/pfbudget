@@ -383,7 +383,6 @@ def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentP
 
 
 def tags(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
-
     commands = parser.add_subparsers(required=True)
 
     add = commands.add_parser("add", parents=[universal])

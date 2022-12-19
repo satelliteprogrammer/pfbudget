@@ -2,12 +2,13 @@ from pfbudget.db.model import (
     Category,
     CategorySelector,
     Selector,
+    Tag,
     Transaction,
     TransactionCategory,
+    TransactionTag,
 )
 
 from datetime import timedelta
-import re
 
 
 class Categorizer:
@@ -16,7 +17,12 @@ class Categorizer:
     def __init__(self):
         self.options["null_days"] = 4
 
-    def categorize(self, transactions: list[Transaction], categories: list[Category]):
+    def categorize(
+        self,
+        transactions: list[Transaction],
+        categories: list[Category],
+        tags: list[Tag],
+    ):
         """Overarching categorization tool
 
         Receives a list of transactions (by ref) and updates their category
@@ -26,7 +32,8 @@ class Categorizer:
         """
 
         self._nullify(transactions)
-        self._rules(transactions, categories)
+        self._rule_based_categories(transactions, categories)
+        self._rule_based_tags(transactions, tags)
 
     def _nullify(self, transactions: list[Transaction]):
         count = 0
@@ -58,31 +65,57 @@ class Categorizer:
 
         print(f"Nullified {count} transactions")
 
-    def _rules(self, transactions: list[Transaction], categories: list[Category]):
+    def _rule_based_categories(
+        self, transactions: list[Transaction], categories: list[Category]
+    ):
+        d = {}
         for category in [c for c in categories if c.rules]:
             for rule in category.rules:
-                for transaction in [t for t in transactions if not t.category]:
-                    if rule.date:
-                        if rule.date < transaction.date:
-                            continue
-                    if rule.description and transaction.description:
-                        if rule.description not in transaction.description:
-                            continue
-                    if rule.regex and transaction.description:
-                        p = re.compile(rule.regex, re.IGNORECASE)
-                        if not p.search(transaction.description):
-                            continue
-                    if rule.bank:
-                        if rule.bank != transaction.bank:
-                            continue
-                    if rule.min:
-                        if rule.min > transaction.amount:
-                            continue
-                    if rule.max:
-                        if rule.max < transaction.amount:
-                            continue
+                # for transaction in [t for t in transactions if not t.category]:
+                for transaction in [
+                    t
+                    for t in transactions
+                    if not t.category or t.category.name != "null"
+                ]:
+                    if not rule.matches(transaction):
+                        continue
 
                     # passed all conditions, assign category
                     transaction.category = TransactionCategory(
                         category.name, CategorySelector(Selector.rules)
                     )
+
+                    if rule in d:
+                        d[rule] += 1
+                    else:
+                        d[rule] = 1
+
+        for k, v in d.items():
+            print(f"{v}: {k}")
+
+    def _rule_based_tags(self, transactions: list[Transaction], tags: list[Tag]):
+        d = {}
+        for tag in [t for t in tags if t.rules]:
+            for rule in tag.rules:
+                # for transaction in [t for t in transactions if not t.category]:
+                for transaction in [
+                    t
+                    for t in transactions
+                    if tag.name not in [tag.tag for tag in t.tags]
+                ]:
+                    if not rule.matches(transaction):
+                        continue
+
+                    if not transaction.tags:
+                        transaction.tags = {TransactionTag(tag.name)}
+                    else:
+                        transaction.tags.add(TransactionTag(tag.name))
+
+                    if rule in d:
+                        d[rule] += 1
+                    else:
+                        d[rule] = 1
+
+        for k, v in d.items():
+            print(f"{v}: {k}")
+

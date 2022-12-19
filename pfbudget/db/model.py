@@ -21,6 +21,7 @@ from decimal import Decimal
 from typing import Annotated, Optional
 import datetime as dt
 import enum
+import re
 
 
 class Base(MappedAsDataclass, DeclarativeBase):
@@ -68,29 +69,23 @@ class Bank(Base):
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
 
-idpk = Annotated[
-    int, mapped_column(BigInteger, primary_key=True, autoincrement=True, init=False)
-]
+idpk = Annotated[int, mapped_column(BigInteger, primary_key=True, autoincrement=True)]
 money = Annotated[Decimal, mapped_column(Numeric(16, 2))]
 
 
 class Transaction(Base):
     __tablename__ = "originals"
 
-    id: Mapped[idpk]
+    id: Mapped[idpk] = mapped_column(init=False)
     date: Mapped[dt.date]
     description: Mapped[Optional[str]]
     bank: Mapped[bankfk]
     amount: Mapped[money]
 
     category: Mapped[Optional[TransactionCategory]] = relationship()
-    note: Mapped[Optional[Note]] = relationship(back_populates="original", default=None)
-    tags: Mapped[Optional[set[TransactionTag]]] = relationship(
-        back_populates="original",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-        default=None,
     )
+    note: Mapped[Optional[Note]] = relationship(back_populates="original")
+    tags: Mapped[Optional[set[TransactionTag]]] = relationship()
 
     def __repr__(self) -> str:
         return f"Transaction(date={self.date}, description={self.description}, bank={self.bank}, amount={self.amount}, category={self.category})"
@@ -136,9 +131,9 @@ class TransactionCategory(Base):
     __tablename__ = "categorized"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
-    name: Mapped[str] = mapped_column(ForeignKey(Category.name))
+    name: Mapped[catfk]
 
-    selector: Mapped[CategorySelector] = relationship()
+    selector: Mapped[CategorySelector] = relationship(cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"Category({self.name})"
@@ -147,7 +142,7 @@ class TransactionCategory(Base):
 class Note(Base):
     __tablename__ = "notes"
 
-    id: Mapped[idfk] = mapped_column(primary_key=True)
+    id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     note: Mapped[str]
 
     original: Mapped[Transaction] = relationship(back_populates="note")
@@ -180,23 +175,8 @@ class Tag(Base):
 class TransactionTag(Base):
     __tablename__ = "tags"
 
-    id: Mapped[idfk] = mapped_column(primary_key=True)
+    id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     tag: Mapped[str] = mapped_column(ForeignKey(Tag.name), primary_key=True)
-
-    original: Mapped[Transaction] = relationship(back_populates="tags")
-
-
-class CategoryRule(Base):
-    __tablename__ = "categories_rules"
-
-    id: Mapped[idpk]
-    name: Mapped[catfk]
-    date: Mapped[Optional[dt.date]]
-    description: Mapped[Optional[str]]
-    regex: Mapped[Optional[str]]
-    bank: Mapped[Optional[str]]
-    min: Mapped[Optional[money]]
-    max: Mapped[Optional[money]]
 
     def __hash__(self):
         return hash(self.id)
@@ -253,14 +233,52 @@ class CategorySchedule(Base):
         return f"{self.name} schedule=Schedule(period={self.period}, multiplier={self.period_multiplier}, amount={self.amount})"
 
 
-class TagRule(Base):
-    __tablename__ = "tag_rules"
-
-    id: Mapped[idpk]
-    tag: Mapped[str] = mapped_column(ForeignKey(Tag.name, ondelete="CASCADE"))
+class Rule:
     date: Mapped[Optional[dt.date]]
     description: Mapped[Optional[str]]
     regex: Mapped[Optional[str]]
     bank: Mapped[Optional[str]]
     min: Mapped[Optional[money]]
     max: Mapped[Optional[money]]
+
+    def matches(self, transaction: Transaction) -> bool:
+        if (
+            (self.date and self.date < transaction.date)
+            or (
+                self.description
+                and transaction.description
+                and self.description not in transaction.description
+            )
+            or (
+                self.regex
+                and transaction.description
+                and not re.compile(self.regex, re.IGNORECASE).search(
+                    transaction.description
+                )
+            )
+            or (self.bank and self.bank != transaction.bank)
+            or (self.min and self.min > transaction.amount)
+            or (self.max and self.max < transaction.amount)
+        ):
+            return False
+        return True
+
+
+class CategoryRule(Base, Rule):
+    __tablename__ = "categories_rules"
+
+    id: Mapped[idpk] = mapped_column(init=False)
+    name: Mapped[catfk]
+
+    def __hash__(self):
+        return hash(self.id)
+
+
+class TagRule(Base, Rule):
+    __tablename__ = "tag_rules"
+
+    id: Mapped[idpk] = mapped_column(init=False)
+    tag: Mapped[str] = mapped_column(ForeignKey(Tag.name, ondelete="CASCADE"))
+
+    def __hash__(self):
+        return hash(self.id)
