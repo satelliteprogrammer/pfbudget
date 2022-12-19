@@ -6,10 +6,13 @@ if __name__ == "__main__":
     args = vars(argparser.parse_args())
 
     assert "op" in args, "No pfbudget.Operation selected"
-    op: pfbudget.Operation = args["op"]
+    op: pfbudget.Operation = args.pop("op")
 
     assert "database" in args, "No database selected"
-    db = args["database"]
+    db = args.pop("database")
+
+    assert "verbose" in args, "No verbose level specified"
+    verbosity = args.pop("verbose")
 
     params = None
     match (op):
@@ -146,4 +149,4 @@ if __name__ == "__main__":
             assert "group" in args, "argparser ill defined"
             params = [pfbudget.types.CategoryGroup(group) for group in args["group"]]
 
-    pfbudget.Manager(db, args).action(op, params)
+    pfbudget.Manager(db, verbosity, args).action(op, params)

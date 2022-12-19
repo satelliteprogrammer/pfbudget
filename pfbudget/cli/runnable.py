@@ -40,12 +40,7 @@ def argparser() -> argparse.ArgumentParser:
         help="select current database",
         default=DEFAULT_DB,
     )
-    universal.add_argument(
-        "-q", "--quiet", action="store_true", help="reduces the amount of verbose"
-    )
-    universal.add_argument(
-        "-v", "--verbose", action="store_true", help="increases the amount of verbose"
-    )
+    universal.add_argument("-v", "--verbose", action="count", default=0)
 
     period = argparse.ArgumentParser(add_help=False).add_mutually_exclusive_group()
     period.add_argument(

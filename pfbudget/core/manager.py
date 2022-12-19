@@ -18,13 +18,16 @@ from pfbudget.cli.runnable import download, parse
 
 
 class Manager:
-    def __init__(self, db: str, args: dict):
+    def __init__(self, db: str, verbosity: int = 0, args: dict = {}):
         self._args = args
-        print(args)
 
         self._db = db
+        self._verbosity = verbosity
 
     def action(self, op: Operation, params: list):
+        if self._verbosity > 0:
+            print(f"op={op}, params={params}")
+
         match (op):
             case Operation.Init:
                 pass
@@ -141,7 +144,7 @@ class Manager:
 
     @property
     def db(self) -> DbClient:
-        return DbClient(self._db, self.args["verbose"])
+        return DbClient(self._db, self._verbosity > 0)
 
     @db.setter
     def db(self, url: str):
