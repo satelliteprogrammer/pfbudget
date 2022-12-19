@@ -27,6 +27,8 @@ class Operation(Enum):
     TagRuleAdd = auto()
     TagRuleRemove = auto()
     TagRuleModify = auto()
+    Forge = auto()
+    Dismantle = auto()
 
 
 class TransactionError(Exception):

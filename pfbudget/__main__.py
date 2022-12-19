@@ -149,4 +149,10 @@ if __name__ == "__main__":
             assert "group" in args, "argparser ill defined"
             params = [pfbudget.types.CategoryGroup(group) for group in args["group"]]
 
+        case pfbudget.Operation.Forge | pfbudget.Operation.Dismantle:
+            assert args.keys() >= {"original", "links"}, "argparser ill defined"
+            params = [
+                pfbudget.types.Link(args["original"][0], link) for link in args["links"]
+            ]
+
     pfbudget.Manager(db, verbosity, args).action(op, params)

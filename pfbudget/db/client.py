@@ -1,4 +1,3 @@
-from copy import deepcopy
 from dataclasses import asdict
 from sqlalchemy import create_engine, delete, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -10,6 +9,7 @@ from pfbudget.db.model import (
     CategoryGroup,
     CategoryRule,
     CategorySchedule,
+    Link,
     Tag,
     TagRule,
     Transaction,
@@ -83,12 +83,7 @@ class DbClient:
         def commit(self):
             self.__session.commit()
 
-        def add(
-            self,
-            rows: list[
-                Category | CategoryGroup | CategoryRule | Tag | TagRule | Transaction
-            ],
-        ):
+        def add(self, rows: list):
             self.__session.add_all(rows)
 
         def remove_by_name(self, type: Category | Tag | Transaction, rows: list):
@@ -121,6 +116,10 @@ class DbClient:
 
         def updaterules(self, rules: list[dict]):
             self.__session.execute(update(CategoryRule), rules)
+
+        def remove_links(self, original, links: list):
+            stmt = delete(Link).where(Link.original == original, Link.link.in_(link for link in links))
+            self.__session.execute(stmt)
 
         def uncategorized(self) -> list[Transaction]:
             stmt = select(Transaction).where(~Transaction.category.has())

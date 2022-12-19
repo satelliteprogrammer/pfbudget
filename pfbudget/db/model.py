@@ -63,9 +63,6 @@ class Bank(Base):
         back_populates="bank", lazy="joined"
     )
 
-    def __repr__(self) -> str:
-        return f"Bank(name={self.name}, BIC={self.BIC}, type={self.type}, nordigen={self.nordigen})"
-
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
 
@@ -83,12 +80,8 @@ class Transaction(Base):
     amount: Mapped[money]
 
     category: Mapped[Optional[TransactionCategory]] = relationship()
-    )
     note: Mapped[Optional[Note]] = relationship(back_populates="original")
     tags: Mapped[Optional[set[TransactionTag]]] = relationship()
-
-    def __repr__(self) -> str:
-        return f"Transaction(date={self.date}, description={self.description}, bank={self.bank}, amount={self.amount}, category={self.category})"
 
 
 idfk = Annotated[
@@ -158,9 +151,6 @@ class Nordigen(Base):
 
     bank: Mapped[Bank] = relationship(back_populates="nordigen")
 
-    def __repr__(self) -> str:
-        return f"(bank_id={self.bank_id}, requisition_id={self.requisition_id}, invert={self.invert})"
-
 
 class Tag(Base):
     __tablename__ = "tags_available"
@@ -229,8 +219,12 @@ class CategorySchedule(Base):
 
     category: Mapped[Category] = relationship(back_populates="schedule")
 
-    def __repr__(self) -> str:
-        return f"{self.name} schedule=Schedule(period={self.period}, multiplier={self.period_multiplier}, amount={self.amount})"
+
+class Link(Base):
+    __tablename__ = "links"
+
+    original: Mapped[idfk] = mapped_column(primary_key=True)
+    link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
 class Rule:

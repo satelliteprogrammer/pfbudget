@@ -5,9 +5,7 @@ import decimal
 import re
 
 from pfbudget.common.types import Operation
-from pfbudget.core.categories import categorize_data
 from pfbudget.db.model import Period
-from pfbudget.input.json import JsonParser
 from pfbudget.input.nordigen import NordigenInput
 from pfbudget.db.sqlite import DatabaseClient
 import pfbudget.reporting.graph
@@ -253,6 +251,9 @@ def argparser() -> argparse.ArgumentParser:
     # Tag
     tags(subparsers.add_parser("tag", parents=[universal]), universal)
 
+    # Link
+    link(subparsers.add_parser("link"))
+
     return parser
 
 
@@ -418,6 +419,20 @@ def rules(parser: argparse.ArgumentParser):
     parser.add_argument("--bank", nargs=1, type=str)
     parser.add_argument("--min", nargs=1, type=decimal.Decimal)
     parser.add_argument("--max", nargs=1, type=decimal.Decimal)
+
+
+def link(parser: argparse.ArgumentParser):
+    commands = parser.add_subparsers(required=True)
+
+    forge = commands.add_parser("forge")
+    forge.set_defaults(op=Operation.Forge)
+    forge.add_argument("original", nargs=1, type=int)
+    forge.add_argument("links", nargs="+", type=int)
+
+    dismantle = commands.add_parser("dismantle")
+    dismantle.set_defaults(op=Operation.Dismantle)
+    dismantle.add_argument("original", nargs=1, type=int)
+    dismantle.add_argument("links", nargs="+", type=int)
 
 
 def run():

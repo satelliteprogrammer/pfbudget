@@ -105,6 +105,16 @@ class Manager:
                 with self.db.session() as session:
                     session.remove_by_name(CategoryGroup, params)
 
+            case Operation.Forge:
+                with self.db.session() as session:
+                    session.add(params)
+
+            case Operation.Dismantle:
+                with self.db.session() as session:
+                    original = params[0].original
+                    links = [link.link for link in params]
+                    session.remove_links(original, links)
+
     # def init(self):
     #     client = DatabaseClient(self.__db)
     #     client.init()
