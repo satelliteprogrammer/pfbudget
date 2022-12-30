@@ -57,13 +57,13 @@ if __name__ == "__main__":
 
             params = [
                 pfbudget.types.CategoryRule(
-                    cat,
                     args["date"][0] if args["date"] else None,
                     args["description"][0] if args["description"] else None,
                     args["regex"][0] if args["regex"] else None,
                     args["bank"][0] if args["bank"] else None,
                     args["min"][0] if args["min"] else None,
                     args["max"][0] if args["max"] else None,
+                    cat,
                 )
                 for cat in args["category"]
             ]
@@ -109,13 +109,13 @@ if __name__ == "__main__":
 
             params = [
                 pfbudget.types.TagRule(
-                    tag,
                     args["date"][0] if args["date"] else None,
                     args["description"][0] if args["description"] else None,
                     args["regex"][0] if args["regex"] else None,
                     args["bank"][0] if args["bank"] else None,
                     args["min"][0] if args["min"] else None,
                     args["max"][0] if args["max"] else None,
+                    tag,
                 )
                 for tag in args["tag"]
             ]

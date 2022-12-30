@@ -376,6 +376,7 @@ def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentP
     modify.add_argument("id", nargs="+", type=int)
     modify.add_argument("--category", nargs=1, type=str)
     rules(modify)
+    modify.add_argument("--remove", nargs="*", default=[], type=str)
 
 
 def tags(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
