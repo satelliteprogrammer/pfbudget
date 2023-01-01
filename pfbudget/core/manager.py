@@ -1,12 +1,15 @@
 from pfbudget.input.input import Input
-from pfbudget.input.nordigen import NordigenClient
+from pfbudget.input.nordigen import NordigenInput
 from pfbudget.input.parsers import parse_data
 from pfbudget.db.client import DbClient
 from pfbudget.db.model import (
+    Bank,
     Category,
     CategoryGroup,
     CategoryRule,
     CategorySchedule,
+    Nordigen,
+    Rule,
     Tag,
     TagRule,
 )
@@ -14,7 +17,7 @@ from pfbudget.common.types import Operation
 from pfbudget.core.categorizer import Categorizer
 from pfbudget.utils import convert
 
-from pfbudget.cli.runnable import download, parse
+from pfbudget.cli.runnable import parse
 
 
 class Manager:
@@ -34,9 +37,15 @@ class Manager:
             case Operation.Parse:
                 # TODO this is a monstrosity, remove when possible
                 parse(self, self.args)
+
             case Operation.Download:
-                # TODO this is a monstrosity, remove when possible
-                download(self, self.args)
+                client = NordigenInput()
+                client.banks = self.get_banks()
+                client.start = params[0]
+                client.end = params[1]
+                transactions = client.parse()
+                with self.db.session() as session:
+                    session.add(transactions)
 
             case Operation.Categorize:
                 with self.db.session() as session:
@@ -45,23 +54,29 @@ class Manager:
                     tags = session.tags()
                     Categorizer().categorize(uncategorized, categories, tags)
 
-            case Operation.Register:
-                # self._db = DbClient(args["database"])
-                # self.register(args)
-                pass
-            case Operation.Unregister:
-                # self._db = DbClient(args["database"])
-                # self.unregister(args)
-                pass
+            case Operation.BankMod:
+                with self.db.session() as session:
+                    session.update(Bank, params)
+
+            case Operation.NordigenMod:
+                with self.db.session() as session:
+                    session.update(Nordigen, params)
+
+            case Operation.BankDel:
+                with self.db.session() as session:
+                    session.remove_by_name(Bank, params)
+
+            case Operation.NordigenDel:
+                with self.db.session() as session:
+                    session.remove_by_name(Nordigen, params)
+
             case Operation.Token:
-                NordigenClient(self).token()
+                NordigenInput().token()
 
-            case Operation.Renew:
-                NordigenClient(self).requisition(
-                    self.args["name"], self.args["country"]
-                )
+            case Operation.RequisitionId:
+                NordigenInput().requisition(params[0], params[1])
 
-            case Operation.CategoryAdd | Operation.RuleAdd | Operation.TagAdd | Operation.TagRuleAdd:
+            case Operation.BankAdd | Operation.CategoryAdd | Operation.NordigenAdd | Operation.RuleAdd | Operation.TagAdd | Operation.TagRuleAdd:
                 with self.db.session() as session:
                     session.add(params)
 
@@ -94,7 +109,7 @@ class Manager:
             case Operation.RuleModify | Operation.TagRuleModify:
                 assert all(isinstance(param, dict) for param in params)
                 with self.db.session() as session:
-                    session.updaterules(params)
+                    session.update(Rule, params)
 
             case Operation.GroupAdd:
                 with self.db.session() as session:

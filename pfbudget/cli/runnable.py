@@ -5,7 +5,7 @@ import decimal
 import re
 
 from pfbudget.common.types import Operation
-from pfbudget.db.model import Period
+from pfbudget.db.model import AccountType, Period
 from pfbudget.input.nordigen import NordigenInput
 from pfbudget.db.sqlite import DatabaseClient
 import pfbudget.reporting.graph
@@ -150,71 +150,24 @@ def argparser() -> argparse.ArgumentParser:
     )
     p_report.set_defaults(func=report)
 
-    """
-    Register bank
-    """
-    p_register = subparsers.add_parser(
-        "register",
-        description="Register a bank",
-        parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_register.add_argument("bank", type=str, nargs=1, help="bank option help")
-    p_register.add_argument(
-        "--requisition", type=str, nargs=1, help="requisition option help"
-    )
-    p_register.add_argument("--invert", action="store_true")
-    p_register.set_defaults(command=Operation.Register)
+    # Banks
+    bank(subparsers.add_parser("bank"))
 
-    """
-    Unregister bank
-    """
-    p_register = subparsers.add_parser(
-        "unregister",
-        description="Unregister a bank",
-        parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_register.add_argument("bank", type=str, nargs=1, help="bank option help")
-    p_register.set_defaults(command=Operation.Unregister)
+    # Nordigen access token
+    subparsers.add_parser("token").set_defaults(op=Operation.Token)
 
-    """
-    Nordigen API
-    """
-    p_nordigen_access = subparsers.add_parser(
-        "token",
-        description="Get new access token",
-        parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_nordigen_access.set_defaults(command=Operation.Token)
+    # Nordigen requisition id
+    requisition = subparsers.add_parser("eua")
+    requisition.set_defaults(op=Operation.RequisitionId)
+    requisition.add_argument("name", nargs=1, type=str)
+    requisition.add_argument("country", nargs=1, type=str)
 
-    """
-    (Re)new bank requisition ID
-    """
-    p_nordigen_access = subparsers.add_parser(
-        "renew",
-        description="(Re)new the Bank requisition ID",
-        parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_nordigen_access.add_argument("name", nargs=1, type=str)
-    p_nordigen_access.add_argument("country", nargs=1, type=str)
-    p_nordigen_access.set_defaults(command=Operation.Renew)
-
-    """
-    Downloading through Nordigen API
-    """
-    p_nordigen_download = subparsers.add_parser(
-        "download",
-        description="Downloads transactions using Nordigen API",
-        parents=[universal, period],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_nordigen_download.add_argument("--id", nargs="+", type=str)
-    p_nordigen_download.add_argument("--name", nargs="+", type=str)
-    p_nordigen_download.add_argument("--all", action="store_true")
-    p_nordigen_download.set_defaults(command=Operation.Download)
+    # Download through the Nordigen API
+    download = subparsers.add_parser("download", parents=[period])
+    download.set_defaults(op=Operation.Download)
+    download.add_argument("--id", nargs="+", type=str)
+    download.add_argument("--name", nargs="+", type=str)
+    download.add_argument("--all", action="store_true")
 
     # """
     # List available banks on Nordigen API
@@ -245,11 +198,10 @@ def argparser() -> argparse.ArgumentParser:
     # )
 
     # Categories
-    category_parser = subparsers.add_parser("category", parents=[universal])
-    category(category_parser, universal)
+    category(subparsers.add_parser("category"))
 
     # Tag
-    tags(subparsers.add_parser("tag", parents=[universal]), universal)
+    tags(subparsers.add_parser("tag"))
 
     # Link
     link(subparsers.add_parser("link"))
@@ -312,66 +264,107 @@ def report(args):
 #     input.list(vars(args)["country"][0])
 
 
-def download(manager, args: dict):
-    start, end = pfbudget.utils.parse_args_period(args)
-    manager.parser(NordigenInput(manager, args, start, end))
-
-
-def category(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+def bank(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
 
-    add = commands.add_parser("add", parents=[universal])
+    add = commands.add_parser("add")
+    add.set_defaults(op=Operation.BankAdd)
+    add.add_argument("bank", nargs=1, type=str)
+    add.add_argument("bic", nargs=1, type=str)
+    add.add_argument("type", nargs=1, type=str, choices=[e.name for e in AccountType])
+
+    rem = commands.add_parser("del")
+    rem.set_defaults(op=Operation.BankDel)
+    rem.add_argument("bank", nargs="+", type=str)
+
+    mod = commands.add_parser("mod")
+    mod.set_defaults(op=Operation.BankMod)
+    mod.add_argument("bank", nargs=1, type=str)
+    mod.add_argument("--bic", nargs=1, type=str)
+    mod.add_argument("--type", nargs=1, type=str, choices=[e.name for e in AccountType])
+    mod.add_argument("--remove", nargs="*", default=[], type=str)
+
+    nordigen(commands.add_parser("nordigen"))
+
+
+def nordigen(parser: argparse.ArgumentParser):
+    commands = parser.add_subparsers(required=True)
+
+    add = commands.add_parser("add")
+    add.set_defaults(op=Operation.NordigenAdd)
+    add.add_argument("bank", nargs=1, type=str)
+    add.add_argument("--bank_id", nargs=1, type=str)
+    add.add_argument("--requisition_id", nargs=1, type=str)
+    add.add_argument("--invert", action="store_true")
+
+    rem = commands.add_parser("del")
+    rem.set_defaults(op=Operation.NordigenDel)
+    rem.add_argument("bank", nargs="+", type=str)
+
+    mod = commands.add_parser("mod")
+    mod.set_defaults(op=Operation.NordigenMod)
+    mod.add_argument("bank", nargs=1, type=str)
+    mod.add_argument("--bank_id", nargs=1, type=str)
+    mod.add_argument("--requisition_id", nargs=1, type=str)
+    mod.add_argument("--invert", action="store_true")
+    mod.add_argument("--remove", nargs="*", default=[], type=str)
+
+
+def category(parser: argparse.ArgumentParser):
+    commands = parser.add_subparsers(required=True)
+
+    add = commands.add_parser("add")
     add.set_defaults(op=Operation.CategoryAdd)
     add.add_argument("category", nargs="+", type=str)
     add.add_argument("--group", nargs="?", type=str)
 
-    remove = commands.add_parser("remove", parents=[universal])
+    remove = commands.add_parser("remove")
     remove.set_defaults(op=Operation.CategoryRemove)
     remove.add_argument("category", nargs="+", type=str)
 
-    update = commands.add_parser("update", parents=[universal])
+    update = commands.add_parser("update")
     update.set_defaults(op=Operation.CategoryUpdate)
     update.add_argument("category", nargs="+", type=str)
     update.add_argument("--group", nargs="?", type=str)
 
-    schedule = commands.add_parser("schedule", parents=[universal])
+    schedule = commands.add_parser("schedule")
     schedule.set_defaults(op=Operation.CategorySchedule)
     schedule.add_argument("category", nargs="+", type=str)
     schedule.add_argument("period", nargs=1, choices=[e.value for e in Period])
     schedule.add_argument("--frequency", nargs=1, default=[1], type=int)
 
-    rule = commands.add_parser("rule", parents=[universal])
-    category_rule(rule, universal)
+    rule = commands.add_parser("rule")
+    category_rule(rule)
 
-    group = commands.add_parser("group", parents=[universal])
-    category_group(group, universal)
+    group = commands.add_parser("group")
+    category_group(group)
 
 
-def category_group(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+def category_group(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
 
-    add = commands.add_parser("add", parents=[universal])
+    add = commands.add_parser("add")
     add.set_defaults(op=Operation.GroupAdd)
     add.add_argument("group", nargs="+", type=str)
 
-    remove = commands.add_parser("remove", parents=[universal])
+    remove = commands.add_parser("remove")
     remove.set_defaults(op=Operation.GroupRemove)
     remove.add_argument("group", nargs="+", type=str)
 
 
-def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+def category_rule(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
 
-    add = commands.add_parser("add", parents=[universal])
+    add = commands.add_parser("add")
     add.set_defaults(op=Operation.RuleAdd)
     add.add_argument("category", nargs="+", type=str)
     rules(add)
 
-    remove = commands.add_parser("remove", parents=[universal])
+    remove = commands.add_parser("remove")
     remove.set_defaults(op=Operation.RuleRemove)
     remove.add_argument("id", nargs="+", type=int)
 
-    modify = commands.add_parser("modify", parents=[universal])
+    modify = commands.add_parser("modify")
     modify.set_defaults(op=Operation.RuleModify)
     modify.add_argument("id", nargs="+", type=int)
     modify.add_argument("--category", nargs=1, type=str)
@@ -379,34 +372,34 @@ def category_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentP
     modify.add_argument("--remove", nargs="*", default=[], type=str)
 
 
-def tags(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+def tags(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
 
-    add = commands.add_parser("add", parents=[universal])
+    add = commands.add_parser("add")
     add.set_defaults(op=Operation.TagAdd)
     add.add_argument("tag", nargs="+", type=str)
 
-    remove = commands.add_parser("remove", parents=[universal])
+    remove = commands.add_parser("remove")
     remove.set_defaults(op=Operation.TagRemove)
     remove.add_argument("tag", nargs="+", type=str)
 
-    rule = commands.add_parser("rule", parents=[universal])
-    tag_rule(rule, universal)
+    rule = commands.add_parser("rule")
+    tag_rule(rule)
 
 
-def tag_rule(parser: argparse.ArgumentParser, universal: argparse.ArgumentParser):
+def tag_rule(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
 
-    add = commands.add_parser("add", parents=[universal])
+    add = commands.add_parser("add")
     add.set_defaults(op=Operation.TagRuleAdd)
     add.add_argument("tag", nargs="+", type=str)
     rules(add)
 
-    remove = commands.add_parser("remove", parents=[universal])
+    remove = commands.add_parser("remove")
     remove.set_defaults(op=Operation.TagRuleRemove)
     remove.add_argument("id", nargs="+", type=int)
 
-    modify = commands.add_parser("modify", parents=[universal])
+    modify = commands.add_parser("modify")
     modify.set_defaults(op=Operation.TagRuleModify)
     modify.add_argument("id", nargs="+", type=int)
     modify.add_argument("--tag", nargs=1, type=str)

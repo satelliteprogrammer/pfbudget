@@ -114,11 +114,14 @@ class DbClient:
             stmt = delete(type).where(type.id.in_(ids))
             self.__session.execute(stmt)
 
-        def updaterules(self, rules: list[dict]):
-            self.__session.execute(update(CategoryRule), rules)
+        def update(self, type, values: list[dict]):
+            print(type, values)
+            self.__session.execute(update(type), values)
 
         def remove_links(self, original, links: list):
-            stmt = delete(Link).where(Link.original == original, Link.link.in_(link for link in links))
+            stmt = delete(Link).where(
+                Link.original == original, Link.link.in_(link for link in links)
+            )
             self.__session.execute(stmt)
 
         def uncategorized(self) -> list[Transaction]:

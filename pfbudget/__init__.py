@@ -7,5 +7,6 @@ from pfbudget.core.categories import categorize_data
 from pfbudget.core.manager import Manager
 from pfbudget.cli.runnable import argparser
 from pfbudget.input.parsers import parse_data
+from pfbudget.utils.utils import parse_args_period
 
 import pfbudget.db.model as types

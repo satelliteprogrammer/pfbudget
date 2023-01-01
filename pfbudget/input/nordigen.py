@@ -17,8 +17,8 @@ load_dotenv()
 
 
 class NordigenInput(Input):
-    def __init__(self, manager, options: dict = {}, start=date.min, end=date.max):
-        super().__init__(manager)
+    def __init__(self):
+        super().__init__()
         self._client = NordigenClient(
             secret_key=os.environ.get("SECRET_KEY"),
             secret_id=os.environ.get("SECRET_ID"),
@@ -28,33 +28,33 @@ class NordigenInput(Input):
 
         # print(options)
 
-        if "all" in options and options["all"]:
-            self.__banks = self.manager.get_banks()
-        elif "id" in options and options["id"]:
-            self.__banks = [
-                self.manager.get_bank_by("nordigen_id", b) for b in options["id"]
-            ]
-        elif "name" in options and options["name"]:
-            self.__banks = [
-                self.manager.get_bank_by("name", b) for b in options["name"]
-            ]
-        else:
-            self.__banks = None
+        # if "all" in options and options["all"]:
+        #     self.__banks = self.manager.get_banks()
+        # elif "id" in options and options["id"]:
+        #     self.__banks = [
+        #         self.manager.get_bank_by("nordigen_id", b) for b in options["id"]
+        #     ]
+        # elif "name" in options and options["name"]:
+        #     self.__banks = [
+        #         self.manager.get_bank_by("name", b) for b in options["name"]
+        #     ]
+        # else:
+        #     self.__banks = None
 
-        self.__from = start
-        self.__to = end
+        self._start = date.min
+        self._end = date.max
 
     def parse(self) -> list[Transaction]:
         transactions = []
-        if not self.__banks:
-            raise NoBankSelected
+        assert len(self._banks) > 0
 
-        for bank in self.__banks:
+        for bank in self._banks:
             print(f"Downloading from {bank}...")
             requisition = self.client.requisition.get_requisition_by_id(
                 bank.nordigen.requisition_id
             )
 
+            print(requisition)
             for acc in requisition["accounts"]:
                 account = self._client.account_api(acc)
 
@@ -85,10 +85,10 @@ class NordigenInput(Input):
                 ]
 
                 transactions.extend(
-                    [t for t in converted if self.__from <= t.date <= self.__to]
+                    [t for t in converted if self._start <= t.date <= self._end]
                 )
 
-        return transactions
+        return sorted(transactions)
 
     def token(self):
         token = self._client.generate_token()
@@ -105,6 +105,30 @@ class NordigenInput(Input):
     @property
     def client(self):
         return self._client
+
+    @property
+    def banks(self):
+        return self._banks
+
+    @banks.setter
+    def banks(self, value):
+        self._banks = value
+
+    @property
+    def start(self):
+        return self._start
+
+    @start.setter
+    def start(self, value):
+        self._start = value
+
+    @property
+    def end(self):
+        return self._end
+
+    @end.setter
+    def end(self, value):
+        self._end = value
 
     def __token(self):
         if token := os.environ.get("TOKEN"):

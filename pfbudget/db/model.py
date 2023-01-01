@@ -59,9 +59,7 @@ class Bank(Base):
     BIC: Mapped[str] = mapped_column(String(8), primary_key=True)
     type: Mapped[accounttype] = mapped_column(primary_key=True)
 
-    nordigen: Mapped[Optional[Nordigen]] = relationship(
-        back_populates="bank", lazy="joined"
-    )
+    nordigen: Mapped[Optional[Nordigen]] = relationship(lazy="joined")
 
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
@@ -79,9 +77,12 @@ class Transaction(Base):
     bank: Mapped[bankfk]
     amount: Mapped[money]
 
-    category: Mapped[Optional[TransactionCategory]] = relationship()
-    note: Mapped[Optional[Note]] = relationship(back_populates="original")
-    tags: Mapped[Optional[set[TransactionTag]]] = relationship()
+    category: Mapped[Optional[TransactionCategory]] = relationship(init=False)
+    note: Mapped[Optional[Note]] = relationship(init=False)
+    tags: Mapped[Optional[set[TransactionTag]]] = relationship(init=False)
+
+    def __lt__(self, other):
+        return self.date < other.date
 
 
 idfk = Annotated[
@@ -138,8 +139,6 @@ class Note(Base):
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     note: Mapped[str]
 
-    original: Mapped[Transaction] = relationship(back_populates="note")
-
 
 class Nordigen(Base):
     __tablename__ = "nordigen"
@@ -148,8 +147,6 @@ class Nordigen(Base):
     bank_id: Mapped[Optional[str]]
     requisition_id: Mapped[Optional[str]]
     invert: Mapped[Optional[bool]]
-
-    bank: Mapped[Bank] = relationship(back_populates="nordigen")
 
 
 class Tag(Base):

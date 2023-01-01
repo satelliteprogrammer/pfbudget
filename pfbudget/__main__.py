@@ -16,6 +16,98 @@ if __name__ == "__main__":
 
     params = None
     match (op):
+        case pfbudget.Operation.RequisitionId:
+            assert args.keys() >= {"name", "country"}, "argparser ill defined"
+            params = [args["name"][0], args["country"][0]]
+
+        case pfbudget.Operation.Download:
+            assert args.keys() >= {
+                "id",
+                "name",
+                "all",
+                "interval",
+                "start",
+                "end",
+                "year",
+            }, "argparser ill defined"
+            start, end = pfbudget.parse_args_period(args)
+            params = [start, end]
+
+        case pfbudget.Operation.BankAdd:
+            assert args.keys() >= {
+                "bank",
+                "bic",
+                "type",
+            }, "argparser ill defined"
+
+            params = [
+                pfbudget.types.Bank(
+                    args["bank"][0],
+                    args["bic"][0],
+                    args["type"][0],
+                )
+            ]
+
+        case pfbudget.Operation.BankMod:
+            assert args.keys() >= {
+                "bank",
+                "bic",
+                "type",
+                "remove",
+            }, "argparser ill defined"
+
+            nargs_1 = ["bic", "type"]
+
+            param = {"name": args["bank"][0]}
+            param |= {k: v[0] for k, v in args.items() if k in nargs_1 and args[k]}
+            param |= {k: None for k in args["remove"] if k in nargs_1}
+
+            params = [param]
+
+        case pfbudget.Operation.BankDel:
+            assert len(args["bank"]) > 0, "argparser ill defined"
+            params = args["bank"]
+
+        case pfbudget.Operation.NordigenAdd:
+            assert args.keys() >= {
+                "bank",
+                "bank_id",
+                "requisition_id",
+                "invert",
+            }, "argparser ill defined"
+
+            params = [
+                pfbudget.types.Nordigen(
+                    args["bank"][0],
+                    args["bank_id"][0] if args["bank_id"] else None,
+                    args["requisition_id"][0] if args["requisition_id"] else None,
+                    args["invert"] if args["invert"] else None,
+                )
+            ]
+
+        case pfbudget.Operation.NordigenMod:
+            assert args.keys() >= {
+                "bank",
+                "bank_id",
+                "requisition_id",
+                "invert",
+                "remove",
+            }, "argparser ill defined"
+
+            nargs_1 = ["bank_id", "requisition_id"]
+            nargs_0 = ["invert"]
+
+            param = {"name": args["bank"][0]}
+            param |= {k: v[0] for k, v in args.items() if k in nargs_1 and args[k]}
+            param |= {k: v for k, v in args.items() if k in nargs_0}
+            param |= {k: None for k in args["remove"] if k in nargs_1}
+
+            params = [param]
+
+        case pfbudget.Operation.NordigenDel:
+            assert len(args["bank"]) > 0, "argparser ill defined"
+            params = args["bank"]
+
         case pfbudget.Operation.CategoryAdd:
             assert args.keys() >= {"category", "group"}, "argparser ill defined"
             params = [

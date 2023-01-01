@@ -9,10 +9,8 @@ class Operation(Enum):
     Parse = auto()
     Download = auto()
     Categorize = auto()
-    Register = auto()
-    Unregister = auto()
     Token = auto()
-    Renew = auto()
+    RequisitionId = auto()
     CategoryAdd = auto()
     CategoryUpdate = auto()
     CategoryRemove = auto()
@@ -29,6 +27,12 @@ class Operation(Enum):
     TagRuleModify = auto()
     Forge = auto()
     Dismantle = auto()
+    BankAdd = auto()
+    BankMod = auto()
+    BankDel = auto()
+    NordigenAdd = auto()
+    NordigenMod = auto()
+    NordigenDel = auto()
 
 
 class TransactionError(Exception):
