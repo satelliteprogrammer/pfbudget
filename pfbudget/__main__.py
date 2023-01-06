@@ -16,6 +16,10 @@ if __name__ == "__main__":
 
     params = None
     match (op):
+        case pfbudget.Operation.Parse:
+            assert args.keys() >= {"path", "bank", "creditcard"}
+            params = [args["path"], args["bank"], args["creditcard"]]
+
         case pfbudget.Operation.RequisitionId:
             assert args.keys() >= {"name", "country"}, "argparser ill defined"
             params = [args["name"][0], args["country"][0]]

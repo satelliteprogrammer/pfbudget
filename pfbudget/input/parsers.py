@@ -4,7 +4,8 @@ from importlib import import_module
 import datetime as dt
 import yaml
 
-from pfbudget.common.types import NoBankSelected, Transaction, Transactions
+from pfbudget.common.types import NoBankSelected
+from pfbudget.db.model import Transaction
 from pfbudget.utils import utils
 
 Index = namedtuple(
@@ -43,7 +44,7 @@ Options = namedtuple(
 )
 
 
-def parse_data(filename: str, args: dict) -> Transactions:
+def parse_data(filename: str, args: dict) -> list[Transaction]:
     cfg: dict = yaml.safe_load(open("parsers.yaml"))
     assert (
         "Banks" in cfg
@@ -157,7 +158,7 @@ class Parser:
             category = line[options.category]
             transaction = Transaction(date, text, bank, value, category)
         else:
-            transaction = Transaction(date, text, bank, value, options.category)
+            transaction = Transaction(date, text, bank, value)
 
         if options.additional_parser:
             func(transaction)

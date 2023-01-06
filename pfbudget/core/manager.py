@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pfbudget.input.input import Input
 from pfbudget.input.nordigen import NordigenInput
 from pfbudget.input.parsers import parse_data
@@ -17,8 +19,6 @@ from pfbudget.common.types import Operation
 from pfbudget.core.categorizer import Categorizer
 from pfbudget.utils import convert
 
-from pfbudget.cli.runnable import parse
-
 
 class Manager:
     def __init__(self, db: str, verbosity: int = 0, args: dict = {}):
@@ -34,9 +34,23 @@ class Manager:
         match (op):
             case Operation.Init:
                 pass
+
             case Operation.Parse:
-                # TODO this is a monstrosity, remove when possible
-                parse(self, self.args)
+                # Adapter for the parse_data method. Can be refactored.
+                args = {"bank": params[1], "creditcard": params[2], "category": None}
+                transactions = []
+                for path in params[0]:
+                    if (dir := Path(path)).is_dir():
+                        for file in dir.iterdir():
+                            transactions.extend(self.parse(file, args))
+                    elif Path(path).is_file():
+                        transactions.extend(self.parse(path, args))
+                    else:
+                        raise FileNotFoundError(path)
+
+                print(transactions)
+                if len(transactions) > 0 and input("Commit? (y/n)") == "y":
+                    self.add_transactions(sorted(transactions))
 
             case Operation.Download:
                 client = NordigenInput()
@@ -44,8 +58,7 @@ class Manager:
                 client.start = params[0]
                 client.end = params[1]
                 transactions = client.parse()
-                with self.db.session() as session:
-                    session.add(transactions)
+                self.add_transactions(transactions)
 
             case Operation.Categorize:
                 with self.db.session() as session:
@@ -143,14 +156,8 @@ class Manager:
     #     client = DatabaseClient(self.__db)
     #     client.unregister_bank(self.args["bank"][0])
 
-    def parser(self, parser: Input):
-        transactions = parser.parse()
-        print(transactions)
-        # self.add_transactions(transactions)
-
-    # def parse(self, filename: str):
-    #     transactions = parse_data(filename, self.args)
-    #     self.add_transactions(transactions)
+    def parse(self, filename: str, args: dict):
+        return parse_data(filename, args)
 
     # def transactions() -> list[Transaction]:
     #     pass

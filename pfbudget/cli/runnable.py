@@ -86,20 +86,12 @@ def argparser() -> argparse.ArgumentParser:
     )
     p_export.set_defaults(func=lambda args: DatabaseClient(args.database).export())
 
-    """
-    Parsing
-    """
-    p_parse = subparsers.add_parser(
-        "parse",
-        description="Parses and adds the requested transactions into the selected database",
-        parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_parse.add_argument("path", nargs="+", type=str)
-    p_parse.add_argument("--bank", nargs=1, type=str)
-    p_parse.add_argument("--creditcard", nargs=1, type=str)
-    p_parse.add_argument("--category", nargs=1, type=int)
-    p_parse.set_defaults(command=Operation.Parse)
+    # Parse from .csv
+    parse = subparsers.add_parser("parse")
+    parse.set_defaults(op=Operation.Parse)
+    parse.add_argument("path", nargs="+", type=str)
+    parse.add_argument("--bank", nargs=1, type=str)
+    parse.add_argument("--creditcard", nargs=1, type=str)
 
     """
     Categorizing
@@ -207,22 +199,6 @@ def argparser() -> argparse.ArgumentParser:
     link(subparsers.add_parser("link"))
 
     return parser
-
-
-def parse(manager, args):
-    """Parses the contents of the path in args to the selected database.
-
-    Args:
-        args (dict): argparse variables
-    """
-    for path in args.path:
-        if (dir := Path(path)).is_dir():
-            for file in dir.iterdir():
-                manager.parse(file, vars(args))
-        elif Path(path).is_file():
-            manager.parse(path, vars(args))
-        else:
-            raise FileNotFoundError
 
 
 def graph(args):
