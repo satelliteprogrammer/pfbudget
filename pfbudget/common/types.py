@@ -33,6 +33,7 @@ class Operation(Enum):
     NordigenAdd = auto()
     NordigenMod = auto()
     NordigenDel = auto()
+    Export = auto()
 
 
 class TransactionError(Exception):

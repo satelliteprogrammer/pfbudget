@@ -251,4 +251,12 @@ if __name__ == "__main__":
                 pfbudget.types.Link(args["original"][0], link) for link in args["links"]
             ]
 
-    pfbudget.Manager(db, verbosity, args).action(op, params)
+        case pfbudget.Operation.Export:
+            assert args.keys() >= {"interval", "start", "end", "year", "all", "banks", "file"}
+            start, end = pfbudget.parse_args_period(args)
+            params = [start, end]
+            if not args["all"]:
+                params.append(args["banks"])
+            params.append(args["file"][0])
+
+    pfbudget.Manager(db, verbosity).action(op, params)

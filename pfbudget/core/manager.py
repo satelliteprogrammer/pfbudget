@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from pfbudget.input.input import Input
-from pfbudget.input.nordigen import NordigenInput
-from pfbudget.input.parsers import parse_data
+from pfbudget.common.types import Operation
+from pfbudget.core.categorizer import Categorizer
 from pfbudget.db.client import DbClient
 from pfbudget.db.model import (
     Bank,
@@ -15,15 +14,14 @@ from pfbudget.db.model import (
     Tag,
     TagRule,
 )
-from pfbudget.common.types import Operation
-from pfbudget.core.categorizer import Categorizer
-from pfbudget.utils import convert
+from pfbudget.input.nordigen import NordigenInput
+from pfbudget.input.parsers import parse_data
+from pfbudget.output.csv import CSV
+from pfbudget.output.output import Output
 
 
 class Manager:
-    def __init__(self, db: str, verbosity: int = 0, args: dict = {}):
-        self._args = args
-
+    def __init__(self, db: str, verbosity: int = 0):
         self._db = db
         self._verbosity = verbosity
 
@@ -143,6 +141,19 @@ class Manager:
                     links = [link.link for link in params]
                     session.remove_links(original, links)
 
+            case Operation.Export:
+                with self.db.session() as session:
+                    if len(params) < 4:
+                        banks = [bank.name for bank in session.banks()]
+                        transactions = session.transactions(params[0], params[1], banks)
+                    else:
+                        transactions = session.transactions(
+                            params[0], params[1], params[2]
+                        )
+
+                    csvwriter: Output = CSV(params[-1])
+                    csvwriter.report(transactions)
+
     # def init(self):
     #     client = DatabaseClient(self.__db)
     #     client.init()
@@ -176,12 +187,8 @@ class Manager:
 
     @property
     def db(self) -> DbClient:
-        return DbClient(self._db, self._verbosity > 0)
+        return DbClient(self._db, self._verbosity > 2)
 
     @db.setter
     def db(self, url: str):
         self._db = url
-
-    @property
-    def args(self) -> dict:
-        return self._args

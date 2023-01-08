@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from datetime import date
 from sqlalchemy import create_engine, delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -128,12 +129,24 @@ class DbClient:
             stmt = select(Transaction).where(~Transaction.category.has())
             return self.__session.scalars(stmt).all()
 
+        def transactions(self, min: date, max: date, banks: list[str]):
+            stmt = select(Transaction).where(
+                Transaction.date >= min,
+                Transaction.date <= max,
+                Transaction.bank.in_(banks),
+            )
+            return self.__session.scalars(stmt).all()
+
         def categories(self) -> list[Category]:
             stmt = select(Category)
             return self.__session.scalars(stmt).all()
 
         def tags(self) -> list[Tag]:
             stmt = select(Tag)
+            return self.__session.scalars(stmt).all()
+
+        def banks(self) -> list[Bank]:
+            stmt = select(Bank)
             return self.__session.scalars(stmt).all()
 
     def session(self) -> ClientSession:

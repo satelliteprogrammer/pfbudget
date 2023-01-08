@@ -1,4 +1,3 @@
-from pathlib import Path
 import argparse
 import datetime as dt
 import decimal
@@ -6,7 +5,6 @@ import re
 
 from pfbudget.common.types import Operation
 from pfbudget.db.model import AccountType, Period
-from pfbudget.input.nordigen import NordigenInput
 from pfbudget.db.sqlite import DatabaseClient
 import pfbudget.reporting.graph
 import pfbudget.reporting.report
@@ -29,7 +27,6 @@ class DataFileMissing(Exception):
 
 
 def argparser() -> argparse.ArgumentParser:
-
     universal = argparse.ArgumentParser(add_help=False)
     universal.add_argument(
         "-db",
@@ -75,16 +72,13 @@ def argparser() -> argparse.ArgumentParser:
     )
     p_init.set_defaults(command=Operation.Init)
 
-    """
-    Exporting
-    """
-    p_export = subparsers.add_parser(
-        "export",
-        description="Exports the selected database to a .csv file",
-        parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_export.set_defaults(func=lambda args: DatabaseClient(args.database).export())
+    # Exports transactions to .csv file
+    export = subparsers.add_parser("export", parents=[period])
+    export.set_defaults(op=Operation.Export)
+    export.add_argument("file", nargs=1, type=str)
+    export_banks = export.add_mutually_exclusive_group()
+    export_banks.add_argument("--all", action="store_true")
+    export_banks.add_argument("--banks", nargs="+", type=str)
 
     # Parse from .csv
     parse = subparsers.add_parser("parse")
@@ -403,9 +397,3 @@ def link(parser: argparse.ArgumentParser):
     dismantle.set_defaults(op=Operation.Dismantle)
     dismantle.add_argument("original", nargs=1, type=int)
     dismantle.add_argument("links", nargs="+", type=int)
-
-
-def run():
-    args = vars(argparser().parse_args())
-    assert "op" in args, "No operation selected"
-    return args["op"], args
