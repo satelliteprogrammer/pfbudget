@@ -151,37 +151,15 @@ def argparser() -> argparse.ArgumentParser:
     # Download through the Nordigen API
     download = subparsers.add_parser("download", parents=[period])
     download.set_defaults(op=Operation.Download)
-    download.add_argument("--id", nargs="+", type=str)
-    download.add_argument("--name", nargs="+", type=str)
-    download.add_argument("--all", action="store_true")
+    download_banks = download.add_mutually_exclusive_group()
+    download_banks.add_argument("--all", action="store_true")
+    download_banks.add_argument("--banks", nargs="+", type=str)
+    download.add_argument("--dry-run", action="store_true")
 
-    # """
-    # List available banks on Nordigen API
-    # """
-    # p_nordigen_list = subparsers.add_parser(
-    #     "list",
-    #     description="Lists banks in {country}",
-    #     parents=[help],
-    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    # )
-    # p_nordigen_list.add_argument("country", nargs=1, type=str)
-    # p_nordigen_list.set_defaults(func=lambda args: nordigen_banks(manager, args))
-
-    # """
-    # Nordigen JSONs
-    # """
-    # p_nordigen_json = subparsers.add_parser(
-    #     "json",
-    #     description="",
-    #     parents=[help],
-    #     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    # )
-    # p_nordigen_json.add_argument("json", nargs=1, type=str)
-    # p_nordigen_json.add_argument("bank", nargs=1, type=str)
-    # p_nordigen_json.add_argument("--invert", action=argparse.BooleanOptionalAction)
-    # p_nordigen_json.set_defaults(
-    #     func=lambda args: manager.parser(JsonParser(vars(args)))
-    # )
+    # List available banks in country C
+    banks = subparsers.add_parser("banks")
+    banks.set_defaults(op=Operation.NordigenCountryBanks)
+    banks.add_argument("country", nargs=1, type=str)
 
     # Categories
     category(subparsers.add_parser("category"))

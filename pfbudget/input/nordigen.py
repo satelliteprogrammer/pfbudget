@@ -6,17 +6,18 @@ from nordigen import NordigenClient
 from uuid import uuid4
 import json
 import os
-import webbrowser
 
-from .input import Input
-from pfbudget.common.types import NoBankSelected
 from pfbudget.db.model import Transaction
 from pfbudget.utils import convert
+
+from .input import Input
 
 load_dotenv()
 
 
 class NordigenInput(Input):
+    redirect_url = "https://murta.dev"
+
     def __init__(self):
         super().__init__()
         self._client = NordigenClient(
@@ -24,23 +25,7 @@ class NordigenInput(Input):
             secret_id=os.environ.get("SECRET_ID"),
         )
 
-        self.client.token = self.__token()
-
-        # print(options)
-
-        # if "all" in options and options["all"]:
-        #     self.__banks = self.manager.get_banks()
-        # elif "id" in options and options["id"]:
-        #     self.__banks = [
-        #         self.manager.get_bank_by("nordigen_id", b) for b in options["id"]
-        #     ]
-        # elif "name" in options and options["name"]:
-        #     self.__banks = [
-        #         self.manager.get_bank_by("name", b) for b in options["name"]
-        #     ]
-        # else:
-        #     self.__banks = None
-
+        self._client.token = self.__token()
         self._start = date.min
         self._end = date.max
 
@@ -96,11 +81,15 @@ class NordigenInput(Input):
         return token
 
     def requisition(self, institution: str, country: str = "PT"):
-        link, _ = self.__requisition_id(institution, country)
-        webbrowser.open(link)
+        id = self._client.institution.get_institution_id_by_name(country, institution)
+        return self._client.initialize_session(
+            redirect_uri=self.redirect_url,
+            institution_id=id,
+            reference_id=str(uuid4()),
+        )
 
-    def list(self, country: str):
-        print(self._client.institution.get_institutions(country))
+    def country_banks(self, country: str):
+        return self._client.institution.get_institutions(country)
 
     @property
     def client(self):
@@ -137,16 +126,3 @@ class NordigenInput(Input):
             token = self._client.generate_token()
             print(f"New access token: {token}")
             return token
-
-    def __requisition_id(self, i: str, c: str):
-        id = self._client.institution.get_institution_id_by_name(
-            country=c, institution=i
-        )
-        init = self._client.initialize_session(
-            redirect_uri="https://murta.dev",
-            institution_id=id,
-            reference_id=str(uuid4()),
-        )
-
-        print(f"{i}({c}) link: {init.link} and requisition ID: {init.requisition_id}")
-        return (init.link, init.requisition_id)

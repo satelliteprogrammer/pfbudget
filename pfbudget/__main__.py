@@ -17,32 +17,32 @@ if __name__ == "__main__":
     params = None
     match (op):
         case pfbudget.Operation.Parse:
-            assert args.keys() >= {"path", "bank", "creditcard"}
+            keys = {"path", "bank", "creditcard"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             params = [args["path"], args["bank"], args["creditcard"]]
 
         case pfbudget.Operation.RequisitionId:
-            assert args.keys() >= {"name", "country"}, "argparser ill defined"
+            keys = {"name", "country"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             params = [args["name"][0], args["country"][0]]
 
         case pfbudget.Operation.Download:
-            assert args.keys() >= {
-                "id",
-                "name",
-                "all",
-                "interval",
-                "start",
-                "end",
-                "year",
-            }, "argparser ill defined"
+            keys = {"all", "banks", "interval", "start", "end", "year", "dry_run"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             start, end = pfbudget.parse_args_period(args)
-            params = [start, end]
+            params = [start, end, args["dry_run"]]
+
+            if not args["all"]:
+                params.append(args["banks"])
+            else:
+                params.append([])
 
         case pfbudget.Operation.BankAdd:
-            assert args.keys() >= {
-                "bank",
-                "bic",
-                "type",
-            }, "argparser ill defined"
+            keys = {"bank", "bic", "type"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
                 pfbudget.types.Bank(
@@ -53,12 +53,8 @@ if __name__ == "__main__":
             ]
 
         case pfbudget.Operation.BankMod:
-            assert args.keys() >= {
-                "bank",
-                "bic",
-                "type",
-                "remove",
-            }, "argparser ill defined"
+            keys = {"bank", "bic", "type", "remove"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             nargs_1 = ["bic", "type"]
 
@@ -73,12 +69,8 @@ if __name__ == "__main__":
             params = args["bank"]
 
         case pfbudget.Operation.NordigenAdd:
-            assert args.keys() >= {
-                "bank",
-                "bank_id",
-                "requisition_id",
-                "invert",
-            }, "argparser ill defined"
+            keys = {"bank", "bank_id", "requisition_id", "invert"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
                 pfbudget.types.Nordigen(
@@ -90,13 +82,8 @@ if __name__ == "__main__":
             ]
 
         case pfbudget.Operation.NordigenMod:
-            assert args.keys() >= {
-                "bank",
-                "bank_id",
-                "requisition_id",
-                "invert",
-                "remove",
-            }, "argparser ill defined"
+            keys = {"bank", "bank_id", "requisition_id", "invert", "remove"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             nargs_1 = ["bank_id", "requisition_id"]
             nargs_0 = ["invert"]
@@ -112,14 +99,24 @@ if __name__ == "__main__":
             assert len(args["bank"]) > 0, "argparser ill defined"
             params = args["bank"]
 
+        case pfbudget.Operation.NordigenCountryBanks:
+            keys = {"country"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
+            params = [args["country"][0]]
+
         case pfbudget.Operation.CategoryAdd:
-            assert args.keys() >= {"category", "group"}, "argparser ill defined"
+            keys = {"category", "group"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             params = [
                 pfbudget.types.Category(cat, args["group"]) for cat in args["category"]
             ]
 
         case pfbudget.Operation.CategoryUpdate:
-            assert args.keys() >= {"category", "group"}, "argparser ill defined"
+            keys = {"category", "group"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             params = [pfbudget.types.Category(cat) for cat in args["category"]]
             params.append(args["group"])
 
@@ -128,11 +125,8 @@ if __name__ == "__main__":
             params = [pfbudget.types.Category(cat) for cat in args["category"]]
 
         case pfbudget.Operation.CategorySchedule:
-            assert args.keys() >= {
-                "category",
-                "period",
-                "frequency",
-            }, "argparser ill defined"
+            keys = {"category", "period", "frequency"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
                 pfbudget.types.CategorySchedule(
@@ -142,14 +136,8 @@ if __name__ == "__main__":
             ]
 
         case pfbudget.Operation.RuleAdd:
-            assert args.keys() >= {
-                "category",
-                "date",
-                "description",
-                "bank",
-                "min",
-                "max",
-            }, "argparser ill defined"
+            keys = {"category", "date", "description", "bank", "min", "max"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
                 pfbudget.types.CategoryRule(
@@ -165,11 +153,13 @@ if __name__ == "__main__":
             ]
 
         case pfbudget.Operation.RuleRemove | pfbudget.Operation.TagRuleRemove:
-            assert args.keys() >= {"id"}, "argparser ill defined"
+            keys = {"id"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             params = args["id"]
 
         case pfbudget.Operation.RuleModify:
-            assert args.keys() >= {
+            keys = {
                 "id",
                 "category",
                 "date",
@@ -178,7 +168,8 @@ if __name__ == "__main__":
                 "min",
                 "max",
                 "remove",
-            }, "argparser ill defined"
+            }
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             nargs_1 = ["category", "date", "description", "regex", "bank", "min", "max"]
             params = []
@@ -190,18 +181,14 @@ if __name__ == "__main__":
                 params.append(param)
 
         case pfbudget.Operation.TagAdd:
-            assert args.keys() >= {"tag"}, "argparser ill defined"
+            keys = {"tag"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             params = [pfbudget.types.Tag(tag) for tag in args["tag"]]
 
         case pfbudget.Operation.TagRuleAdd:
-            assert args.keys() >= {
-                "tag",
-                "date",
-                "description",
-                "bank",
-                "min",
-                "max",
-            }, "argparser ill defined"
+            keys = {"tag", "date", "description", "bank", "min", "max"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
                 pfbudget.types.TagRule(
@@ -217,16 +204,8 @@ if __name__ == "__main__":
             ]
 
         case pfbudget.Operation.TagRuleModify:
-            assert args.keys() >= {
-                "id",
-                "tag",
-                "date",
-                "description",
-                "bank",
-                "min",
-                "max",
-                "remove",
-            }, "argparser ill defined"
+            keys = {"id", "tag", "date", "description", "bank", "min", "max", "remove"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             nargs_1 = ["tag", "date", "description", "regex", "bank", "min", "max"]
             params = []
@@ -246,13 +225,17 @@ if __name__ == "__main__":
             params = [pfbudget.types.CategoryGroup(group) for group in args["group"]]
 
         case pfbudget.Operation.Forge | pfbudget.Operation.Dismantle:
-            assert args.keys() >= {"original", "links"}, "argparser ill defined"
+            keys = {"original", "links"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             params = [
                 pfbudget.types.Link(args["original"][0], link) for link in args["links"]
             ]
 
         case pfbudget.Operation.Export:
-            assert args.keys() >= {"interval", "start", "end", "year", "all", "banks", "file"}
+            keys = {"interval", "start", "end", "year", "all", "banks", "file"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
             start, end = pfbudget.parse_args_period(args)
             params = [start, end]
             if not args["all"]:

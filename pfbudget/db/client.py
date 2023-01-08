@@ -2,10 +2,9 @@ from dataclasses import asdict
 from datetime import date
 from sqlalchemy import create_engine, delete, select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session
 
 from pfbudget.db.model import (
-    Bank,
     Category,
     CategoryGroup,
     CategoryRule,
@@ -32,39 +31,6 @@ class DbClient:
     def __init__(self, url: str, echo=False) -> None:
         self._engine = create_engine(url, echo=echo)
 
-    def get_transactions(self):
-        """¿Non-optimized? get_transactions, will load the entire Transaction"""
-        with Session(self.engine) as session:
-            stmt = select(Transaction).options(
-                joinedload("*"), selectinload(Transaction.tags)
-            )
-            return session.scalars(stmt).all()
-
-    def get_uncategorized(self):
-        with Session(self.engine) as session:
-            stmt = select(Transaction).where(~Transaction.category.has())
-            return session.scalars(stmt).all()
-
-    def get_categorized(self):
-        with Session(self.engine) as session:
-            stmt = select(Transaction).where(Transaction.category.has())
-            return session.scalars(stmt).all()
-
-    def insert_transactions(self, input: list[Transaction]):
-        with Session(self.engine) as session:
-            session.add_all(input)
-            session.commit()
-
-    def get_banks(self):
-        with Session(self.engine) as session:
-            stmt = select(Bank)
-            return session.scalars(stmt).all()
-
-    def get_nordigen_banks(self):
-        with Session(self.engine) as session:
-            stmt = select(Bank).where(Bank.nordigen.has())
-            return session.scalars(stmt).all()
-
     @property
     def engine(self):
         return self._engine
@@ -83,6 +49,20 @@ class DbClient:
 
         def commit(self):
             self.__session.commit()
+
+        def expunge_all(self):
+            self.__session.expunge_all()
+
+        def get(self, type, column=None, values=None):
+            if column:
+                if values:
+                    stmt = select(type).where(column.in_(values))
+                else:
+                    stmt = select(type).where(column.has())
+            else:
+                stmt = select(type)
+
+            return self.__session.scalars(stmt).all()
 
         def add(self, rows: list):
             self.__session.add_all(rows)
@@ -125,28 +105,12 @@ class DbClient:
             )
             self.__session.execute(stmt)
 
-        def uncategorized(self) -> list[Transaction]:
-            stmt = select(Transaction).where(~Transaction.category.has())
-            return self.__session.scalars(stmt).all()
-
         def transactions(self, min: date, max: date, banks: list[str]):
             stmt = select(Transaction).where(
                 Transaction.date >= min,
                 Transaction.date <= max,
                 Transaction.bank.in_(banks),
             )
-            return self.__session.scalars(stmt).all()
-
-        def categories(self) -> list[Category]:
-            stmt = select(Category)
-            return self.__session.scalars(stmt).all()
-
-        def tags(self) -> list[Tag]:
-            stmt = select(Tag)
-            return self.__session.scalars(stmt).all()
-
-        def banks(self) -> list[Bank]:
-            stmt = select(Bank)
             return self.__session.scalars(stmt).all()
 
     def session(self) -> ClientSession:

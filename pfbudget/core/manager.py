@@ -1,4 +1,5 @@
 from pathlib import Path
+import webbrowser
 
 from pfbudget.common.types import Operation
 from pfbudget.core.categorizer import Categorizer
@@ -8,11 +9,11 @@ from pfbudget.db.model import (
     Category,
     CategoryGroup,
     CategoryRule,
-    CategorySchedule,
     Nordigen,
     Rule,
     Tag,
     TagRule,
+    Transaction,
 )
 from pfbudget.input.nordigen import NordigenInput
 from pfbudget.input.parsers import parse_data
@@ -52,17 +53,27 @@ class Manager:
 
             case Operation.Download:
                 client = NordigenInput()
-                client.banks = self.get_banks()
+                with self.db.session() as session:
+                    if len(params[3]) == 0:
+                        client.banks = session.get(Bank, Bank.nordigen)
+                    else:
+                        client.banks = session.get(Bank, Bank.name, params[3])
+                    session.expunge_all()
                 client.start = params[0]
                 client.end = params[1]
                 transactions = client.parse()
-                self.add_transactions(transactions)
+
+                # dry-run
+                if not params[2]:
+                    self.add_transactions(transactions)
+                else:
+                    print(transactions)
 
             case Operation.Categorize:
                 with self.db.session() as session:
-                    uncategorized = session.uncategorized()
-                    categories = session.categories()
-                    tags = session.tags()
+                    uncategorized = session.get(Transaction, ~Transaction.category)
+                    categories = session.get(Category)
+                    tags = session.get(Tag)
                     Categorizer().categorize(uncategorized, categories, tags)
 
             case Operation.BankMod:
@@ -85,7 +96,13 @@ class Manager:
                 NordigenInput().token()
 
             case Operation.RequisitionId:
-                NordigenInput().requisition(params[0], params[1])
+                link, _ = NordigenInput().requisition(params[0], params[1])
+                print(f"Opening {link} to request access to {params[0]}")
+                webbrowser.open(link)
+
+            case Operation.NordigenCountryBanks:
+                banks = NordigenInput().country_banks(params[0])
+                print(banks)
 
             case Operation.BankAdd | Operation.CategoryAdd | Operation.NordigenAdd | Operation.RuleAdd | Operation.TagAdd | Operation.TagRuleAdd:
                 with self.db.session() as session:
@@ -144,7 +161,7 @@ class Manager:
             case Operation.Export:
                 with self.db.session() as session:
                     if len(params) < 4:
-                        banks = [bank.name for bank in session.banks()]
+                        banks = [bank.name for bank in session.get(Bank)]
                         transactions = session.transactions(params[0], params[1], banks)
                     else:
                         transactions = session.transactions(
@@ -181,9 +198,6 @@ class Manager:
     #     client = DatabaseClient(self.__db)
     #     bank = client.get_bank(key, value)
     #     return convert(bank)
-
-    def get_banks(self):
-        return self.db.get_nordigen_banks()
 
     @property
     def db(self) -> DbClient:
