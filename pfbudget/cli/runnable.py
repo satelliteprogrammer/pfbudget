@@ -87,15 +87,10 @@ def argparser() -> argparse.ArgumentParser:
     parse.add_argument("--bank", nargs=1, type=str)
     parse.add_argument("--creditcard", nargs=1, type=str)
 
-    """
-    Categorizing
-    """
-    categorize = subparsers.add_parser(
-        "categorize",
-        description="Categorizes the transactions in the selected database",
-        parents=[universal],
-    )
-    categorize.set_defaults(op=Operation.Categorize)
+    # Automatic/manual categorization
+    categorize = subparsers.add_parser("categorize").add_subparsers(required=True)
+    categorize.add_parser("auto").set_defaults(op=Operation.Categorize)
+    categorize.add_parser("manual").set_defaults(op=Operation.ManualCategorization)
 
     """
     Graph

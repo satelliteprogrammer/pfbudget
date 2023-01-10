@@ -10,6 +10,8 @@ from pfbudget.db.model import (
 
 from datetime import timedelta
 
+Transactions = list[Transaction]
+
 
 class Categorizer:
     options = {}
@@ -17,25 +19,44 @@ class Categorizer:
     def __init__(self):
         self.options["null_days"] = 4
 
-    def categorize(
+    def rules(
         self,
-        transactions: list[Transaction],
+        transactions: Transactions,
         categories: list[Category],
         tags: list[Tag],
     ):
         """Overarching categorization tool
 
-        Receives a list of transactions (by ref) and updates their category
+        Receives a list of transactions (by ref) and updates their category according
+        to the rules defined for each category
 
         Args:
             transactions (list[Transaction]): uncategorized transactions
+            categories (list[Category]): available categories
+            tags (list[Tag]): currently available tags
         """
 
         self._nullify(transactions)
+
         self._rule_based_categories(transactions, categories)
         self._rule_based_tags(transactions, tags)
 
-    def _nullify(self, transactions: list[Transaction]):
+    def manual(
+        self,
+        transactions: Transactions,
+        categories: list[Category],
+        tags: list[Tag],
+    ):
+        """Manual categorization input
+
+        Args:
+            transactions (list[Transaction]): uncategorized transactions
+            categories (list[Category]): available categories
+            tags (list[Tag]): currently available tags
+        """
+        self._manual(transactions)
+
+    def _nullify(self, transactions: Transactions):
         count = 0
         matching = []
         for transaction in transactions:
@@ -66,7 +87,7 @@ class Categorizer:
         print(f"Nullified {count} transactions")
 
     def _rule_based_categories(
-        self, transactions: list[Transaction], categories: list[Category]
+        self, transactions: Transactions, categories: list[Category]
     ):
         d = {}
         for category in [c for c in categories if c.rules]:
@@ -81,9 +102,17 @@ class Categorizer:
                         continue
 
                     # passed all conditions, assign category
-                    transaction.category = TransactionCategory(
-                        category.name, CategorySelector(Selector.rules)
-                    )
+                    if transaction.category:
+                        if (
+                            input(f"Overwrite {transaction} with {category}? (y/n)")
+                            == "y"
+                        ):
+                            transaction.category.name = category.name
+                            transaction.category.selector.selector = Selector.rules
+                    else:
+                        transaction.category = TransactionCategory(
+                            category.name, CategorySelector(Selector.rules)
+                        )
 
                     if rule in d:
                         d[rule] += 1
@@ -93,7 +122,7 @@ class Categorizer:
         for k, v in d.items():
             print(f"{v}: {k}")
 
-    def _rule_based_tags(self, transactions: list[Transaction], tags: list[Tag]):
+    def _rule_based_tags(self, transactions: Transactions, tags: list[Tag]):
         d = {}
         for tag in [t for t in tags if t.rules]:
             for rule in tag.rules:
@@ -119,3 +148,20 @@ class Categorizer:
         for k, v in d.items():
             print(f"{v}: {k}")
 
+    def _manual(self, transactions: Transactions):
+        uncategorized = [t for t in transactions if not t.category]
+        print(f"{len(uncategorized)} transactions left to categorize")
+
+        for transaction in uncategorized:
+            while True:
+                category = input(f"{transaction} category: ")
+                if category == "quit":
+                    return
+                if not category:
+                    print("{category} doesn't exist")
+                    continue
+                transaction.category = TransactionCategory(
+                    category, CategorySelector(Selector.manual)
+                )
+
+                break

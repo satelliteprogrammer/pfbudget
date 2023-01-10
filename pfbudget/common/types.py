@@ -9,6 +9,7 @@ class Operation(Enum):
     Parse = auto()
     Download = auto()
     Categorize = auto()
+    ManualCategorization = auto()
     Token = auto()
     RequisitionId = auto()
     CategoryAdd = auto()

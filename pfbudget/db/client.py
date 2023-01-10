@@ -54,11 +54,11 @@ class DbClient:
             self.__session.expunge_all()
 
         def get(self, type, column=None, values=None):
-            if column:
+            if column is not None:
                 if values:
                     stmt = select(type).where(column.in_(values))
                 else:
-                    stmt = select(type).where(column.has())
+                    stmt = select(type).where(column)
             else:
                 stmt = select(type)
 
