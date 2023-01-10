@@ -8,6 +8,7 @@ from pfbudget.db.model import (
     TransactionTag,
 )
 
+from codetiming import Timer
 from datetime import timedelta
 
 Transactions = list[Transaction]
@@ -56,6 +57,7 @@ class Categorizer:
         """
         self._manual(transactions)
 
+    @Timer(name="nullify")
     def _nullify(self, transactions: Transactions):
         count = 0
         matching = []
@@ -86,6 +88,7 @@ class Categorizer:
 
         print(f"Nullified {count} transactions")
 
+    @Timer(name="categoryrules")
     def _rule_based_categories(
         self, transactions: Transactions, categories: list[Category]
     ):
@@ -102,7 +105,10 @@ class Categorizer:
                         continue
 
                     # passed all conditions, assign category
-                    if transaction.category:
+                    if (
+                        transaction.category
+                        and transaction.category.name == category.name
+                    ):
                         if (
                             input(f"Overwrite {transaction} with {category}? (y/n)")
                             == "y"
@@ -122,6 +128,7 @@ class Categorizer:
         for k, v in d.items():
             print(f"{v}: {k}")
 
+    @Timer(name="tagrules")
     def _rule_based_tags(self, transactions: Transactions, tags: list[Tag]):
         d = {}
         for tag in [t for t in tags if t.rules]:

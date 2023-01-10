@@ -83,6 +83,10 @@ def argparser() -> argparse.ArgumentParser:
     export_banks.add_argument("--all", action="store_true")
     export_banks.add_argument("--banks", nargs="+", type=str)
 
+    pimport = subparsers.add_parser("import")
+    pimport.set_defaults(op=Operation.Import)
+    pimport.add_argument("file", nargs=1, type=str)
+
     # Parse from .csv
     parse = subparsers.add_parser("parse")
     parse.set_defaults(op=Operation.Parse)

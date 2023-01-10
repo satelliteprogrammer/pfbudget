@@ -242,4 +242,10 @@ if __name__ == "__main__":
                 params.append(args["banks"])
             params.append(args["file"][0])
 
+        case pfbudget.Operation.Import:
+            keys = {"file"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
+            params = args["file"]
+
     pfbudget.Manager(db, verbosity).action(op, params)

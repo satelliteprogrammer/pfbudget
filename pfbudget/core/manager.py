@@ -71,14 +71,18 @@ class Manager:
 
             case Operation.Categorize:
                 with self.db.session() as session:
-                    uncategorized = session.get(Transaction, ~Transaction.category.has())
+                    uncategorized = session.get(
+                        Transaction, ~Transaction.category.has()
+                    )
                     categories = session.get(Category)
                     tags = session.get(Tag)
                     Categorizer().rules(uncategorized, categories, tags)
 
             case Operation.ManualCategorization:
                 with self.db.session() as session:
-                    uncategorized = session.get(Transaction, ~Transaction.category.has())
+                    uncategorized = session.get(
+                        Transaction, ~Transaction.category.has()
+                    )
                     categories = session.get(Category)
                     tags = session.get(Tag)
                     Categorizer().manual(uncategorized, categories, tags)
@@ -177,6 +181,20 @@ class Manager:
 
                     csvwriter: Output = CSV(params[-1])
                     csvwriter.report(transactions)
+
+            case Operation.Import:
+                csvwriter: Output = CSV(params[0])  # Output is strange here
+                transactions = csvwriter.load()
+
+                if (
+                    len(transactions) > 0
+                    and input(
+                        f"{transactions[:5]}\nDoes the import seem correct? (y/n)"
+                    )
+                    == "y"
+                ):
+                    with self.db.session() as session:
+                        session.add(transactions)
 
     # def init(self):
     #     client = DatabaseClient(self.__db)
