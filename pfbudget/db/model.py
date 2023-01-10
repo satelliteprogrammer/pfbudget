@@ -74,20 +74,43 @@ class Transaction(Base):
     id: Mapped[idpk] = mapped_column(init=False)
     date: Mapped[dt.date]
     description: Mapped[Optional[str]]
-    bank: Mapped[bankfk]
     amount: Mapped[money]
+
+    type: Mapped[str] = mapped_column(init=False)
 
     category: Mapped[Optional[TransactionCategory]] = relationship(init=False)
     note: Mapped[Optional[Note]] = relationship(init=False)
     tags: Mapped[Optional[set[TransactionTag]]] = relationship(init=False)
 
-    def __lt__(self, other):
+    __mapper_args__ = {"polymorphic_on": "type", "polymorphic_identity": "transaction"}
+
+    def __lt__(self, other: Transaction):
         return self.date < other.date
 
 
 idfk = Annotated[
     int, mapped_column(BigInteger, ForeignKey(Transaction.id, ondelete="CASCADE"))
 ]
+
+
+class IsSplit:
+    split: Mapped[bool] = mapped_column(use_existing_column=True, nullable=True)
+
+
+class BankTransaction(IsSplit, Transaction):
+    bank: Mapped[bankfk] = mapped_column(nullable=True)
+
+    __mapper_args__ = {"polymorphic_identity": "bank", "polymorphic_load": "inline"}
+
+
+class MoneyTransaction(IsSplit, Transaction):
+    __mapper_args__ = {"polymorphic_identity": "money"}
+
+
+class SplitTransaction(Transaction):
+    original: Mapped[idfk] = mapped_column(nullable=True)
+
+    __mapper_args__ = {"polymorphic_identity": "split", "polymorphic_load": "inline"}
 
 
 class CategoryGroup(Base):

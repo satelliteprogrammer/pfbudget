@@ -7,7 +7,7 @@ from uuid import uuid4
 import json
 import os
 
-from pfbudget.db.model import Transaction
+from pfbudget.db.model import BankTransaction
 from pfbudget.utils import convert
 
 from .input import Input
@@ -29,7 +29,7 @@ class NordigenInput(Input):
         self._start = date.min
         self._end = date.max
 
-    def parse(self) -> list[Transaction]:
+    def parse(self) -> list[BankTransaction]:
         transactions = []
         assert len(self._banks) > 0
 

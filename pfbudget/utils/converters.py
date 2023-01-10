@@ -1,8 +1,8 @@
-from datetime import date, timedelta
+from datetime import date
 from functools import singledispatch
 
 from pfbudget.common.types import TransactionError
-from pfbudget.db.model import Bank, Transaction
+from pfbudget.db.model import Bank, BankTransaction
 from .utils import parse_decimal
 
 
@@ -13,10 +13,10 @@ def convert(t):
 
 
 @convert.register
-def _(json: dict, bank: Bank) -> Transaction:
+def _(json: dict, bank: Bank) -> BankTransaction:
     i = -1 if bank.nordigen.invert else 1
     try:
-        transaction = Transaction(
+        transaction = BankTransaction(
             date=date.fromisoformat(json["bookingDate"]),
             description=json["remittanceInformationUnstructured"],
             bank=bank.name,
