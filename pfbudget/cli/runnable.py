@@ -1,6 +1,8 @@
+from dotenv import load_dotenv
 import argparse
 import datetime as dt
 import decimal
+import os
 import re
 
 from pfbudget.common.types import Operation
@@ -10,8 +12,9 @@ import pfbudget.reporting.graph
 import pfbudget.reporting.report
 import pfbudget.utils
 
+load_dotenv()
 
-DEFAULT_DB = "data.db"
+DEFAULT_DB = os.environ.get("DEFAULT_DB")
 
 
 class PfBudgetInitialized(Exception):
