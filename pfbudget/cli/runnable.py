@@ -76,12 +76,9 @@ def argparser() -> argparse.ArgumentParser:
     p_init.set_defaults(command=Operation.Init)
 
     # Exports transactions to .csv file
-    export = subparsers.add_parser("export", parents=[period])
+    export = subparsers.add_parser("export")
     export.set_defaults(op=Operation.Export)
-    export.add_argument("file", nargs=1, type=str)
-    export_banks = export.add_mutually_exclusive_group()
-    export_banks.add_argument("--all", action="store_true")
-    export_banks.add_argument("--banks", nargs="+", type=str)
+    export_args(export)
 
     pimport = subparsers.add_parser("import")
     pimport.set_defaults(op=Operation.Import)
@@ -321,6 +318,14 @@ def category_rule(parser: argparse.ArgumentParser):
     rules(modify)
     modify.add_argument("--remove", nargs="*", default=[], type=str)
 
+    export = commands.add_parser("export")
+    export.set_defaults(op=Operation.ExportCategoryRules)
+    export_args(export)
+
+    pimport = commands.add_parser("import")
+    pimport.set_defaults(op=Operation.ImportCategoryRules)
+    export_args(pimport)
+
 
 def tags(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
@@ -355,6 +360,14 @@ def tag_rule(parser: argparse.ArgumentParser):
     modify.add_argument("--tag", nargs=1, type=str)
     rules(modify)
 
+    export = commands.add_parser("export")
+    export.set_defaults(op=Operation.ExportTagRules)
+    export_args(export)
+
+    pimport = commands.add_parser("import")
+    pimport.set_defaults(op=Operation.ImportTagRules)
+    export_args(pimport)
+
 
 def rules(parser: argparse.ArgumentParser):
     parser.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
@@ -377,3 +390,7 @@ def link(parser: argparse.ArgumentParser):
     dismantle.set_defaults(op=Operation.Dismantle)
     dismantle.add_argument("original", nargs=1, type=int)
     dismantle.add_argument("links", nargs="+", type=int)
+
+
+def export_args(parser: argparse.ArgumentParser):
+    parser.add_argument("file", nargs=1, type=str)

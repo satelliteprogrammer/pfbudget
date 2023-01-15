@@ -232,17 +232,7 @@ if __name__ == "__main__":
                 pfbudget.types.Link(args["original"][0], link) for link in args["links"]
             ]
 
-        case pfbudget.Operation.Export:
-            keys = {"interval", "start", "end", "year", "all", "banks", "file"}
-            assert args.keys() >= keys, f"missing {args.keys() - keys}"
-
-            start, end = pfbudget.parse_args_period(args)
-            params = [start, end]
-            if not args["all"]:
-                params.append(args["banks"])
-            params.append(args["file"][0])
-
-        case pfbudget.Operation.Import:
+        case pfbudget.Operation.Export | pfbudget.Operation.Import | pfbudget.Operation.ExportCategoryRules | pfbudget.Operation.ImportCategoryRules | pfbudget.Operation.ExportTagRules | pfbudget.Operation.ImportTagRules:
             keys = {"file"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 

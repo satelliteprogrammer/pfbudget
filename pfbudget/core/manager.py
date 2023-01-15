@@ -1,4 +1,5 @@
 from pathlib import Path
+import pickle
 import webbrowser
 
 from pfbudget.common.types import Operation
@@ -6,19 +7,21 @@ from pfbudget.core.categorizer import Categorizer
 from pfbudget.db.client import DbClient
 from pfbudget.db.model import (
     Bank,
+    BankTransaction,
     Category,
     CategoryGroup,
     CategoryRule,
+    CategorySelector,
+    MoneyTransaction,
     Nordigen,
     Rule,
     Tag,
     TagRule,
     Transaction,
+    TransactionCategory,
 )
 from pfbudget.input.nordigen import NordigenInput
 from pfbudget.input.parsers import parse_data
-from pfbudget.output.csv import CSV
-from pfbudget.output.output import Output
 
 
 class Manager:
@@ -171,20 +174,37 @@ class Manager:
 
             case Operation.Export:
                 with self.db.session() as session:
-                    if len(params) < 4:
-                        banks = [bank.name for bank in session.get(Bank)]
-                        transactions = session.transactions(params[0], params[1], banks)
-                    else:
-                        transactions = session.transactions(
-                            params[0], params[1], params[2]
-                        )
-
-                    csvwriter: Output = CSV(params[-1])
-                    csvwriter.report(transactions)
+                    self.dump(params[0], session.get(Transaction))
 
             case Operation.Import:
-                csvwriter: Output = CSV(params[0])  # Output is strange here
-                transactions = csvwriter.load()
+                transactions = []
+                for row in self.load(params[0]):
+                    match row["type"]:
+                        case "bank":
+                            transaction = BankTransaction(
+                                row["date"],
+                                row["description"],
+                                row["amount"],
+                                row["bank"],
+                                False,
+                            )
+
+                        case "money":
+                            transaction = MoneyTransaction(
+                                row["date"], row["description"], row["amount"], False
+                            )
+
+                        # TODO case "split" how to match to original transaction?? also save ids?
+                        case _:
+                            continue
+
+                    if category := row.pop("category", None):
+                        transaction.category = TransactionCategory(
+                            category["name"],
+                            CategorySelector(category["selector"]["selector"]),
+                        )
+
+                    transactions.append(transaction)
 
                 if (
                     len(transactions) > 0
@@ -195,6 +215,26 @@ class Manager:
                 ):
                     with self.db.session() as session:
                         session.add(transactions)
+
+            case Operation.ExportCategoryRules:
+                with self.db.session() as session:
+                    self.dump(params[0], session.get(CategoryRule))
+
+            case Operation.ImportCategoryRules:
+                rules = [CategoryRule(**row) for row in self.load(params[0])]
+
+                with self.db.session() as session:
+                    session.add(rules)
+
+            case Operation.ExportTagRules:
+                with self.db.session() as session:
+                    self.dump(params[0], session.get(TagRule))
+
+            case Operation.ImportTagRules:
+                rules = [TagRule(**row) for row in self.load(params[0])]
+
+                with self.db.session() as session:
+                    session.add(rules)
 
     # def init(self):
     #     client = DatabaseClient(self.__db)
@@ -223,6 +263,14 @@ class Manager:
     #     client = DatabaseClient(self.__db)
     #     bank = client.get_bank(key, value)
     #     return convert(bank)
+
+    def dump(self, fn, sequence):
+        with open(fn, "wb") as f:
+            pickle.dump([e.format for e in sequence], f)
+
+    def load(self, fn):
+        with open(fn, "rb") as f:
+            return pickle.load(f)
 
     @property
     def db(self) -> DbClient:

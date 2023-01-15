@@ -37,6 +37,10 @@ class Operation(Enum):
     NordigenCountryBanks = auto()
     Export = auto()
     Import = auto()
+    ExportCategoryRules = auto()
+    ImportCategoryRules = auto()
+    ExportTagRules = auto()
+    ImportTagRules = auto()
 
 
 class TransactionError(Exception):

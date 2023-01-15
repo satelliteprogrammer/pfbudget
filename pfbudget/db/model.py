@@ -52,6 +52,12 @@ accounttype = Annotated[
 ]
 
 
+class Export:
+    @property
+    def format(self) -> dict[str, Any]:
+        raise NotImplementedError
+
+
 class Bank(Base):
     __tablename__ = "banks"
 
@@ -68,7 +74,7 @@ idpk = Annotated[int, mapped_column(BigInteger, primary_key=True, autoincrement=
 money = Annotated[Decimal, mapped_column(Numeric(16, 2))]
 
 
-class Transaction(Base):
+class Transaction(Base, Export):
     __tablename__ = "originals"
 
     id: Mapped[idpk] = mapped_column(init=False)
@@ -84,6 +90,18 @@ class Transaction(Base):
 
     __mapper_args__ = {"polymorphic_on": "type", "polymorphic_identity": "transaction"}
 
+    @property
+    def format(self) -> dict[str, Any]:
+        return dict(
+            date=self.date,
+            description=self.description,
+            amount=self.amount,
+            type=self.type,
+            category=self.category.format if self.category else None,
+            # TODO note
+            tags=[tag.format for tag in self.tags] if self.tags else None,
+        )
+
     def __lt__(self, other: Transaction):
         return self.date < other.date
 
@@ -93,17 +111,20 @@ idfk = Annotated[
 ]
 
 
-class IsSplit:
-    split: Mapped[bool] = mapped_column(use_existing_column=True, nullable=True)
-
-
-class BankTransaction(IsSplit, Transaction):
+class BankTransaction(Transaction):
     bank: Mapped[bankfk] = mapped_column(nullable=True)
+    split: Mapped[bool] = mapped_column(use_existing_column=True, nullable=True)
 
     __mapper_args__ = {"polymorphic_identity": "bank", "polymorphic_load": "inline"}
 
+    @property
+    def format(self) -> dict[str, Any]:
+        return super().format | dict(bank=self.bank)
 
-class MoneyTransaction(IsSplit, Transaction):
+
+class MoneyTransaction(Transaction):
+    split: Mapped[bool] = mapped_column(use_existing_column=True, nullable=True)
+
     __mapper_args__ = {"polymorphic_identity": "money"}
 
 
@@ -111,6 +132,10 @@ class SplitTransaction(Transaction):
     original: Mapped[idfk] = mapped_column(nullable=True)
 
     __mapper_args__ = {"polymorphic_identity": "split", "polymorphic_load": "inline"}
+
+    @property
+    def format(self) -> dict[str, Any]:
+        return super().format | dict(original=self.original)
 
 
 class CategoryGroup(Base):
@@ -144,16 +169,19 @@ catfk = Annotated[
 ]
 
 
-class TransactionCategory(Base):
+class TransactionCategory(Base, Export):
     __tablename__ = "categorized"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     name: Mapped[catfk]
 
-    selector: Mapped[CategorySelector] = relationship(cascade="all, delete-orphan")
+    selector: Mapped[CategorySelector] = relationship(
+        cascade="all, delete-orphan", lazy="joined"
+    )
 
-    def __repr__(self) -> str:
-        return f"Category({self.name})"
+    @property
+    def format(self):
+        return dict(name=self.name, selector=self.selector.format)
 
 
 class Note(Base):
@@ -182,11 +210,15 @@ class Tag(Base):
     )
 
 
-class TransactionTag(Base):
+class TransactionTag(Base, Export):
     __tablename__ = "tags"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     tag: Mapped[str] = mapped_column(ForeignKey(Tag.name), primary_key=True)
+
+    @property
+    def format(self):
+        return dict(tag=self.tag)
 
     def __hash__(self):
         return hash(self.id)
@@ -207,7 +239,7 @@ categoryselector = Annotated[
 ]
 
 
-class CategorySelector(Base):
+class CategorySelector(Base, Export):
     __tablename__ = "categories_selector"
 
     id: Mapped[int] = mapped_column(
@@ -217,6 +249,10 @@ class CategorySelector(Base):
         init=False,
     )
     selector: Mapped[categoryselector]
+
+    @property
+    def format(self):
+        return dict(selector=self.selector)
 
 
 class Period(enum.Enum):
@@ -247,7 +283,7 @@ class Link(Base):
     link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
-class Rule:
+class Rule(Export):
     date: Mapped[Optional[dt.date]]
     description: Mapped[Optional[str]]
     regex: Mapped[Optional[str]]
@@ -255,7 +291,7 @@ class Rule:
     min: Mapped[Optional[money]]
     max: Mapped[Optional[money]]
 
-    def matches(self, transaction: Transaction) -> bool:
+    def matches(self, transaction: BankTransaction) -> bool:
         if (
             (self.date and self.date < transaction.date)
             or (
@@ -277,12 +313,27 @@ class Rule:
             return False
         return True
 
+    @property
+    def format(self) -> dict[str, Any]:
+        return dict(
+            date=self.date,
+            description=self.description,
+            regex=self.regex,
+            bank=self.bank,
+            min=self.min,
+            max=self.max,
+        )
+
 
 class CategoryRule(Base, Rule):
     __tablename__ = "categories_rules"
 
     id: Mapped[idpk] = mapped_column(init=False)
     name: Mapped[catfk]
+
+    @property
+    def format(self) -> dict[str, Any]:
+        return super().format | dict(name=self.name)
 
     def __hash__(self):
         return hash(self.id)
@@ -293,6 +344,10 @@ class TagRule(Base, Rule):
 
     id: Mapped[idpk] = mapped_column(init=False)
     tag: Mapped[str] = mapped_column(ForeignKey(Tag.name, ondelete="CASCADE"))
+
+    @property
+    def format(self) -> dict[str, Any]:
+        return super().format | dict(tag=self.tag)
 
     def __hash__(self):
         return hash(self.id)
