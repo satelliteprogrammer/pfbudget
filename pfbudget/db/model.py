@@ -283,13 +283,23 @@ class Link(Base):
     link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
-class Rule(Export):
+class Rule(Base, Export):
+    __tablename__ = "rules"
+
+    id: Mapped[idpk] = mapped_column(init=False)
     date: Mapped[Optional[dt.date]]
     description: Mapped[Optional[str]]
     regex: Mapped[Optional[str]]
     bank: Mapped[Optional[str]]
     min: Mapped[Optional[money]]
     max: Mapped[Optional[money]]
+
+    type: Mapped[str] = mapped_column(init=False)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "rule",
+        "polymorphic_on": "type",
+    }
 
     def matches(self, transaction: BankTransaction) -> bool:
         if (
@@ -322,14 +332,24 @@ class Rule(Export):
             bank=self.bank,
             min=self.min,
             max=self.max,
+            type=self.type,
         )
 
 
-class CategoryRule(Base, Rule):
+class CategoryRule(Rule):
     __tablename__ = "categories_rules"
 
-    id: Mapped[idpk] = mapped_column(init=False)
+    id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(Rule.id, ondelete="CASCADE"),
+        primary_key=True,
+        init=False,
+    )
     name: Mapped[catfk]
+
+    __mapper_args__ = {
+        "polymorphic_identity": "category_rule",
+    }
 
     @property
     def format(self) -> dict[str, Any]:
@@ -339,11 +359,20 @@ class CategoryRule(Base, Rule):
         return hash(self.id)
 
 
-class TagRule(Base, Rule):
+class TagRule(Rule):
     __tablename__ = "tag_rules"
 
-    id: Mapped[idpk] = mapped_column(init=False)
+    id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey(Rule.id, ondelete="CASCADE"),
+        primary_key=True,
+        init=False,
+    )
     tag: Mapped[str] = mapped_column(ForeignKey(Tag.name, ondelete="CASCADE"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": "tag_rule",
+    }
 
     @property
     def format(self) -> dict[str, Any]:

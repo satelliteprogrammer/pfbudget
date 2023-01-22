@@ -223,8 +223,13 @@ class Manager:
             case Operation.ImportCategoryRules:
                 rules = [CategoryRule(**row) for row in self.load(params[0])]
 
-                with self.db.session() as session:
-                    session.add(rules)
+                if (
+                    len(rules) > 0
+                    and input(f"{rules[:5]}\nDoes the import seem correct? (y/n)")
+                    == "y"
+                ):
+                    with self.db.session() as session:
+                        session.add(rules)
 
             case Operation.ExportTagRules:
                 with self.db.session() as session:
@@ -233,8 +238,13 @@ class Manager:
             case Operation.ImportTagRules:
                 rules = [TagRule(**row) for row in self.load(params[0])]
 
-                with self.db.session() as session:
-                    session.add(rules)
+                if (
+                    len(rules) > 0
+                    and input(f"{rules[:5]}\nDoes the import seem correct? (y/n)")
+                    == "y"
+                ):
+                    with self.db.session() as session:
+                        session.add(rules)
 
     # def init(self):
     #     client = DatabaseClient(self.__db)
