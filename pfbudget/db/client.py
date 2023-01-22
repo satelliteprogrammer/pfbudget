@@ -1,24 +1,15 @@
 from dataclasses import asdict
-from datetime import date
 from sqlalchemy import create_engine, delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from typing import Sequence, Type, TypeVar
 
 from pfbudget.db.model import (
     Category,
     CategoryGroup,
-    CategoryRule,
     CategorySchedule,
     Link,
-    Tag,
-    TagRule,
-    Transaction,
 )
-
-# import logging
-
-# logging.basicConfig()
-# logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
 
 class DbClient:
@@ -53,7 +44,9 @@ class DbClient:
         def expunge_all(self):
             self.__session.expunge_all()
 
-        def get(self, type, column=None, values=None):
+        T = TypeVar("T")
+
+        def get(self, type: Type[T], column=None, values=None) -> Sequence[T]:
             if column is not None:
                 if values:
                     stmt = select(type).where(column.in_(values))
@@ -67,7 +60,7 @@ class DbClient:
         def add(self, rows: list):
             self.__session.add_all(rows)
 
-        def remove_by_name(self, type: Category | Tag | Transaction, rows: list):
+        def remove_by_name(self, type, rows: list):
             stmt = delete(type).where(type.name.in_([row.name for row in rows]))
             self.__session.execute(stmt)
 
@@ -91,7 +84,7 @@ class DbClient:
             )
             self.__session.execute(stmt)
 
-        def remove_by_id(self, type: CategoryRule | TagRule, ids: list[int]):
+        def remove_by_id(self, type, ids: list[int]):
             stmt = delete(type).where(type.id.in_(ids))
             self.__session.execute(stmt)
 
@@ -99,19 +92,11 @@ class DbClient:
             print(type, values)
             self.__session.execute(update(type), values)
 
-        def remove_links(self, original, links: list):
+        def remove_links(self, original: int, links: list[int]):
             stmt = delete(Link).where(
                 Link.original == original, Link.link.in_(link for link in links)
             )
             self.__session.execute(stmt)
-
-        def transactions(self, min: date, max: date, banks: list[str]):
-            stmt = select(Transaction).where(
-                Transaction.date >= min,
-                Transaction.date <= max,
-                Transaction.bank.in_(banks),
-            )
-            return self.__session.scalars(stmt).all()
 
     def session(self) -> ClientSession:
         return self.ClientSession(self.engine)

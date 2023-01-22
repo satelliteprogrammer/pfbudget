@@ -1,18 +1,18 @@
-from datetime import date
-from time import sleep
-from requests import HTTPError, ReadTimeout
-from dotenv import load_dotenv
-from nordigen import NordigenClient
-from uuid import uuid4
+import datetime as dt
+import dotenv
 import json
+import nordigen
 import os
+import requests
+import time
+import uuid
 
-from pfbudget.db.model import BankTransaction
-from pfbudget.utils import convert
+import pfbudget.db.model as t
+import pfbudget.utils as utils
 
 from .input import Input
 
-load_dotenv()
+dotenv.load_dotenv()
 
 
 class NordigenInput(Input):
@@ -20,16 +20,22 @@ class NordigenInput(Input):
 
     def __init__(self):
         super().__init__()
-        self._client = NordigenClient(
-            secret_key=os.environ.get("SECRET_KEY"),
-            secret_id=os.environ.get("SECRET_ID"),
+
+        if not (key := os.environ.get("SECRET_KEY")) or not (
+            id := os.environ.get("SECRET_ID")
+        ):
+            raise
+
+        self._client = nordigen.NordigenClient(
+            secret_key=key,
+            secret_id=id,
         )
 
         self._client.token = self.__token()
-        self._start = date.min
-        self._end = date.max
+        self._start = dt.date.min
+        self._end = dt.date.max
 
-    def parse(self) -> list[BankTransaction]:
+    def parse(self) -> list[t.BankTransaction]:
         transactions = []
         assert len(self._banks) > 0
 
@@ -49,14 +55,14 @@ class NordigenInput(Input):
                     try:
                         downloaded = account.get_transactions()
                         break
-                    except ReadTimeout:
+                    except requests.ReadTimeout:
                         retries += 1
                         print(f"Request #{retries} timed-out, retrying in 1s")
-                        sleep(1)
-                    except HTTPError as e:
+                        time.sleep(1)
+                    except requests.HTTPError as e:
                         retries += 1
                         print(f"Request #{retries} failed with {e}, retrying in 1s")
-                        sleep(1)
+                        time.sleep(1)
 
                 if not downloaded:
                     print(f"Couldn't download transactions for {account}")
@@ -66,7 +72,7 @@ class NordigenInput(Input):
                     json.dump(downloaded, f)
 
                 converted = [
-                    convert(t, bank) for t in downloaded["transactions"]["booked"]
+                    utils.convert(t, bank) for t in downloaded["transactions"]["booked"]
                 ]
 
                 transactions.extend(
@@ -82,11 +88,12 @@ class NordigenInput(Input):
 
     def requisition(self, institution: str, country: str = "PT"):
         id = self._client.institution.get_institution_id_by_name(country, institution)
-        return self._client.initialize_session(
+        requisition = self._client.initialize_session(
             redirect_uri=self.redirect_url,
             institution_id=id,
-            reference_id=str(uuid4()),
+            reference_id=str(uuid.uuid4()),
         )
+        return requisition.link, requisition.requisition_id
 
     def country_banks(self, country: str):
         return self._client.institution.get_institutions(country)
@@ -125,4 +132,4 @@ class NordigenInput(Input):
         else:
             token = self._client.generate_token()
             print(f"New access token: {token}")
-            return token
+            return token["access"]

@@ -1,6 +1,7 @@
 from collections import namedtuple
 from decimal import Decimal
 from importlib import import_module
+from pathlib import Path
 import datetime as dt
 import yaml
 
@@ -44,7 +45,7 @@ Options = namedtuple(
 )
 
 
-def parse_data(filename: str, args: dict) -> list[Transaction]:
+def parse_data(filename: Path, args: dict) -> list[Transaction]:
     cfg: dict = yaml.safe_load(open("parsers.yaml"))
     assert (
         "Banks" in cfg
@@ -85,7 +86,7 @@ def parse_data(filename: str, args: dict) -> list[Transaction]:
 
 
 class Parser:
-    def __init__(self, filename: str, bank: str, options: dict):
+    def __init__(self, filename: Path, bank: str, options: dict):
         self.filename = filename
         self.bank = bank
 

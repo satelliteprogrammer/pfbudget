@@ -9,4 +9,4 @@ from pfbudget.cli.runnable import argparser
 from pfbudget.input.parsers import parse_data
 from pfbudget.utils.utils import parse_args_period
 
-import pfbudget.db.model as types
+import pfbudget.db.model as t

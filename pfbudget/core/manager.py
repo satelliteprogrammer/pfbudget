@@ -12,6 +12,7 @@ from pfbudget.db.model import (
     CategoryGroup,
     CategoryRule,
     CategorySelector,
+    Link,
     MoneyTransaction,
     Nordigen,
     Rule,
@@ -41,18 +42,21 @@ class Manager:
                 # Adapter for the parse_data method. Can be refactored.
                 args = {"bank": params[1], "creditcard": params[2], "category": None}
                 transactions = []
-                for path in params[0]:
-                    if (dir := Path(path)).is_dir():
-                        for file in dir.iterdir():
+                for path in [Path(p) for p in params[0]]:
+                    if path.is_dir():
+                        for file in path.iterdir():
                             transactions.extend(self.parse(file, args))
-                    elif Path(path).is_file():
+                    elif path.is_file():
                         transactions.extend(self.parse(path, args))
                     else:
                         raise FileNotFoundError(path)
 
-                print(transactions)
-                if len(transactions) > 0 and input("Commit? (y/n)") == "y":
-                    self.add_transactions(sorted(transactions))
+                if (
+                    len(transactions) > 0
+                    and input(f"{transactions[:5]}\nCommit? (y/n)") == "y"
+                ):
+                    with self.db.session() as session:
+                        session.add(sorted(transactions))
 
             case Operation.Download:
                 client = NordigenInput()
@@ -68,14 +72,15 @@ class Manager:
 
                 # dry-run
                 if not params[2]:
-                    self.add_transactions(transactions)
+                    with self.db.session() as session:
+                        session.add(sorted(transactions))
                 else:
                     print(transactions)
 
             case Operation.Categorize:
                 with self.db.session() as session:
                     uncategorized = session.get(
-                        Transaction, ~Transaction.category.has()
+                        BankTransaction, ~BankTransaction.category.has()
                     )
                     categories = session.get(Category)
                     tags = session.get(Tag)
@@ -155,7 +160,7 @@ class Manager:
 
             case Operation.GroupAdd:
                 with self.db.session() as session:
-                    session.add(CategoryGroup(params))
+                    session.add(params)
 
             case Operation.GroupRemove:
                 assert all(isinstance(param, CategoryGroup) for param in params)
@@ -167,6 +172,8 @@ class Manager:
                     session.add(params)
 
             case Operation.Dismantle:
+                assert all(isinstance(param, Link) for param in params)
+
                 with self.db.session() as session:
                     original = params[0].original
                     links = [link.link for link in params]
@@ -174,7 +181,7 @@ class Manager:
 
             case Operation.Export:
                 with self.db.session() as session:
-                    self.dump(params[0], session.get(Transaction))
+                    self.dump(params[0], sorted(session.get(Transaction)))
 
             case Operation.Import:
                 transactions = []
@@ -246,33 +253,8 @@ class Manager:
                     with self.db.session() as session:
                         session.add(rules)
 
-    # def init(self):
-    #     client = DatabaseClient(self.__db)
-    #     client.init()
-
-    # def register(self):
-    #     bank = Bank(self.args["bank"][0], "", self.args["requisition"][0], self.args["invert"])
-    #     client = DatabaseClient(self.__db)
-    #     client.register_bank(convert(bank))
-
-    # def unregister(self):
-    #     client = DatabaseClient(self.__db)
-    #     client.unregister_bank(self.args["bank"][0])
-
-    def parse(self, filename: str, args: dict):
+    def parse(self, filename: Path, args: dict):
         return parse_data(filename, args)
-
-    # def transactions() -> list[Transaction]:
-    #     pass
-
-    def add_transactions(self, transactions):
-        with self.db.session() as session:
-            session.add(transactions)
-
-    # def get_bank_by(self, key: str, value: str) -> Bank:
-    #     client = DatabaseClient(self.__db)
-    #     bank = client.get_bank(key, value)
-    #     return convert(bank)
 
     def dump(self, fn, sequence):
         with open(fn, "wb") as f:

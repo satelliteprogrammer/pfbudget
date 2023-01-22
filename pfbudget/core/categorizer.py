@@ -1,17 +1,8 @@
-from pfbudget.db.model import (
-    Category,
-    CategorySelector,
-    Selector,
-    Tag,
-    Transaction,
-    TransactionCategory,
-    TransactionTag,
-)
-
 from codetiming import Timer
 from datetime import timedelta
+from typing import Sequence
 
-Transactions = list[Transaction]
+import pfbudget.db.model as t
 
 
 class Categorizer:
@@ -22,9 +13,9 @@ class Categorizer:
 
     def rules(
         self,
-        transactions: Transactions,
-        categories: list[Category],
-        tags: list[Tag],
+        transactions: Sequence[t.BankTransaction],
+        categories: Sequence[t.Category],
+        tags: Sequence[t.Tag],
     ):
         """Overarching categorization tool
 
@@ -32,9 +23,9 @@ class Categorizer:
         to the rules defined for each category
 
         Args:
-            transactions (list[Transaction]): uncategorized transactions
-            categories (list[Category]): available categories
-            tags (list[Tag]): currently available tags
+            transactions (Sequence[BankTransaction]): uncategorized transactions
+            categories (Sequence[Category]): available categories
+            tags (Sequence[Tag]): currently available tags
         """
 
         self._nullify(transactions)
@@ -44,21 +35,21 @@ class Categorizer:
 
     def manual(
         self,
-        transactions: Transactions,
-        categories: list[Category],
-        tags: list[Tag],
+        transactions: Sequence[t.Transaction],
+        categories: Sequence[t.Category],
+        tags: Sequence[t.Tag],
     ):
         """Manual categorization input
 
         Args:
-            transactions (list[Transaction]): uncategorized transactions
-            categories (list[Category]): available categories
-            tags (list[Tag]): currently available tags
+            transactions (Sequence[Transaction]): uncategorized transactions
+            categories (Sequence[Category]): available categories
+            tags (Sequence[Tag]): currently available tags
         """
         self._manual(transactions)
 
     @Timer(name="nullify")
-    def _nullify(self, transactions: Transactions):
+    def _nullify(self, transactions: Sequence[t.BankTransaction]):
         count = 0
         matching = []
         for transaction in transactions:
@@ -76,11 +67,13 @@ class Categorizer:
                     and cancel.amount == -transaction.amount
                 )
             ):
-                transaction.category = TransactionCategory(
-                    name="null", selector=CategorySelector(Selector.nullifier)
+                transaction.category = t.TransactionCategory(
+                    name="null",
+                    selector=t.CategorySelector(t.Selector.nullifier),
                 )
-                cancel.category = TransactionCategory(
-                    name="null", selector=CategorySelector(Selector.nullifier)
+                cancel.category = t.TransactionCategory(
+                    name="null",
+                    selector=t.CategorySelector(t.Selector.nullifier),
                 )
                 matching.extend([transaction, cancel])
                 count += 2
@@ -90,7 +83,9 @@ class Categorizer:
 
     @Timer(name="categoryrules")
     def _rule_based_categories(
-        self, transactions: Transactions, categories: list[Category]
+        self,
+        transactions: Sequence[t.BankTransaction],
+        categories: Sequence[t.Category],
     ):
         d = {}
         for category in [c for c in categories if c.rules]:
@@ -114,10 +109,10 @@ class Categorizer:
                             == "y"
                         ):
                             transaction.category.name = category.name
-                            transaction.category.selector.selector = Selector.rules
+                            transaction.category.selector.selector = t.Selector.rules
                     else:
-                        transaction.category = TransactionCategory(
-                            category.name, CategorySelector(Selector.rules)
+                        transaction.category = t.TransactionCategory(
+                            category.name, t.CategorySelector(t.Selector.rules)
                         )
 
                     if rule in d:
@@ -129,9 +124,11 @@ class Categorizer:
             print(f"{v}: {k}")
 
     @Timer(name="tagrules")
-    def _rule_based_tags(self, transactions: Transactions, tags: list[Tag]):
+    def _rule_based_tags(
+        self, transactions: Sequence[t.BankTransaction], tags: Sequence[t.Tag]
+    ):
         d = {}
-        for tag in [t for t in tags if t.rules]:
+        for tag in [t for t in tags if len(t.rules) > 0]:
             for rule in tag.rules:
                 # for transaction in [t for t in transactions if not t.category]:
                 for transaction in [
@@ -143,9 +140,9 @@ class Categorizer:
                         continue
 
                     if not transaction.tags:
-                        transaction.tags = {TransactionTag(tag.name)}
+                        transaction.tags = {t.TransactionTag(tag.name)}
                     else:
-                        transaction.tags.add(TransactionTag(tag.name))
+                        transaction.tags.add(t.TransactionTag(tag.name))
 
                     if rule in d:
                         d[rule] += 1
@@ -155,7 +152,7 @@ class Categorizer:
         for k, v in d.items():
             print(f"{v}: {k}")
 
-    def _manual(self, transactions: Transactions):
+    def _manual(self, transactions: Sequence[t.Transaction]):
         uncategorized = [t for t in transactions if not t.category]
         print(f"{len(uncategorized)} transactions left to categorize")
 
@@ -167,8 +164,8 @@ class Categorizer:
                 if not category:
                     print("{category} doesn't exist")
                     continue
-                transaction.category = TransactionCategory(
-                    category, CategorySelector(Selector.manual)
+                transaction.category = t.TransactionCategory(
+                    category, t.CategorySelector(t.Selector.manual)
                 )
 
                 break

@@ -1,23 +1,25 @@
-from datetime import date
-from functools import singledispatch
+import datetime as dt
+import functools
+from typing import Any
 
 from pfbudget.common.types import TransactionError
-from pfbudget.db.model import Bank, BankTransaction
+import pfbudget.db.model as t
+
 from .utils import parse_decimal
 
 
-@singledispatch
-def convert(t):
-    print("No converter as been found")
+@functools.singledispatch
+def convert(t) -> Any:
+    print("No converter has been found")
     pass
 
 
 @convert.register
-def _(json: dict, bank: Bank) -> BankTransaction:
-    i = -1 if bank.nordigen.invert else 1
+def _(json: dict, bank: t.Bank) -> t.BankTransaction | None:
+    i = -1 if bank.nordigen and bank.nordigen.invert else 1
     try:
-        transaction = BankTransaction(
-            date=date.fromisoformat(json["bookingDate"]),
+        transaction = t.BankTransaction(
+            date=dt.date.fromisoformat(json["bookingDate"]),
             description=json["remittanceInformationUnstructured"],
             bank=bank.name,
             amount=i * parse_decimal(json["transactionAmount"]["amount"]),

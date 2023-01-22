@@ -1,12 +1,13 @@
-from dotenv import load_dotenv
 import argparse
 import datetime as dt
 import decimal
+from dotenv import load_dotenv
 import os
 import re
 
 from pfbudget.common.types import Operation
 from pfbudget.db.model import AccountType, Period
+
 from pfbudget.db.sqlite import DatabaseClient
 import pfbudget.reporting.graph
 import pfbudget.reporting.report
@@ -38,42 +39,38 @@ def argparser() -> argparse.ArgumentParser:
         help="select current database",
         default=DEFAULT_DB,
     )
+
     universal.add_argument("-v", "--verbose", action="count", default=0)
 
-    period = argparse.ArgumentParser(add_help=False).add_mutually_exclusive_group()
-    period.add_argument(
+    period = argparse.ArgumentParser(add_help=False)
+    period_group = period.add_mutually_exclusive_group()
+    period_group.add_argument(
         "--interval", type=str, nargs=2, help="graph interval", metavar=("START", "END")
     )
-    period.add_argument("--start", type=str, nargs=1, help="graph start date")
-    period.add_argument("--end", type=str, nargs=1, help="graph end date")
-    period.add_argument("--year", type=str, nargs=1, help="graph year")
+    period_group.add_argument("--start", type=str, nargs=1, help="graph start date")
+    period_group.add_argument("--end", type=str, nargs=1, help="graph end date")
+    period_group.add_argument("--year", type=str, nargs=1, help="graph year")
 
     parser = argparse.ArgumentParser(
         description="does cool finance stuff",
         parents=[universal],
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=re.search(
-            r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-            open("pfbudget/__init__.py").read(),
-        ).group(1),
-    )
+
+    if version := re.search(
+        r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', open("pfbudget/__init__.py").read()
+    ):
+        parser.add_argument(
+            "--version",
+            action="version",
+            version=version.group(1),
+        )
 
     subparsers = parser.add_subparsers(required=True)
 
-    """
-    Init
-    """
-    p_init = subparsers.add_parser(
-        "init",
-        description="Initializes the SQLite3 database",
-        parents=[universal],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_init.set_defaults(command=Operation.Init)
+    # TODO Init
+    # init = subparsers.add_parser("init")
+    # init.set_defaults(op=Operation.Init)
 
     # Exports transactions to .csv file
     export = subparsers.add_parser("export")
@@ -204,11 +201,6 @@ def report(args):
         pfbudget.reporting.report.net(DatabaseClient(args.database), start, end)
     elif args.option == "detailed":
         pfbudget.reporting.report.detailed(DatabaseClient(args.database), start, end)
-
-
-# def nordigen_banks(manager: Manager, args):
-#     input = NordigenInput(manager)
-#     input.list(vars(args)["country"][0])
 
 
 def bank(parser: argparse.ArgumentParser):

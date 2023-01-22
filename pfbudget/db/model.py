@@ -1,4 +1,9 @@
 from __future__ import annotations
+import datetime as dt
+import decimal
+import enum
+import re
+from typing import Annotated, Any, Optional
 
 from sqlalchemy import (
     BigInteger,
@@ -16,12 +21,6 @@ from sqlalchemy.orm import (
     MappedAsDataclass,
     relationship,
 )
-
-from decimal import Decimal
-from typing import Annotated, Optional
-import datetime as dt
-import enum
-import re
 
 
 class Base(MappedAsDataclass, DeclarativeBase):
@@ -65,13 +64,13 @@ class Bank(Base):
     BIC: Mapped[str] = mapped_column(String(8), primary_key=True)
     type: Mapped[accounttype] = mapped_column(primary_key=True)
 
-    nordigen: Mapped[Optional[Nordigen]] = relationship(lazy="joined")
+    nordigen: Mapped[Optional[Nordigen]] = relationship(lazy="joined", init=False)
 
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
 
 idpk = Annotated[int, mapped_column(BigInteger, primary_key=True, autoincrement=True)]
-money = Annotated[Decimal, mapped_column(Numeric(16, 2))]
+money = Annotated[decimal.Decimal, mapped_column(Numeric(16, 2))]
 
 
 class Transaction(Base, Export):
@@ -86,7 +85,7 @@ class Transaction(Base, Export):
 
     category: Mapped[Optional[TransactionCategory]] = relationship(init=False)
     note: Mapped[Optional[Note]] = relationship(init=False)
-    tags: Mapped[Optional[set[TransactionTag]]] = relationship(init=False)
+    tags: Mapped[set[TransactionTag]] = relationship(init=False)
 
     __mapper_args__ = {"polymorphic_on": "type", "polymorphic_identity": "transaction"}
 
@@ -152,11 +151,11 @@ class Category(Base):
         ForeignKey(CategoryGroup.name), default=None
     )
 
-    rules: Mapped[Optional[set[CategoryRule]]] = relationship(
+    rules: Mapped[set[CategoryRule]] = relationship(
         cascade="all, delete-orphan", passive_deletes=True, default_factory=set
     )
-    schedule: Mapped[CategorySchedule] = relationship(
-        back_populates="category", default=None
+    schedule: Mapped[Optional[CategorySchedule]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, default=None
     )
 
     def __repr__(self) -> str:
@@ -205,7 +204,7 @@ class Tag(Base):
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
-    rules: Mapped[Optional[set[TagRule]]] = relationship(
+    rules: Mapped[set[TagRule]] = relationship(
         cascade="all, delete-orphan", passive_deletes=True, default_factory=set
     )
 
@@ -272,8 +271,6 @@ class CategorySchedule(Base):
     period: Mapped[Optional[scheduleperiod]]
     period_multiplier: Mapped[Optional[int]]
     amount: Mapped[Optional[int]]
-
-    category: Mapped[Category] = relationship(back_populates="schedule")
 
 
 class Link(Base):
