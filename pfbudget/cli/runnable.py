@@ -225,6 +225,14 @@ def bank(parser: argparse.ArgumentParser):
 
     nordigen(commands.add_parser("nordigen"))
 
+    export = commands.add_parser("export")
+    export.set_defaults(op=Operation.ExportBanks)
+    export_args(export)
+
+    pimport = commands.add_parser("import")
+    pimport.set_defaults(op=Operation.ImportBanks)
+    export_args(pimport)
+
 
 def nordigen(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)

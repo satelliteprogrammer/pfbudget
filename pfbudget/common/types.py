@@ -37,6 +37,8 @@ class Operation(Enum):
     NordigenCountryBanks = auto()
     Export = auto()
     Import = auto()
+    ExportBanks = auto()
+    ImportBanks = auto()
     ExportCategoryRules = auto()
     ImportCategoryRules = auto()
     ExportTagRules = auto()

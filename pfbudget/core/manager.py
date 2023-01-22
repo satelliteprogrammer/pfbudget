@@ -213,15 +213,25 @@ class Manager:
 
                     transactions.append(transaction)
 
-                if (
-                    len(transactions) > 0
-                    and input(
-                        f"{transactions[:5]}\nDoes the import seem correct? (y/n)"
-                    )
-                    == "y"
-                ):
+                if self.certify(transactions):
                     with self.db.session() as session:
                         session.add(transactions)
+
+            case Operation.ExportBanks:
+                with self.db.session() as session:
+                    self.dump(params[0], session.get(Bank))
+
+            case Operation.ImportBanks:
+                banks = []
+                for row in self.load(params[0]):
+                    bank = Bank(row["name"], row["BIC"], row["type"])
+                    if row["nordigen"]:
+                        bank.nordigen = Nordigen(**row["nordigen"])
+                    banks.append(bank)
+
+                if self.certify(banks):
+                    with self.db.session() as session:
+                        session.add(banks)
 
             case Operation.ExportCategoryRules:
                 with self.db.session() as session:
@@ -230,11 +240,7 @@ class Manager:
             case Operation.ImportCategoryRules:
                 rules = [CategoryRule(**row) for row in self.load(params[0])]
 
-                if (
-                    len(rules) > 0
-                    and input(f"{rules[:5]}\nDoes the import seem correct? (y/n)")
-                    == "y"
-                ):
+                if self.certify(rules):
                     with self.db.session() as session:
                         session.add(rules)
 
@@ -245,24 +251,28 @@ class Manager:
             case Operation.ImportTagRules:
                 rules = [TagRule(**row) for row in self.load(params[0])]
 
-                if (
-                    len(rules) > 0
-                    and input(f"{rules[:5]}\nDoes the import seem correct? (y/n)")
-                    == "y"
-                ):
+                if self.certify(rules):
                     with self.db.session() as session:
                         session.add(rules)
 
     def parse(self, filename: Path, args: dict):
         return parse_data(filename, args)
 
-    def dump(self, fn, sequence):
+    @staticmethod
+    def dump(fn, sequence):
         with open(fn, "wb") as f:
             pickle.dump([e.format for e in sequence], f)
 
-    def load(self, fn):
+    @staticmethod
+    def load(fn):
         with open(fn, "rb") as f:
             return pickle.load(f)
+
+    @staticmethod
+    def certify(imports: list) -> bool:
+        if input(f"{imports[:10]}\nDoes the import seem correct? (y/n)") == "y":
+            return True
+        return False
 
     @property
     def db(self) -> DbClient:

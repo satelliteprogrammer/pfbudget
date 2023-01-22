@@ -232,7 +232,16 @@ if __name__ == "__main__":
                 pfbudget.t.Link(args["original"][0], link) for link in args["links"]
             ]
 
-        case pfbudget.Operation.Export | pfbudget.Operation.Import | pfbudget.Operation.ExportCategoryRules | pfbudget.Operation.ImportCategoryRules | pfbudget.Operation.ExportTagRules | pfbudget.Operation.ImportTagRules:
+        case (
+            pfbudget.Operation.Export
+            | pfbudget.Operation.Import
+            | pfbudget.Operation.ExportBanks
+            | pfbudget.Operation.ImportBanks
+            | pfbudget.Operation.ExportCategoryRules
+            | pfbudget.Operation.ImportCategoryRules
+            | pfbudget.Operation.ExportTagRules
+            | pfbudget.Operation.ImportTagRules
+        ):
             keys = {"file"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 

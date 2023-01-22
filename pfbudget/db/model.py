@@ -57,7 +57,7 @@ class Export:
         raise NotImplementedError
 
 
-class Bank(Base):
+class Bank(Base, Export):
     __tablename__ = "banks"
 
     name: Mapped[str] = mapped_column(unique=True)
@@ -65,6 +65,15 @@ class Bank(Base):
     type: Mapped[accounttype] = mapped_column(primary_key=True)
 
     nordigen: Mapped[Optional[Nordigen]] = relationship(lazy="joined", init=False)
+
+    @property
+    def format(self) -> dict[str, Any]:
+        return dict(
+            name=self.name,
+            BIC=self.BIC,
+            type=self.type,
+            nordigen=self.nordigen.format if self.nordigen else None,
+        )
 
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
@@ -190,13 +199,22 @@ class Note(Base):
     note: Mapped[str]
 
 
-class Nordigen(Base):
+class Nordigen(Base, Export):
     __tablename__ = "nordigen"
 
     name: Mapped[bankfk] = mapped_column(primary_key=True)
     bank_id: Mapped[Optional[str]]
     requisition_id: Mapped[Optional[str]]
     invert: Mapped[Optional[bool]]
+
+    @property
+    def format(self) -> dict[str, Any]:
+        return dict(
+            name=self.name,
+            bank_id=self.bank_id,
+            requisition_id=self.requisition_id,
+            invert=self.invert,
+        )
 
 
 class Tag(Base):
