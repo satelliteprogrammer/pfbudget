@@ -69,11 +69,11 @@ class Categorizer:
             ):
                 transaction.category = t.TransactionCategory(
                     name="null",
-                    selector=t.CategorySelector(t.Selector.nullifier),
+                    selector=t.CategorySelector(t.Selector_T.nullifier),
                 )
                 cancel.category = t.TransactionCategory(
                     name="null",
-                    selector=t.CategorySelector(t.Selector.nullifier),
+                    selector=t.CategorySelector(t.Selector_T.nullifier),
                 )
                 matching.extend([transaction, cancel])
                 count += 2
@@ -109,10 +109,10 @@ class Categorizer:
                             == "y"
                         ):
                             transaction.category.name = category.name
-                            transaction.category.selector.selector = t.Selector.rules
+                            transaction.category.selector.selector = t.Selector_T.rules
                     else:
                         transaction.category = t.TransactionCategory(
-                            category.name, t.CategorySelector(t.Selector.rules)
+                            category.name, t.CategorySelector(t.Selector_T.rules)
                         )
 
                     if rule in d:
@@ -165,7 +165,7 @@ class Categorizer:
                     print("{category} doesn't exist")
                     continue
                 transaction.category = t.TransactionCategory(
-                    category, t.CategorySelector(t.Selector.manual)
+                    category, t.CategorySelector(t.Selector_T.manual)
                 )
 
                 break

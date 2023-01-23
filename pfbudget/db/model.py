@@ -24,15 +24,15 @@ from sqlalchemy.orm import (
 
 
 class Base(MappedAsDataclass, DeclarativeBase):
-    __table_args__ = {"schema": "transactions"}
     metadata = MetaData(
+        schema="transactions",
         naming_convention={
             "ix": "ix_%(column_0_label)s",
             "uq": "uq_%(table_name)s_%(column_0_name)s",
             "ck": "ck_%(table_name)s_`%(constraint_name)s`",
             "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
             "pk": "pk_%(table_name)s",
-        }
+        },
     )
 
 
@@ -58,6 +58,7 @@ class Export:
 
 
 class Bank(Base, Export):
+    __table_args__ = {"schema": "bank"}
     __tablename__ = "banks"
 
     name: Mapped[str] = mapped_column(unique=True)
@@ -147,7 +148,8 @@ class SplitTransaction(Transaction):
 
 
 class CategoryGroup(Base, Export):
-    __tablename__ = "categories_groups"
+    __table_args__ = {"schema": "category"}
+    __tablename__ = "groups"
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
@@ -157,7 +159,8 @@ class CategoryGroup(Base, Export):
 
 
 class Category(Base, Export):
-    __tablename__ = "categories_available"
+    __table_args__ = {"schema": "category"}
+    __tablename__ = "available"
 
     name: Mapped[str] = mapped_column(primary_key=True)
     group: Mapped[Optional[str]] = mapped_column(
@@ -178,7 +181,7 @@ class Category(Base, Export):
     def format(self) -> dict[str, Any]:
         return dict(
             name=self.name,
-            group=self.group.format if self.group else None,
+            group=self.group if self.group else None,
             rules=[rule.format for rule in self.rules],
             schedule=self.schedule.format if self.schedule else None,
         )
@@ -213,6 +216,7 @@ class Note(Base):
 
 
 class Nordigen(Base, Export):
+    __table_args__ = {"schema": "bank"}
     __tablename__ = "nordigen"
 
     name: Mapped[bankfk] = mapped_column(primary_key=True)
@@ -231,7 +235,8 @@ class Nordigen(Base, Export):
 
 
 class Tag(Base):
-    __tablename__ = "tags_available"
+    __table_args__ = {"schema": "tag"}
+    __tablename__ = "available"
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
@@ -254,7 +259,7 @@ class TransactionTag(Base, Export):
         return hash(self.id)
 
 
-class Selector(enum.Enum):
+class Selector_T(enum.Enum):
     unknown = enum.auto()
     nullifier = enum.auto()
     vacations = enum.auto()
@@ -264,13 +269,14 @@ class Selector(enum.Enum):
 
 
 categoryselector = Annotated[
-    Selector,
-    mapped_column(Enum(Selector, inherit_schema=True), default=Selector.unknown),
+    Selector_T,
+    mapped_column(Enum(Selector_T, inherit_schema=True), default=Selector_T.unknown),
 ]
 
 
 class CategorySelector(Base, Export):
-    __tablename__ = "categories_selector"
+    __table_args__ = {"schema": "category"}
+    __tablename__ = "selector"
 
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -292,11 +298,12 @@ class Period(enum.Enum):
     yearly = "yearly"
 
 
-scheduleperiod = Annotated[Selector, mapped_column(Enum(Period, inherit_schema=True))]
+scheduleperiod = Annotated[Selector_T, mapped_column(Enum(Period, inherit_schema=True))]
 
 
 class CategorySchedule(Base, Export):
-    __tablename__ = "categories_schedules"
+    __table_args__ = {"schema": "category"}
+    __tablename__ = "schedules"
 
     name: Mapped[catfk] = mapped_column(primary_key=True)
     period: Mapped[Optional[scheduleperiod]]
@@ -374,7 +381,8 @@ class Rule(Base, Export):
 
 
 class CategoryRule(Rule):
-    __tablename__ = "categories_rules"
+    __table_args__ = {"schema": "category"}
+    __tablename__ = "rules"
 
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -397,7 +405,8 @@ class CategoryRule(Rule):
 
 
 class TagRule(Rule):
-    __tablename__ = "tag_rules"
+    __table_args__ = {"schema": "tag"}
+    __tablename__ = "rules"
 
     id: Mapped[int] = mapped_column(
         BigInteger,

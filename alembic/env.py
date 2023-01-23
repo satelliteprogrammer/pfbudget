@@ -27,7 +27,7 @@ target_metadata = Base.metadata
 
 def include_name(name, type_, parent_names):
     if type_ == "schema":
-        return name in ["transactions"]
+        return name in ["bank", "category", "tag", "transactions"]
     else:
         return True
 
