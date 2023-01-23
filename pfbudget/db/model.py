@@ -84,7 +84,7 @@ money = Annotated[decimal.Decimal, mapped_column(Numeric(16, 2))]
 
 
 class Transaction(Base, Export):
-    __tablename__ = "originals"
+    __tablename__ = "transactions"
 
     id: Mapped[idpk] = mapped_column(init=False)
     date: Mapped[dt.date]
@@ -246,7 +246,7 @@ class Tag(Base):
 
 
 class TransactionTag(Base, Export):
-    __tablename__ = "tags"
+    __tablename__ = "tagged"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     tag: Mapped[str] = mapped_column(ForeignKey(Tag.name), primary_key=True)
@@ -275,7 +275,6 @@ categoryselector = Annotated[
 
 
 class CategorySelector(Base, Export):
-    __table_args__ = {"schema": "category"}
     __tablename__ = "selector"
 
     id: Mapped[int] = mapped_column(
