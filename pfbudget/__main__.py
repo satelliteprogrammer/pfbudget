@@ -1,6 +1,49 @@
 import pfbudget
 
 
+def interactive(manager: pfbudget.Manager):
+    with manager.db.session() as session:
+        categories = session.get(pfbudget.t.Category)
+        print(f"Available categories: {categories}")
+        print(f"Available tags: {session.get(pfbudget.t.Tag)}")
+        transactions = session.get(
+            pfbudget.t.Transaction, ~pfbudget.t.Transaction.category.has()
+        )
+        print(f"{len(transactions)} transactions left to categorize")
+
+        for transaction in sorted(transactions):
+            print(f"{transaction}")
+            quit = False
+            next = True
+            while next:
+                match (input("(<category>/split/tag/note/quit): ")):
+                    case "quit" | "exit":
+                        next = False
+                        quit = True
+
+                    case "tag":
+                        tag = input("tag: ")
+                        transaction.tags.add(pfbudget.t.TransactionTag(tag))
+
+                    case "note":
+                        note = input("note: ")
+                        transaction.note = pfbudget.t.Note(note)
+
+                    case other:
+                        if other not in [c.name for c in categories]:
+                            print(f"{other} is not a valid category")
+                            continue
+
+                        transaction.category = pfbudget.t.TransactionCategory(
+                            other,
+                            pfbudget.t.CategorySelector(pfbudget.t.Selector_T.manual),
+                        )
+                        next = False
+
+            if quit:
+                break
+
+
 if __name__ == "__main__":
     argparser = pfbudget.argparser()
     args = vars(argparser.parse_args())
@@ -16,6 +59,10 @@ if __name__ == "__main__":
 
     params = []
     match (op):
+        case pfbudget.Operation.ManualCategorization:
+            interactive(pfbudget.Manager(db, verbosity))
+            exit()
+
         case pfbudget.Operation.Parse:
             keys = {"path", "bank", "creditcard"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"

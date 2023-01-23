@@ -88,15 +88,6 @@ class Manager:
                     tags = session.get(Tag)
                     Categorizer().rules(uncategorized, categories, tags)
 
-            case Operation.ManualCategorization:
-                with self.db.session() as session:
-                    uncategorized = session.get(
-                        Transaction, ~Transaction.category.has()
-                    )
-                    categories = session.get(Category)
-                    tags = session.get(Tag)
-                    Categorizer().manual(uncategorized, categories, tags)
-
             case Operation.BankMod:
                 with self.db.session() as session:
                     session.update(Bank, params)

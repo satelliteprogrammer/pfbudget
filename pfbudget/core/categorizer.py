@@ -33,21 +33,6 @@ class Categorizer:
         self._rule_based_categories(transactions, categories)
         self._rule_based_tags(transactions, tags)
 
-    def manual(
-        self,
-        transactions: Sequence[t.Transaction],
-        categories: Sequence[t.Category],
-        tags: Sequence[t.Tag],
-    ):
-        """Manual categorization input
-
-        Args:
-            transactions (Sequence[Transaction]): uncategorized transactions
-            categories (Sequence[Category]): available categories
-            tags (Sequence[Tag]): currently available tags
-        """
-        self._manual(transactions)
-
     @Timer(name="nullify")
     def _nullify(self, transactions: Sequence[t.BankTransaction]):
         count = 0
@@ -151,21 +136,3 @@ class Categorizer:
 
         for k, v in d.items():
             print(f"{v}: {k}")
-
-    def _manual(self, transactions: Sequence[t.Transaction]):
-        uncategorized = [t for t in transactions if not t.category]
-        print(f"{len(uncategorized)} transactions left to categorize")
-
-        for transaction in uncategorized:
-            while True:
-                category = input(f"{transaction} category: ")
-                if category == "quit":
-                    return
-                if not category:
-                    print("{category} doesn't exist")
-                    continue
-                transaction.category = t.TransactionCategory(
-                    category, t.CategorySelector(t.Selector_T.manual)
-                )
-
-                break
