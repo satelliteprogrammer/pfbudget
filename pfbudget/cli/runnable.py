@@ -286,6 +286,14 @@ def category(parser: argparse.ArgumentParser):
     group = commands.add_parser("group")
     category_group(group)
 
+    export = commands.add_parser("export")
+    export.set_defaults(op=Operation.ExportCategories)
+    export_args(export)
+
+    pimport = commands.add_parser("import")
+    pimport.set_defaults(op=Operation.ImportCategories)
+    export_args(pimport)
+
 
 def category_group(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
@@ -297,6 +305,14 @@ def category_group(parser: argparse.ArgumentParser):
     remove = commands.add_parser("remove")
     remove.set_defaults(op=Operation.GroupRemove)
     remove.add_argument("group", nargs="+", type=str)
+
+    export = commands.add_parser("export")
+    export.set_defaults(op=Operation.ExportCategoryGroups)
+    export_args(export)
+
+    pimport = commands.add_parser("import")
+    pimport.set_defaults(op=Operation.ImportCategoryGroups)
+    export_args(pimport)
 
 
 def category_rule(parser: argparse.ArgumentParser):

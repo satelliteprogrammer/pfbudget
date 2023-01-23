@@ -146,13 +146,17 @@ class SplitTransaction(Transaction):
         return super().format | dict(original=self.original)
 
 
-class CategoryGroup(Base):
+class CategoryGroup(Base, Export):
     __tablename__ = "categories_groups"
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
+    @property
+    def format(self) -> dict[str, Any]:
+        return dict(name=self.name)
 
-class Category(Base):
+
+class Category(Base, Export):
     __tablename__ = "categories_available"
 
     name: Mapped[str] = mapped_column(primary_key=True)
@@ -169,6 +173,15 @@ class Category(Base):
 
     def __repr__(self) -> str:
         return f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)}, schedule={self.schedule})"
+
+    @property
+    def format(self) -> dict[str, Any]:
+        return dict(
+            name=self.name,
+            group=self.group.format if self.group else None,
+            rules=[rule.format for rule in self.rules],
+            schedule=self.schedule.format if self.schedule else None,
+        )
 
 
 catfk = Annotated[
@@ -282,13 +295,22 @@ class Period(enum.Enum):
 scheduleperiod = Annotated[Selector, mapped_column(Enum(Period, inherit_schema=True))]
 
 
-class CategorySchedule(Base):
+class CategorySchedule(Base, Export):
     __tablename__ = "categories_schedules"
 
     name: Mapped[catfk] = mapped_column(primary_key=True)
     period: Mapped[Optional[scheduleperiod]]
     period_multiplier: Mapped[Optional[int]]
     amount: Mapped[Optional[int]]
+
+    @property
+    def format(self) -> dict[str, Any]:
+        return dict(
+            name=self.name,
+            period=self.period,
+            period_multiplier=self.period_multiplier,
+            amount=self.amount,
+        )
 
 
 class Link(Base):

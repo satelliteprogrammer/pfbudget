@@ -43,6 +43,10 @@ class Operation(Enum):
     ImportCategoryRules = auto()
     ExportTagRules = auto()
     ImportTagRules = auto()
+    ExportCategories = auto()
+    ImportCategories = auto()
+    ExportCategoryGroups = auto()
+    ImportCategoryGroups = auto()
 
 
 class TransactionError(Exception):

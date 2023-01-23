@@ -241,6 +241,10 @@ if __name__ == "__main__":
             | pfbudget.Operation.ImportCategoryRules
             | pfbudget.Operation.ExportTagRules
             | pfbudget.Operation.ImportTagRules
+            | pfbudget.Operation.ExportCategories
+            | pfbudget.Operation.ImportCategories
+            | pfbudget.Operation.ExportCategoryGroups
+            | pfbudget.Operation.ImportCategoryGroups
         ):
             keys = {"file"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"

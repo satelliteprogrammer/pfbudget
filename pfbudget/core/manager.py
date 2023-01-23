@@ -11,6 +11,7 @@ from pfbudget.db.model import (
     Category,
     CategoryGroup,
     CategoryRule,
+    CategorySchedule,
     CategorySelector,
     Link,
     MoneyTransaction,
@@ -254,6 +255,41 @@ class Manager:
                 if self.certify(rules):
                     with self.db.session() as session:
                         session.add(rules)
+
+            case Operation.ExportCategories:
+                with self.db.session() as session:
+                    self.dump(params[0], session.get(Category))
+
+            case Operation.ImportCategories:
+                # rules = [Category(**row) for row in self.load(params[0])]
+                categories = []
+                for row in self.load(params[0]):
+                    category = Category(row["name"], row["group"])
+                    if len(row["rules"]) > 0:
+                        # Only category rules could have been created with a rule
+                        rules = row["rules"]
+                        for rule in rules:
+                            del rule["type"]
+
+                        category.rules = set(CategoryRule(**rule) for rule in rules)
+                    if row["schedule"]:
+                        category.schedule = CategorySchedule(**row["schedule"])
+                    categories.append(category)
+
+                if self.certify(categories):
+                    with self.db.session() as session:
+                        session.add(categories)
+
+            case Operation.ExportCategoryGroups:
+                with self.db.session() as session:
+                    self.dump(params[0], session.get(CategoryGroup))
+
+            case Operation.ImportCategoryGroups:
+                groups = [CategoryGroup(**row) for row in self.load(params[0])]
+
+                if self.certify(groups):
+                    with self.db.session() as session:
+                        session.add(groups)
 
     def parse(self, filename: Path, args: dict):
         return parse_data(filename, args)
