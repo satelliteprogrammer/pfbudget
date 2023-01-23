@@ -28,6 +28,7 @@ class Operation(Enum):
     TagRuleModify = auto()
     Forge = auto()
     Dismantle = auto()
+    Split = auto()
     BankAdd = auto()
     BankMod = auto()
     BankDel = auto()

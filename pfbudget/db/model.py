@@ -91,6 +91,8 @@ class Transaction(Base, Export):
     description: Mapped[Optional[str]]
     amount: Mapped[money]
 
+    split: Mapped[bool] = mapped_column(init=False)
+
     type: Mapped[str] = mapped_column(init=False)
 
     category: Mapped[Optional[TransactionCategory]] = relationship(init=False)
@@ -105,6 +107,7 @@ class Transaction(Base, Export):
             date=self.date,
             description=self.description,
             amount=self.amount,
+            split=self.split,
             type=self.type,
             category=self.category.format if self.category else None,
             # TODO note
@@ -122,7 +125,6 @@ idfk = Annotated[
 
 class BankTransaction(Transaction):
     bank: Mapped[bankfk] = mapped_column(nullable=True)
-    split: Mapped[bool] = mapped_column(use_existing_column=True, nullable=True)
 
     __mapper_args__ = {"polymorphic_identity": "bank", "polymorphic_load": "inline"}
 
@@ -132,8 +134,6 @@ class BankTransaction(Transaction):
 
 
 class MoneyTransaction(Transaction):
-    split: Mapped[bool] = mapped_column(use_existing_column=True, nullable=True)
-
     __mapper_args__ = {"polymorphic_identity": "money"}
 
 

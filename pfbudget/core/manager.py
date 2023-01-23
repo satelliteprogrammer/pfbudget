@@ -17,6 +17,7 @@ from pfbudget.db.model import (
     MoneyTransaction,
     Nordigen,
     Rule,
+    SplitTransaction,
     Tag,
     TagRule,
     Transaction,
@@ -180,6 +181,32 @@ class Manager:
                     links = [link.link for link in params]
                     session.remove_links(original, links)
 
+            case Operation.Split:
+                if len(params) < 1 and not all(
+                    isinstance(p, Transaction) for p in params
+                ):
+                    raise TypeError(f"{params} are not transactions")
+
+                # t -> t1, t2, t3; t.value == Σti.value
+                original: Transaction = params[0]
+                if not original.amount == sum(t.amount for t in params[1:]):
+                    raise ValueError(
+                        f"{original.amount}€ != {sum(v for v, _ in params[1:])}€"
+                    )
+
+                with self.db.session() as session:
+                    originals = session.get(Transaction, Transaction.id, [original.id])
+                    assert len(originals) == 1, ">1 transactions matched {original.id}!"
+
+                    originals[0].split = True
+                    transactions = [
+                        SplitTransaction(
+                            originals[0].date, t.description, t.amount, originals[0].id
+                        )
+                        for t in params[1:]
+                    ]
+                    session.add(transactions)
+
             case Operation.Export:
                 with self.db.session() as session:
                     self.dump(params[0], sorted(session.get(Transaction)))
@@ -194,12 +221,11 @@ class Manager:
                                 row["description"],
                                 row["amount"],
                                 row["bank"],
-                                False,
                             )
 
                         case "money":
                             transaction = MoneyTransaction(
-                                row["date"], row["description"], row["amount"], False
+                                row["date"], row["description"], row["amount"]
                             )
 
                         # TODO case "split" how to match to original transaction?? also save ids?
