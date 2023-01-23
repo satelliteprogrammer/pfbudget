@@ -1,14 +1,16 @@
-import pfbudget
+from pfbudget.cli.runnable import argparser
+from pfbudget.common.types import Operation
+from pfbudget.core.manager import Manager
+import pfbudget.db.model as type
+from pfbudget.utils.utils import parse_args_period
 
 
-def interactive(manager: pfbudget.Manager):
+def interactive(manager: Manager):
     with manager.db.session() as session:
-        categories = session.get(pfbudget.t.Category)
+        categories = session.get(type.Category)
         print(f"Available categories: {categories}")
-        print(f"Available tags: {session.get(pfbudget.t.Tag)}")
-        transactions = session.get(
-            pfbudget.t.Transaction, ~pfbudget.t.Transaction.category.has()
-        )
+        print(f"Available tags: {session.get(type.Tag)}")
+        transactions = session.get(type.Transaction, ~type.Transaction.category.has())
         print(f"{len(transactions)} transactions left to categorize")
 
         for transaction in sorted(transactions):
@@ -23,20 +25,20 @@ def interactive(manager: pfbudget.Manager):
 
                     case "tag":
                         tag = input("tag: ")
-                        transaction.tags.add(pfbudget.t.TransactionTag(tag))
+                        transaction.tags.add(type.TransactionTag(tag))
 
                     case "note":
                         note = input("note: ")
-                        transaction.note = pfbudget.t.Note(note)
+                        transaction.note = type.Note(note)
 
                     case other:
                         if other not in [c.name for c in categories]:
                             print(f"{other} is not a valid category")
                             continue
 
-                        transaction.category = pfbudget.t.TransactionCategory(
+                        transaction.category = type.TransactionCategory(
                             other,
-                            pfbudget.t.CategorySelector(pfbudget.t.Selector_T.manual),
+                            type.CategorySelector(type.Selector_T.manual),
                         )
                         next = False
 
@@ -45,11 +47,11 @@ def interactive(manager: pfbudget.Manager):
 
 
 if __name__ == "__main__":
-    argparser = pfbudget.argparser()
+    argparser = argparser()
     args = vars(argparser.parse_args())
 
-    assert "op" in args, "No pfbudget.Operation selected"
-    op: pfbudget.Operation = args.pop("op")
+    assert "op" in args, "No Operation selected"
+    op: Operation = args.pop("op")
 
     assert "database" in args, "No database selected"
     db = args.pop("database")
@@ -59,27 +61,27 @@ if __name__ == "__main__":
 
     params = []
     match (op):
-        case pfbudget.Operation.ManualCategorization:
-            interactive(pfbudget.Manager(db, verbosity))
+        case Operation.ManualCategorization:
+            interactive(Manager(db, verbosity))
             exit()
 
-        case pfbudget.Operation.Parse:
+        case Operation.Parse:
             keys = {"path", "bank", "creditcard"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [args["path"], args["bank"], args["creditcard"]]
 
-        case pfbudget.Operation.RequisitionId:
+        case Operation.RequisitionId:
             keys = {"name", "country"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [args["name"][0], args["country"][0]]
 
-        case pfbudget.Operation.Download:
+        case Operation.Download:
             keys = {"all", "banks", "interval", "start", "end", "year", "dry_run"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            start, end = pfbudget.parse_args_period(args)
+            start, end = parse_args_period(args)
             params = [start, end, args["dry_run"]]
 
             if not args["all"]:
@@ -87,19 +89,19 @@ if __name__ == "__main__":
             else:
                 params.append([])
 
-        case pfbudget.Operation.BankAdd:
+        case Operation.BankAdd:
             keys = {"bank", "bic", "type"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
-                pfbudget.t.Bank(
+                type.Bank(
                     args["bank"][0],
                     args["bic"][0],
                     args["type"][0],
                 )
             ]
 
-        case pfbudget.Operation.BankMod:
+        case Operation.BankMod:
             keys = {"bank", "bic", "type", "remove"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
@@ -111,16 +113,16 @@ if __name__ == "__main__":
 
             params = [param]
 
-        case pfbudget.Operation.BankDel:
+        case Operation.BankDel:
             assert len(args["bank"]) > 0, "argparser ill defined"
             params = args["bank"]
 
-        case pfbudget.Operation.NordigenAdd:
+        case Operation.NordigenAdd:
             keys = {"bank", "bank_id", "requisition_id", "invert"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
-                pfbudget.t.Nordigen(
+                type.Nordigen(
                     args["bank"][0],
                     args["bank_id"][0] if args["bank_id"] else None,
                     args["requisition_id"][0] if args["requisition_id"] else None,
@@ -128,7 +130,7 @@ if __name__ == "__main__":
                 )
             ]
 
-        case pfbudget.Operation.NordigenMod:
+        case Operation.NordigenMod:
             keys = {"bank", "bank_id", "requisition_id", "invert", "remove"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
@@ -142,52 +144,50 @@ if __name__ == "__main__":
 
             params = [param]
 
-        case pfbudget.Operation.NordigenDel:
+        case Operation.NordigenDel:
             assert len(args["bank"]) > 0, "argparser ill defined"
             params = args["bank"]
 
-        case pfbudget.Operation.NordigenCountryBanks:
+        case Operation.NordigenCountryBanks:
             keys = {"country"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [args["country"][0]]
 
-        case pfbudget.Operation.CategoryAdd:
+        case Operation.CategoryAdd:
             keys = {"category", "group"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [
-                pfbudget.t.Category(cat, args["group"]) for cat in args["category"]
-            ]
+            params = [type.Category(cat, args["group"]) for cat in args["category"]]
 
-        case pfbudget.Operation.CategoryUpdate:
+        case Operation.CategoryUpdate:
             keys = {"category", "group"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [pfbudget.t.Category(cat) for cat in args["category"]]
+            params = [type.Category(cat) for cat in args["category"]]
             params.append(args["group"])
 
-        case pfbudget.Operation.CategoryRemove:
+        case Operation.CategoryRemove:
             assert "category" in args, "argparser ill defined"
-            params = [pfbudget.t.Category(cat) for cat in args["category"]]
+            params = [type.Category(cat) for cat in args["category"]]
 
-        case pfbudget.Operation.CategorySchedule:
+        case Operation.CategorySchedule:
             keys = {"category", "period", "frequency"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
-                pfbudget.t.CategorySchedule(
+                type.CategorySchedule(
                     cat, args["period"][0], args["frequency"][0], None
                 )
                 for cat in args["category"]
             ]
 
-        case pfbudget.Operation.RuleAdd:
+        case Operation.RuleAdd:
             keys = {"category", "date", "description", "bank", "min", "max"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
-                pfbudget.t.CategoryRule(
+                type.CategoryRule(
                     args["date"][0] if args["date"] else None,
                     args["description"][0] if args["description"] else None,
                     args["regex"][0] if args["regex"] else None,
@@ -199,13 +199,13 @@ if __name__ == "__main__":
                 for cat in args["category"]
             ]
 
-        case pfbudget.Operation.RuleRemove | pfbudget.Operation.TagRuleRemove:
+        case Operation.RuleRemove | Operation.TagRuleRemove:
             keys = {"id"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = args["id"]
 
-        case pfbudget.Operation.RuleModify:
+        case Operation.RuleModify:
             keys = {
                 "id",
                 "category",
@@ -227,18 +227,18 @@ if __name__ == "__main__":
 
                 params.append(param)
 
-        case pfbudget.Operation.TagAdd:
+        case Operation.TagAdd:
             keys = {"tag"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [pfbudget.t.Tag(tag) for tag in args["tag"]]
+            params = [type.Tag(tag) for tag in args["tag"]]
 
-        case pfbudget.Operation.TagRuleAdd:
+        case Operation.TagRuleAdd:
             keys = {"tag", "date", "description", "bank", "min", "max"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
-                pfbudget.t.TagRule(
+                type.TagRule(
                     args["date"][0] if args["date"] else None,
                     args["description"][0] if args["description"] else None,
                     args["regex"][0] if args["regex"] else None,
@@ -250,7 +250,7 @@ if __name__ == "__main__":
                 for tag in args["tag"]
             ]
 
-        case pfbudget.Operation.TagRuleModify:
+        case Operation.TagRuleModify:
             keys = {"id", "tag", "date", "description", "bank", "min", "max", "remove"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
@@ -263,39 +263,37 @@ if __name__ == "__main__":
 
                 params.append(param)
 
-        case pfbudget.Operation.GroupAdd:
+        case Operation.GroupAdd:
             assert "group" in args, "argparser ill defined"
-            params = [pfbudget.t.CategoryGroup(group) for group in args["group"]]
+            params = [type.CategoryGroup(group) for group in args["group"]]
 
-        case pfbudget.Operation.GroupRemove:
+        case Operation.GroupRemove:
             assert "group" in args, "argparser ill defined"
-            params = [pfbudget.t.CategoryGroup(group) for group in args["group"]]
+            params = [type.CategoryGroup(group) for group in args["group"]]
 
-        case pfbudget.Operation.Forge | pfbudget.Operation.Dismantle:
+        case Operation.Forge | Operation.Dismantle:
             keys = {"original", "links"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [
-                pfbudget.t.Link(args["original"][0], link) for link in args["links"]
-            ]
+            params = [type.Link(args["original"][0], link) for link in args["links"]]
 
         case (
-            pfbudget.Operation.Export
-            | pfbudget.Operation.Import
-            | pfbudget.Operation.ExportBanks
-            | pfbudget.Operation.ImportBanks
-            | pfbudget.Operation.ExportCategoryRules
-            | pfbudget.Operation.ImportCategoryRules
-            | pfbudget.Operation.ExportTagRules
-            | pfbudget.Operation.ImportTagRules
-            | pfbudget.Operation.ExportCategories
-            | pfbudget.Operation.ImportCategories
-            | pfbudget.Operation.ExportCategoryGroups
-            | pfbudget.Operation.ImportCategoryGroups
+            Operation.Export
+            | Operation.Import
+            | Operation.ExportBanks
+            | Operation.ImportBanks
+            | Operation.ExportCategoryRules
+            | Operation.ImportCategoryRules
+            | Operation.ExportTagRules
+            | Operation.ImportTagRules
+            | Operation.ExportCategories
+            | Operation.ImportCategories
+            | Operation.ExportCategoryGroups
+            | Operation.ImportCategoryGroups
         ):
             keys = {"file"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = args["file"]
 
-    pfbudget.Manager(db, verbosity).action(op, params)
+    Manager(db, verbosity).action(op, params)

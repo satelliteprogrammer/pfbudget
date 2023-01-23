@@ -8,7 +8,7 @@ import time
 import uuid
 
 import pfbudget.db.model as t
-import pfbudget.utils as utils
+from pfbudget.utils.converters import convert
 
 from .input import Input
 
@@ -72,7 +72,7 @@ class NordigenInput(Input):
                     json.dump(downloaded, f)
 
                 converted = [
-                    utils.convert(t, bank) for t in downloaded["transactions"]["booked"]
+                    convert(t, bank) for t in downloaded["transactions"]["booked"]
                 ]
 
                 transactions.extend(

@@ -11,23 +11,11 @@ from pfbudget.db.model import AccountType, Period
 from pfbudget.db.sqlite import DatabaseClient
 import pfbudget.reporting.graph
 import pfbudget.reporting.report
-import pfbudget.utils
+import pfbudget.utils.utils
 
 load_dotenv()
 
 DEFAULT_DB = os.environ.get("DEFAULT_DB")
-
-
-class PfBudgetInitialized(Exception):
-    pass
-
-
-class PfBudgetNotInitialized(Exception):
-    pass
-
-
-class DataFileMissing(Exception):
-    pass
 
 
 def argparser() -> argparse.ArgumentParser:
@@ -175,7 +163,7 @@ def graph(args):
     Args:
         args (dict): argparse variables
     """
-    start, end = pfbudget.utils.parse_args_period(args)
+    start, end = pfbudget.utils.utils.parse_args_period(args)
     if args.option == "monthly":
         pfbudget.reporting.graph.monthly(
             DatabaseClient(args.database), vars(args), start, end
@@ -196,7 +184,7 @@ def report(args):
     Args:
         args (dict): argparse variables
     """
-    start, end = pfbudget.utils.parse_args_period(args)
+    start, end = pfbudget.utils.utils.parse_args_period(args)
     if args.option == "net":
         pfbudget.reporting.report.net(DatabaseClient(args.database), start, end)
     elif args.option == "detailed":
