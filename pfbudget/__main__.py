@@ -1,3 +1,6 @@
+from decimal import Decimal
+from typing import Sequence
+
 from pfbudget.cli.runnable import argparser
 from pfbudget.common.types import Operation
 from pfbudget.core.manager import Manager
@@ -26,6 +29,10 @@ def interactive(manager: Manager):
                         next = False
                         quit = True
 
+                    case "split":
+                        manager.action(Operation.Split, split(transaction, categories))
+                        next = False
+
                     case "tag":
                         tag = input("tag: ")
                         if tag not in [t.name for t in tags]:
@@ -48,8 +55,44 @@ def interactive(manager: Manager):
                         )
                         next = False
 
+            session.commit()
             if quit:
                 break
+
+
+def split(
+    original: type.Transaction, categories: Sequence[type.Category]
+) -> list[type.Transaction]:
+
+    total = original.amount
+    splitted: list[type.Transaction] = []
+
+    while True:
+        if abs(sum(t.amount for t in splitted)) > abs(total):
+            print(
+                "The total amount from the splitted transactions exceeds the original transaction amount, please try again..."
+            )
+            splitted.clear()
+
+        if sum(t.amount for t in splitted) == total:
+            break
+
+        while (category := input("New transaction category: ")) not in [
+            c.name for c in categories
+        ]:
+            print(f"{category} is not a valid category")
+
+        amount = input("amount: ")
+
+        split = type.Transaction(original.date, original.description, Decimal(amount))
+        split.category = type.TransactionCategory(
+            category, type.CategorySelector(type.Selector_T.manual)
+        )
+
+        splitted.append(split)
+
+    splitted.insert(0, original)
+    return splitted
 
 
 if __name__ == "__main__":

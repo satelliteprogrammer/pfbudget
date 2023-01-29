@@ -35,6 +35,7 @@ class Categorizer:
 
     @Timer(name="nullify")
     def _nullify(self, transactions: Sequence[t.BankTransaction]):
+        print(f"Nullifying {len(transactions)} transactions")
         count = 0
         matching = []
         for transaction in transactions:
@@ -72,6 +73,7 @@ class Categorizer:
         transactions: Sequence[t.BankTransaction],
         categories: Sequence[t.Category],
     ):
+        print(f"Categorizing {len(transactions)} transactions")
         d = {}
         for category in [c for c in categories if c.rules]:
             for rule in category.rules:
@@ -112,6 +114,7 @@ class Categorizer:
     def _rule_based_tags(
         self, transactions: Sequence[t.BankTransaction], tags: Sequence[t.Tag]
     ):
+        print(f"Tagging {len(transactions)} transactions")
         d = {}
         for tag in [t for t in tags if len(t.rules) > 0]:
             for rule in tag.rules:
