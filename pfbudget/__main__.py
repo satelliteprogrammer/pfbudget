@@ -7,9 +7,12 @@ from pfbudget.utils.utils import parse_args_period
 
 def interactive(manager: Manager):
     with manager.db.session() as session:
+
         categories = session.get(type.Category)
-        print(f"Available categories: {categories}")
-        print(f"Available tags: {session.get(type.Tag)}")
+        print(f"Available categories: {[c.name for c in categories]}")
+        tags = session.get(type.Tag)
+        print(f"Available tags: {[t.name for t in tags]}")
+
         transactions = session.get(type.Transaction, ~type.Transaction.category.has())
         print(f"{len(transactions)} transactions left to categorize")
 
@@ -25,6 +28,9 @@ def interactive(manager: Manager):
 
                     case "tag":
                         tag = input("tag: ")
+                        if tag not in [t.name for t in tags]:
+                            session.add([type.Tag(tag)])
+
                         transaction.tags.add(type.TransactionTag(tag))
 
                     case "note":

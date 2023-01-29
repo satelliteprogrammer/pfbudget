@@ -116,7 +116,14 @@ class Manager:
                 banks = NordigenInput().country_banks(params[0])
                 print(banks)
 
-            case Operation.BankAdd | Operation.CategoryAdd | Operation.NordigenAdd | Operation.RuleAdd | Operation.TagAdd | Operation.TagRuleAdd:
+            case (
+                Operation.BankAdd
+                | Operation.CategoryAdd
+                | Operation.NordigenAdd
+                | Operation.RuleAdd
+                | Operation.TagAdd
+                | Operation.TagRuleAdd
+            ):
                 with self.db.session() as session:
                     session.add(params)
 
