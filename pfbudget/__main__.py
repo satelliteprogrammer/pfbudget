@@ -24,7 +24,11 @@ def interactive(manager: Manager):
             quit = False
             next = True
             while next:
-                match (input("(<category>/split/tag/note/quit): ")):
+                match (input("(<category>/split/tag/note/skip/quit): ")):
+                    case "skip":
+                        next = False
+                        continue
+
                     case "quit" | "exit":
                         next = False
                         quit = True
