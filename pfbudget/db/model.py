@@ -91,7 +91,7 @@ class Transaction(Base, Export):
     description: Mapped[Optional[str]]
     amount: Mapped[money]
 
-    split: Mapped[bool] = mapped_column(init=False)
+    split: Mapped[bool] = mapped_column(init=False, default=False)
 
     type: Mapped[str] = mapped_column(init=False)
 
