@@ -24,7 +24,7 @@ def interactive(manager: Manager):
             quit = False
             next = True
             while next:
-                match (input("(<category>/split/tag/note/skip/quit): ")):
+                match (input("(<category>(:tag)/split/note/skip/quit): ")):
                     case "skip":
                         next = False
                         continue
@@ -34,29 +34,37 @@ def interactive(manager: Manager):
                         quit = True
 
                     case "split":
-                        manager.action(Operation.Split, split(transaction, categories))
+                        manager.action(Operation.Split, split(transaction, categories, tags))
                         next = False
-
-                    case "tag":
-                        tag = input("tag: ")
-                        if tag not in [t.name for t in tags]:
-                            session.add([type.Tag(tag)])
-
-                        transaction.tags.add(type.TransactionTag(tag))
 
                     case "note":
                         note = input("note: ")
                         transaction.note = type.Note(note)
 
                     case other:
-                        if other not in [c.name for c in categories]:
-                            print(f"{other} is not a valid category")
+                        if len(li := other.split(":")) > 1:
+                            _category = li[0]
+                            _tags = li[1:]
+                        else:
+                            _category = other
+                            _tags = []
+
+                        if _category not in [c.name for c in categories]:
+                            print(f"{other} doesn't have a valid category")
                             continue
 
                         transaction.category = type.TransactionCategory(
-                            other,
+                            _category,
                             type.CategorySelector(type.Selector_T.manual),
                         )
+
+                        for tag in _tags:
+                            if tag not in [t.name for t in tags]:
+                                session.add([type.Tag(tag)])
+                                tags = session.get(type.Tag)
+
+                            transaction.tags.add(type.TransactionTag(tag))
+
                         next = False
 
             session.commit()
@@ -65,7 +73,9 @@ def interactive(manager: Manager):
 
 
 def split(
-    original: type.Transaction, categories: Sequence[type.Category]
+    original: type.Transaction,
+    categories: Sequence[type.Category],
+    tags: Sequence[type.Tag],
 ) -> list[type.Transaction]:
 
     total = original.amount
