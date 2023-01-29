@@ -16,7 +16,7 @@ def interactive(manager: Manager):
         tags = session.get(type.Tag)
         print(f"Available tags: {[t.name for t in tags]}")
 
-        transactions = session.get(type.Transaction, ~type.Transaction.category.has())
+        transactions = session.uncategorized()
         print(f"{len(transactions)} transactions left to categorize")
 
         for transaction in sorted(transactions):

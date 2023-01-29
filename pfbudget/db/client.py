@@ -2,6 +2,7 @@ from dataclasses import asdict
 from sqlalchemy import create_engine, delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
+from sqlalchemy.sql.expression import false
 from typing import Sequence, Type, TypeVar
 
 from pfbudget.db.model import (
@@ -9,6 +10,7 @@ from pfbudget.db.model import (
     CategoryGroup,
     CategorySchedule,
     Link,
+    Transaction,
 )
 
 
@@ -55,6 +57,22 @@ class DbClient:
             else:
                 stmt = select(type)
 
+            return self.__session.scalars(stmt).all()
+
+        def uncategorized(self) -> Sequence[Transaction]:
+            """Selects all valid uncategorized transactions
+            At this moment that includes:
+            - Categories w/o category
+            - AND non-split categories
+
+            Returns:
+                Sequence[Transaction]: transactions left uncategorized
+            """
+            stmt = (
+                select(Transaction)
+                .where(~Transaction.category.has())
+                .where(Transaction.split == false())
+            )
             return self.__session.scalars(stmt).all()
 
         def add(self, rows: list):
