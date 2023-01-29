@@ -197,12 +197,20 @@ class Manager:
                     assert len(originals) == 1, ">1 transactions matched {original.id}!"
 
                     originals[0].split = True
-                    transactions = [
-                        SplitTransaction(
-                            originals[0].date, t.description, t.amount, originals[0].id
+                    transactions = []
+                    for t in params[1:]:
+                        if originals[0].date != t.date:
+                            t.date = originals[0].date
+                            print(
+                                f"{t.date} is different from original date {originals[0].date}, using original"
+                            )
+
+                        splitted = SplitTransaction(
+                            t.date, t.description, t.amount, originals[0].id
                         )
-                        for t in params[1:]
-                    ]
+                        splitted.category = t.category
+                        transactions.append(splitted)
+
                     session.add(transactions)
 
             case Operation.Export:
