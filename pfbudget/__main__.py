@@ -1,112 +1,12 @@
 from decimal import Decimal
 from typing import Sequence
 
-from pfbudget.cli.runnable import argparser
+from pfbudget.cli.argparser import argparser
+from pfbudget.cli.interactive import Interactive
 from pfbudget.common.types import Operation
 from pfbudget.core.manager import Manager
 import pfbudget.db.model as type
 from pfbudget.utils.utils import parse_args_period
-
-
-def interactive(manager: Manager):
-    with manager.db.session() as session:
-
-        categories = session.get(type.Category)
-        print(f"Available categories: {[c.name for c in categories]}")
-        tags = session.get(type.Tag)
-        print(f"Available tags: {[t.name for t in tags]}")
-
-        transactions = session.uncategorized()
-        print(f"{len(transactions)} transactions left to categorize")
-
-        for transaction in sorted(transactions):
-            print(f"{transaction}")
-            quit = False
-            next = True
-            while next:
-                match (input("(<category>(:tag)/split/note/skip/quit): ")):
-                    case "skip":
-                        next = False
-                        continue
-
-                    case "quit" | "exit":
-                        next = False
-                        quit = True
-
-                    case "split":
-                        manager.action(Operation.Split, split(transaction, categories, tags))
-                        next = False
-
-                    case "note":
-                        note = input("note: ")
-                        transaction.note = type.Note(note)
-
-                    case other:
-                        if len(li := other.split(":")) > 1:
-                            _category = li[0]
-                            _tags = li[1:]
-                        else:
-                            _category = other
-                            _tags = []
-
-                        if _category not in [c.name for c in categories]:
-                            print(f"{other} doesn't have a valid category")
-                            continue
-
-                        transaction.category = type.TransactionCategory(
-                            _category,
-                            type.CategorySelector(type.Selector_T.manual),
-                        )
-
-                        for tag in _tags:
-                            if tag not in [t.name for t in tags]:
-                                session.add([type.Tag(tag)])
-                                tags = session.get(type.Tag)
-
-                            transaction.tags.add(type.TransactionTag(tag))
-
-                        next = False
-
-            session.commit()
-            if quit:
-                break
-
-
-def split(
-    original: type.Transaction,
-    categories: Sequence[type.Category],
-    tags: Sequence[type.Tag],
-) -> list[type.Transaction]:
-
-    total = original.amount
-    splitted: list[type.Transaction] = []
-
-    while True:
-        if abs(sum(t.amount for t in splitted)) > abs(total):
-            print(
-                "The total amount from the splitted transactions exceeds the original transaction amount, please try again..."
-            )
-            splitted.clear()
-
-        if sum(t.amount for t in splitted) == total:
-            break
-
-        while (category := input("New transaction category: ")) not in [
-            c.name for c in categories
-        ]:
-            print(f"{category} is not a valid category")
-
-        amount = input("amount: ")
-
-        split = type.Transaction(original.date, original.description, Decimal(amount))
-        split.category = type.TransactionCategory(
-            category, type.CategorySelector(type.Selector_T.manual)
-        )
-
-        splitted.append(split)
-
-    splitted.insert(0, original)
-    return splitted
 
 
 if __name__ == "__main__":
@@ -125,7 +25,7 @@ if __name__ == "__main__":
     params = []
     match (op):
         case Operation.ManualCategorization:
-            interactive(Manager(db, verbosity))
+            Interactive(Manager(db, verbosity)).start()
             exit()
 
         case Operation.Parse:

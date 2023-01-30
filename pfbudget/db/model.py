@@ -96,7 +96,9 @@ class Transaction(Base, Export):
     type: Mapped[str] = mapped_column(init=False)
 
     category: Mapped[Optional[TransactionCategory]] = relationship(init=False)
-    note: Mapped[Optional[Note]] = relationship(init=False)
+    note: Mapped[Optional[Note]] = relationship(
+        cascade="all, delete-orphan", init=False, passive_deletes=True
+    )
     tags: Mapped[set[TransactionTag]] = relationship(init=False)
 
     __mapper_args__ = {"polymorphic_on": "type", "polymorphic_identity": "transaction"}
@@ -175,7 +177,10 @@ class Category(Base, Export):
     )
 
     def __repr__(self) -> str:
-        return f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)}, schedule={self.schedule})"
+        return (
+            f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)},"
+            f" schedule={self.schedule})"
+        )
 
     @property
     def format(self) -> dict[str, Any]:
