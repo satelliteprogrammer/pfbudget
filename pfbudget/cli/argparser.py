@@ -374,7 +374,8 @@ def tag_rule(parser: argparse.ArgumentParser):
 
 
 def rules(parser: argparse.ArgumentParser):
-    parser.add_argument("--date", nargs=1, type=dt.date.fromisoformat)
+    parser.add_argument("--start", nargs=1, type=dt.date.fromisoformat)
+    parser.add_argument("--end", nargs=1, type=dt.date.fromisoformat)
     parser.add_argument("--description", nargs=1, type=str)
     parser.add_argument("--regex", nargs=1, type=str)
     parser.add_argument("--bank", nargs=1, type=str)

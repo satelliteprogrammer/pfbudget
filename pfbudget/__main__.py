@@ -1,6 +1,3 @@
-from decimal import Decimal
-from typing import Sequence
-
 from pfbudget.cli.argparser import argparser
 from pfbudget.cli.interactive import Interactive
 from pfbudget.common.types import Operation
@@ -146,12 +143,13 @@ if __name__ == "__main__":
             ]
 
         case Operation.RuleAdd:
-            keys = {"category", "date", "description", "bank", "min", "max"}
+            keys = {"category", "start", "end", "description", "regex", "bank", "min", "max"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
                 type.CategoryRule(
-                    args["date"][0] if args["date"] else None,
+                    args["start"][0] if args["start"] else None,
+                    args["end"][0] if args["end"] else None,
                     args["description"][0] if args["description"] else None,
                     args["regex"][0] if args["regex"] else None,
                     args["bank"][0] if args["bank"] else None,
@@ -197,12 +195,13 @@ if __name__ == "__main__":
             params = [type.Tag(tag) for tag in args["tag"]]
 
         case Operation.TagRuleAdd:
-            keys = {"tag", "date", "description", "bank", "min", "max"}
+            keys = {"tag", "start", "end", "description", "regex", "bank", "min", "max"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [
                 type.TagRule(
-                    args["date"][0] if args["date"] else None,
+                    args["start"][0] if args["start"] else None,
+                    args["end"][0] if args["end"] else None,
                     args["description"][0] if args["description"] else None,
                     args["regex"][0] if args["regex"] else None,
                     args["bank"][0] if args["bank"] else None,

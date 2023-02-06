@@ -335,7 +335,8 @@ class Rule(Base, Export):
     __tablename__ = "rules"
 
     id: Mapped[idpk] = mapped_column(init=False)
-    date: Mapped[Optional[dt.date]]
+    start: Mapped[Optional[dt.date]]
+    end: Mapped[Optional[dt.date]]
     description: Mapped[Optional[str]]
     regex: Mapped[Optional[str]]
     bank: Mapped[Optional[str]]
@@ -349,32 +350,34 @@ class Rule(Base, Export):
         "polymorphic_on": "type",
     }
 
-    def matches(self, transaction: BankTransaction) -> bool:
-        if (
-            (self.date and self.date < transaction.date)
-            or (
-                self.description
-                and transaction.description
-                and self.description not in transaction.description
-            )
-            or (
-                self.regex
-                and transaction.description
-                and not re.compile(self.regex, re.IGNORECASE).search(
-                    transaction.description
-                )
-            )
-            or (self.bank and self.bank != transaction.bank)
-            or (self.min and self.min > transaction.amount)
-            or (self.max and self.max < transaction.amount)
-        ):
-            return False
-        return True
+    def matches(self, t: BankTransaction) -> bool:
+        valid = None
+        if self.regex:
+            valid = re.compile(self.regex, re.IGNORECASE)
+
+        ops = (
+            Rule.exists(self.start, lambda r: r < t.date),
+            Rule.exists(self.end, lambda r: r > t.date),
+            Rule.exists(self.description, lambda r: r == t.description),
+            Rule.exists(
+                valid,
+                lambda r: r.search(t.description) if t.description else False,
+            ),
+            Rule.exists(self.bank, lambda r: r == t.bank),
+            Rule.exists(self.min, lambda r: r < t.amount),
+            Rule.exists(self.max, lambda r: r > t.amount),
+        )
+
+        if all(ops):
+            return True
+
+        return False
 
     @property
     def format(self) -> dict[str, Any]:
         return dict(
-            date=self.date,
+            start=self.start,
+            end=self.end,
             description=self.description,
             regex=self.regex,
             bank=self.bank,
@@ -382,6 +385,10 @@ class Rule(Base, Export):
             max=self.max,
             type=self.type,
         )
+
+    @staticmethod
+    def exists(r, op) -> bool:
+        return op(r) if r is not None else True
 
 
 class CategoryRule(Rule):
