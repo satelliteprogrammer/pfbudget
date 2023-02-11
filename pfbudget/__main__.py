@@ -237,7 +237,7 @@ if __name__ == "__main__":
             keys = {"original", "links"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [type.Link(args["original"][0], link) for link in args["links"]]
+            params = [args["original"][0], args["links"]]
 
         case (
             Operation.Export

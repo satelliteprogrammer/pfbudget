@@ -51,7 +51,10 @@ class DbClient:
         def get(self, type: Type[T], column=None, values=None) -> Sequence[T]:
             if column is not None:
                 if values:
-                    stmt = select(type).where(column.in_(values))
+                    if isinstance(values, Sequence):
+                        stmt = select(type).where(column.in_(values))
+                    else:
+                        stmt = select(type).where(column == values)
                 else:
                     stmt = select(type).where(column)
             else:
