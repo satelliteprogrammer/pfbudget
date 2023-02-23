@@ -63,7 +63,7 @@ def argparser() -> argparse.ArgumentParser:
     # Exports transactions to .csv file
     export = subparsers.add_parser("export")
     export.set_defaults(op=Operation.Export)
-    export_args(export)
+    file_options(export)
 
     pimport = subparsers.add_parser("import")
     pimport.set_defaults(op=Operation.Import)
@@ -215,11 +215,11 @@ def bank(parser: argparse.ArgumentParser):
 
     export = commands.add_parser("export")
     export.set_defaults(op=Operation.ExportBanks)
-    export_args(export)
+    file_options(export)
 
     pimport = commands.add_parser("import")
     pimport.set_defaults(op=Operation.ImportBanks)
-    export_args(pimport)
+    file_options(pimport)
 
 
 def nordigen(parser: argparse.ArgumentParser):
@@ -276,11 +276,11 @@ def category(parser: argparse.ArgumentParser):
 
     export = commands.add_parser("export")
     export.set_defaults(op=Operation.ExportCategories)
-    export_args(export)
+    file_options(export)
 
     pimport = commands.add_parser("import")
     pimport.set_defaults(op=Operation.ImportCategories)
-    export_args(pimport)
+    file_options(pimport)
 
 
 def category_group(parser: argparse.ArgumentParser):
@@ -296,11 +296,11 @@ def category_group(parser: argparse.ArgumentParser):
 
     export = commands.add_parser("export")
     export.set_defaults(op=Operation.ExportCategoryGroups)
-    export_args(export)
+    file_options(export)
 
     pimport = commands.add_parser("import")
     pimport.set_defaults(op=Operation.ImportCategoryGroups)
-    export_args(pimport)
+    file_options(pimport)
 
 
 def category_rule(parser: argparse.ArgumentParser):
@@ -324,11 +324,11 @@ def category_rule(parser: argparse.ArgumentParser):
 
     export = commands.add_parser("export")
     export.set_defaults(op=Operation.ExportCategoryRules)
-    export_args(export)
+    file_options(export)
 
     pimport = commands.add_parser("import")
     pimport.set_defaults(op=Operation.ImportCategoryRules)
-    export_args(pimport)
+    file_options(pimport)
 
 
 def tags(parser: argparse.ArgumentParser):
@@ -366,11 +366,11 @@ def tag_rule(parser: argparse.ArgumentParser):
 
     export = commands.add_parser("export")
     export.set_defaults(op=Operation.ExportTagRules)
-    export_args(export)
+    file_options(export)
 
     pimport = commands.add_parser("import")
     pimport.set_defaults(op=Operation.ImportTagRules)
-    export_args(pimport)
+    file_options(pimport)
 
 
 def rules(parser: argparse.ArgumentParser):
@@ -397,5 +397,6 @@ def link(parser: argparse.ArgumentParser):
     dismantle.add_argument("links", nargs="+", type=int)
 
 
-def export_args(parser: argparse.ArgumentParser):
+def file_options(parser: argparse.ArgumentParser):
     parser.add_argument("file", nargs=1, type=str)
+    parser.add_argument("format", nargs=1, default="pickle")

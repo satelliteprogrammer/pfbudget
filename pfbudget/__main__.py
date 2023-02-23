@@ -253,9 +253,9 @@ if __name__ == "__main__":
             | Operation.ExportCategoryGroups
             | Operation.ImportCategoryGroups
         ):
-            keys = {"file"}
+            keys = {"file", "format"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = args["file"]
+            params = [args["file"][0], args["format"][0]]
 
     Manager(db, verbosity).action(op, params)

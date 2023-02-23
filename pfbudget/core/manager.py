@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 import pickle
 import webbrowser
@@ -241,11 +242,11 @@ class Manager:
 
             case Operation.Export:
                 with self.db.session() as session:
-                    self.dump(params[0], sorted(session.get(Transaction)))
+                    self.dump(params[0], params[1], sorted(session.get(Transaction)))
 
             case Operation.Import:
                 transactions = []
-                for row in self.load(params[0]):
+                for row in self.load(params[0], params[1]):
                     match row["type"]:
                         case "bank":
                             transaction = BankTransaction(
@@ -278,11 +279,11 @@ class Manager:
 
             case Operation.ExportBanks:
                 with self.db.session() as session:
-                    self.dump(params[0], session.get(Bank))
+                    self.dump(params[0], params[1], session.get(Bank))
 
             case Operation.ImportBanks:
                 banks = []
-                for row in self.load(params[0]):
+                for row in self.load(params[0], params[1]):
                     bank = Bank(row["name"], row["BIC"], row["type"])
                     if row["nordigen"]:
                         bank.nordigen = Nordigen(**row["nordigen"])
@@ -294,10 +295,10 @@ class Manager:
 
             case Operation.ExportCategoryRules:
                 with self.db.session() as session:
-                    self.dump(params[0], session.get(CategoryRule))
+                    self.dump(params[0], params[1], session.get(CategoryRule))
 
             case Operation.ImportCategoryRules:
-                rules = [CategoryRule(**row) for row in self.load(params[0])]
+                rules = [CategoryRule(**row) for row in self.load(params[0], params[1])]
 
                 if self.certify(rules):
                     with self.db.session() as session:
@@ -305,10 +306,10 @@ class Manager:
 
             case Operation.ExportTagRules:
                 with self.db.session() as session:
-                    self.dump(params[0], session.get(TagRule))
+                    self.dump(params[0], params[1], session.get(TagRule))
 
             case Operation.ImportTagRules:
-                rules = [TagRule(**row) for row in self.load(params[0])]
+                rules = [TagRule(**row) for row in self.load(params[0], params[1])]
 
                 if self.certify(rules):
                     with self.db.session() as session:
@@ -316,12 +317,12 @@ class Manager:
 
             case Operation.ExportCategories:
                 with self.db.session() as session:
-                    self.dump(params[0], session.get(Category))
+                    self.dump(params[0], params[1], session.get(Category))
 
             case Operation.ImportCategories:
                 # rules = [Category(**row) for row in self.load(params[0])]
                 categories = []
-                for row in self.load(params[0]):
+                for row in self.load(params[0], params[1]):
                     category = Category(row["name"], row["group"])
                     if len(row["rules"]) > 0:
                         # Only category rules could have been created with a rule
@@ -340,10 +341,12 @@ class Manager:
 
             case Operation.ExportCategoryGroups:
                 with self.db.session() as session:
-                    self.dump(params[0], session.get(CategoryGroup))
+                    self.dump(params[0], params[1], session.get(CategoryGroup))
 
             case Operation.ImportCategoryGroups:
-                groups = [CategoryGroup(**row) for row in self.load(params[0])]
+                groups = [
+                    CategoryGroup(**row) for row in self.load(params[0], params[1])
+                ]
 
                 if self.certify(groups):
                     with self.db.session() as session:
@@ -364,14 +367,26 @@ class Manager:
                     return TransactionCategory(category, selector)
 
     @staticmethod
-    def dump(fn, sequence):
-        with open(fn, "wb") as f:
-            pickle.dump([e.format for e in sequence], f)
+    def dump(fn, format, sequence):
+        if format == "pickle":
+            with open(fn, "wb") as f:
+                pickle.dump([e.format for e in sequence], f)
+        elif format == "csv":
+            with open(fn, "w", newline="") as f:
+                csv.writer(f).writerows([e.format.values() for e in sequence])
+        else:
+            print("format not well specified")
 
     @staticmethod
-    def load(fn):
-        with open(fn, "rb") as f:
-            return pickle.load(f)
+    def load(fn, format):
+        if format == "pickle":
+            with open(fn, "rb") as f:
+                return pickle.load(f)
+        elif format == "csv":
+            raise Exception("CSV import not supported")
+        else:
+            print("format not well specified")
+            return []
 
     @staticmethod
     def certify(imports: list) -> bool:
