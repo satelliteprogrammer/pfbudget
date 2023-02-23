@@ -9,7 +9,7 @@ class Categorizer:
     options = {}
 
     def __init__(self):
-        self.options["null_days"] = 4
+        self.options["null_days"] = 3
 
     def rules(
         self,
@@ -28,14 +28,20 @@ class Categorizer:
             tags (Sequence[Tag]): currently available tags
         """
 
-        self._nullify(transactions)
+        try:
+            null = next(cat for cat in categories if cat.name == "null")
+            print("Nullifying")
+            self._nullify(transactions, null)
+
+            categories = [cat for cat in categories if cat.name != "null"]
+        except StopIteration:
+            print("Null category not defined")
 
         self._rule_based_categories(transactions, categories)
         self._rule_based_tags(transactions, tags)
 
     @Timer(name="nullify")
-    def _nullify(self, transactions: Sequence[t.BankTransaction]):
-        print(f"Nullifying {len(transactions)} transactions")
+    def _nullify(self, transactions: Sequence[t.BankTransaction], null: t.Category):
         count = 0
         matching = []
         for transaction in transactions:
@@ -46,11 +52,13 @@ class Categorizer:
                     transaction.date - timedelta(days=self.options["null_days"])
                     <= cancel.date
                     <= transaction.date + timedelta(days=self.options["null_days"])
-                    and transaction not in matching
-                    and cancel not in matching
                     and cancel != transaction
                     and cancel.bank != transaction.bank
                     and cancel.amount == -transaction.amount
+                    and transaction not in matching
+                    and cancel not in matching
+                    and all(r.matches(transaction) for r in null.rules)
+                    and all(r.matches(cancel) for r in null.rules)
                 )
             ):
                 transaction.category = t.TransactionCategory(
@@ -65,7 +73,7 @@ class Categorizer:
                 count += 2
                 break
 
-        print(f"Nullified {count} transactions")
+        print(f"Nullified {count} of {len(transactions)} transactions")
 
     @Timer(name="categoryrules")
     def _rule_based_categories(
@@ -87,12 +95,14 @@ class Categorizer:
                         continue
 
                     # passed all conditions, assign category
-                    if (
-                        transaction.category
-                        and transaction.category.name == category.name
-                    ):
+                    if transaction.category:
+                        if transaction.category.name == category.name:
+                            continue
+
                         if (
-                            input(f"Overwrite {transaction} with {category}? (y/n)")
+                            input(
+                                f"Overwrite {transaction} with {category.name}? (y/n)"
+                            )
                             == "y"
                         ):
                             transaction.category.name = category.name
