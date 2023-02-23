@@ -6,6 +6,7 @@ from enum import Enum, auto
 
 class Operation(Enum):
     Init = auto()
+    Transactions = auto()
     Parse = auto()
     Download = auto()
     Categorize = auto()

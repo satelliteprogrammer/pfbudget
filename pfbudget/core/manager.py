@@ -34,13 +34,22 @@ class Manager:
         self._db = db
         self._verbosity = verbosity
 
-    def action(self, op: Operation, params: list):
+    def action(self, op: Operation, params=None):
         if self._verbosity > 0:
             print(f"op={op}, params={params}")
+
+        if params is None:
+            params = []
 
         match (op):
             case Operation.Init:
                 pass
+
+            case Operation.Transactions:
+                with self.db.session() as session:
+                    transactions = session.get(Transaction)
+                    ret = [t.format for t in transactions]
+                return ret
 
             case Operation.Parse:
                 # Adapter for the parse_data method. Can be refactored.
