@@ -4,6 +4,53 @@ from decimal import Decimal, InvalidOperation
 from enum import Enum, auto
 
 
+class Operation(Enum):
+    Init = auto()
+    Transactions = auto()
+    Parse = auto()
+    Download = auto()
+    Categorize = auto()
+    ManualCategorization = auto()
+    Token = auto()
+    RequisitionId = auto()
+    CategoryAdd = auto()
+    CategoryUpdate = auto()
+    CategoryRemove = auto()
+    CategorySchedule = auto()
+    RuleAdd = auto()
+    RuleRemove = auto()
+    RuleModify = auto()
+    GroupAdd = auto()
+    GroupRemove = auto()
+    TagAdd = auto()
+    TagRemove = auto()
+    TagRuleAdd = auto()
+    TagRuleRemove = auto()
+    TagRuleModify = auto()
+    Forge = auto()
+    Dismantle = auto()
+    Split = auto()
+    BankAdd = auto()
+    BankMod = auto()
+    BankDel = auto()
+    NordigenAdd = auto()
+    NordigenMod = auto()
+    NordigenDel = auto()
+    NordigenCountryBanks = auto()
+    Export = auto()
+    Import = auto()
+    ExportBanks = auto()
+    ImportBanks = auto()
+    ExportCategoryRules = auto()
+    ImportCategoryRules = auto()
+    ExportTagRules = auto()
+    ImportTagRules = auto()
+    ExportCategories = auto()
+    ImportCategories = auto()
+    ExportCategoryGroups = auto()
+    ImportCategoryGroups = auto()
+
+
 class TransactionError(Exception):
     pass
 

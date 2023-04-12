@@ -9,7 +9,7 @@ import yaml
 
 if TYPE_CHECKING:
     from pfbudget.common.types import Transaction
-    from pfbudget.db.client import DatabaseClient
+    from pfbudget.db.sqlite import DatabaseClient
 
 
 Options = namedtuple(

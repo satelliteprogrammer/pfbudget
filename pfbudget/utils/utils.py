@@ -59,21 +59,21 @@ def find_credit_institution(fn, banks, creditcards):
     return bank, cc
 
 
-def parse_args_period(args):
+def parse_args_period(args: dict):
     start, end = date.min, date.max
-    if args.start:
-        start = datetime.strptime(args.start[0], "%Y/%m/%d").date()
+    if args["start"]:
+        start = datetime.strptime(args["start"][0], "%Y/%m/%d").date()
 
-    if args.end:
-        end = datetime.strptime(args.end[0], "%Y/%m/%d").date()
+    if args["end"]:
+        end = datetime.strptime(args["end"][0], "%Y/%m/%d").date()
 
-    if args.interval:
-        start = datetime.strptime(args.interval[0], "%Y/%m/%d").date()
-        end = datetime.strptime(args.interval[1], "%Y/%m/%d").date()
+    if args["interval"]:
+        start = datetime.strptime(args["interval"][0], "%Y/%m/%d").date()
+        end = datetime.strptime(args["interval"][1], "%Y/%m/%d").date()
 
-    if args.year:
-        start = datetime.strptime(args.year[0], "%Y").date()
-        end = datetime.strptime(str(int(args.year[0]) + 1), "%Y").date() - timedelta(
+    if args["year"]:
+        start = datetime.strptime(args["year"][0], "%Y").date()
+        end = datetime.strptime(str(int(args["year"][0]) + 1), "%Y").date() - timedelta(
             days=1
         )
 

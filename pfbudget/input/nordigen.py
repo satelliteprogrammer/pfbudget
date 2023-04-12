@@ -1,59 +1,51 @@
-from datetime import date
-from time import sleep
-from requests import HTTPError, ReadTimeout
-from dotenv import load_dotenv
-from nordigen import NordigenClient
-from uuid import uuid4
+import datetime as dt
+import dotenv
 import json
+import nordigen
 import os
-import webbrowser
+import requests
+import time
+import uuid
+
+import pfbudget.db.model as t
+from pfbudget.utils.converters import convert
 
 from .input import Input
-from pfbudget.common.types import NoBankSelected, Transactions
-from pfbudget.utils import convert
 
-load_dotenv()
+dotenv.load_dotenv()
 
 
 class NordigenInput(Input):
-    def __init__(self, manager, options: dict = {}, start=date.min, end=date.max):
-        super().__init__(manager)
-        self._client = NordigenClient(
-            secret_key=os.environ.get("SECRET_KEY"),
-            secret_id=os.environ.get("SECRET_ID"),
+    redirect_url = "https://murta.dev"
+
+    def __init__(self):
+        super().__init__()
+
+        if not (key := os.environ.get("SECRET_KEY")) or not (
+            id := os.environ.get("SECRET_ID")
+        ):
+            raise
+
+        self._client = nordigen.NordigenClient(
+            secret_key=key,
+            secret_id=id,
         )
 
-        self.client.token = self.__token()
+        self._client.token = self.__token()
+        self._start = dt.date.min
+        self._end = dt.date.max
 
-        # print(options)
-
-        if "all" in options and options["all"]:
-            self.__banks = self.manager.get_banks()
-        elif "id" in options and options["id"]:
-            self.__banks = [
-                self.manager.get_bank_by("nordigen_id", b) for b in options["id"]
-            ]
-        elif "name" in options and options["name"]:
-            self.__banks = [
-                self.manager.get_bank_by("name", b) for b in options["name"]
-            ]
-        else:
-            self.__banks = None
-
-        self.__from = start
-        self.__to = end
-
-    def parse(self) -> Transactions:
+    def parse(self) -> list[t.BankTransaction]:
         transactions = []
-        if not self.__banks:
-            raise NoBankSelected
+        assert len(self._banks) > 0
 
-        for bank in self.__banks:
+        for bank in self._banks:
             print(f"Downloading from {bank}...")
             requisition = self.client.requisition.get_requisition_by_id(
-                bank.requisition_id
+                bank.nordigen.requisition_id
             )
 
+            print(requisition)
             for acc in requisition["accounts"]:
                 account = self._client.account_api(acc)
 
@@ -63,14 +55,14 @@ class NordigenInput(Input):
                     try:
                         downloaded = account.get_transactions()
                         break
-                    except ReadTimeout:
+                    except requests.ReadTimeout:
                         retries += 1
                         print(f"Request #{retries} timed-out, retrying in 1s")
-                        sleep(1)
-                    except HTTPError as e:
+                        time.sleep(1)
+                    except requests.HTTPError as e:
                         retries += 1
                         print(f"Request #{retries} failed with {e}, retrying in 1s")
-                        sleep(1)
+                        time.sleep(1)
 
                 if not downloaded:
                     print(f"Couldn't download transactions for {account}")
@@ -84,26 +76,54 @@ class NordigenInput(Input):
                 ]
 
                 transactions.extend(
-                    [t for t in converted if self.__from <= t.date <= self.__to]
+                    [t for t in converted if self._start <= t.date <= self._end]
                 )
 
-        return transactions
+        return sorted(transactions)
 
     def token(self):
         token = self._client.generate_token()
         print(f"New access token: {token}")
         return token
 
-    def requisition(self, institution: str, country: str = "PT"):
-        link, _ = self.__requisition_id(institution, country)
-        webbrowser.open(link)
+    def requisition(self, id: str, country: str = "PT"):
+        requisition = self._client.initialize_session(
+            redirect_uri=self.redirect_url,
+            institution_id=id,
+            reference_id=str(uuid.uuid4()),
+        )
+        return requisition.link, requisition.requisition_id
 
-    def list(self, country: str):
-        print(self._client.institution.get_institutions(country))
+    def country_banks(self, country: str):
+        return self._client.institution.get_institutions(country)
 
     @property
     def client(self):
         return self._client
+
+    @property
+    def banks(self):
+        return self._banks
+
+    @banks.setter
+    def banks(self, value):
+        self._banks = value
+
+    @property
+    def start(self):
+        return self._start
+
+    @start.setter
+    def start(self, value):
+        self._start = value
+
+    @property
+    def end(self):
+        return self._end
+
+    @end.setter
+    def end(self, value):
+        self._end = value
 
     def __token(self):
         if token := os.environ.get("TOKEN"):
@@ -111,17 +131,4 @@ class NordigenInput(Input):
         else:
             token = self._client.generate_token()
             print(f"New access token: {token}")
-            return token
-
-    def __requisition_id(self, i: str, c: str):
-        id = self._client.institution.get_institution_id_by_name(
-            country=c, institution=i
-        )
-        init = self._client.initialize_session(
-            redirect_uri="https://murta.dev",
-            institution_id=id,
-            reference_id=str(uuid4()),
-        )
-
-        print(f"{i}({c}) link: {init.link} and requisition ID: {init.requisition_id}")
-        return (init.link, init.requisition_id)
+            return token["access"]

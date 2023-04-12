@@ -1,10 +1,12 @@
 from collections import namedtuple
 from decimal import Decimal
 from importlib import import_module
+from pathlib import Path
 import datetime as dt
 import yaml
 
-from pfbudget.common.types import NoBankSelected, Transaction, Transactions
+from pfbudget.common.types import NoBankSelected
+from pfbudget.db.model import Transaction
 from pfbudget.utils import utils
 
 Index = namedtuple(
@@ -43,7 +45,7 @@ Options = namedtuple(
 )
 
 
-def parse_data(filename: str, args: dict) -> Transactions:
+def parse_data(filename: Path, args: dict) -> list[Transaction]:
     cfg: dict = yaml.safe_load(open("parsers.yaml"))
     assert (
         "Banks" in cfg
@@ -84,7 +86,7 @@ def parse_data(filename: str, args: dict) -> Transactions:
 
 
 class Parser:
-    def __init__(self, filename: str, bank: str, options: dict):
+    def __init__(self, filename: Path, bank: str, options: dict):
         self.filename = filename
         self.bank = bank
 
@@ -157,7 +159,7 @@ class Parser:
             category = line[options.category]
             transaction = Transaction(date, text, bank, value, category)
         else:
-            transaction = Transaction(date, text, bank, value, options.category)
+            transaction = Transaction(date, text, bank, value)
 
         if options.additional_parser:
             func(transaction)
