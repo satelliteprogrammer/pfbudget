@@ -129,7 +129,7 @@ def argparser() -> argparse.ArgumentParser:
     # Nordigen requisition id
     requisition = subparsers.add_parser("eua")
     requisition.set_defaults(op=Operation.RequisitionId)
-    requisition.add_argument("name", nargs=1, type=str)
+    requisition.add_argument("id", nargs=1, type=str)
     requisition.add_argument("country", nargs=1, type=str)
 
     # Download through the Nordigen API

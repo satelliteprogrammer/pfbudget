@@ -86,8 +86,7 @@ class NordigenInput(Input):
         print(f"New access token: {token}")
         return token
 
-    def requisition(self, institution: str, country: str = "PT"):
-        id = self._client.institution.get_institution_id_by_name(country, institution)
+    def requisition(self, id: str, country: str = "PT"):
         requisition = self._client.initialize_session(
             redirect_uri=self.redirect_url,
             institution_id=id,
