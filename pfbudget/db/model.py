@@ -106,6 +106,7 @@ class Transaction(Base, Export):
     @property
     def format(self) -> dict[str, Any]:
         return dict(
+            id=self.id,
             date=self.date,
             description=self.description,
             amount=self.amount,
