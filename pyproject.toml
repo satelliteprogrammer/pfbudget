@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "pf-budget"
+version = "0.2.0"
+description = "This is an application for budgeting nerds who need control and want to account for every aspect of their financials lifes."
+authors = ["Luís Murta <luis@murta.dev>"]
+license = "GPL-3.0-or-later"
+readme = "README.md"
+packages = [{include = "pfbudget"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+codetiming = "1.4.0"
+matplotlib = "3.6.1"
+nordigen = "1.3.0"
+python-dateutil = "2.8.2"
+python-dotenv = "0.21.0"
+pyyaml = "6.0"
+sqlalchemy = "2.0.0rc2"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
