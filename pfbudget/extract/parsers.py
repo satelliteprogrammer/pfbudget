@@ -77,7 +77,7 @@ def parse_data(filename: Path, args: dict) -> list[Transaction]:
         options["category"] = args["category"][0]
 
     if options.get("additional_parser"):
-        parser = getattr(import_module("pfbudget.input.parsers"), bank)
+        parser = getattr(import_module("pfbudget.extract.parsers"), bank)
         transactions = parser(filename, bank, options).parse()
     else:
         transactions = Parser(filename, bank, options).parse()

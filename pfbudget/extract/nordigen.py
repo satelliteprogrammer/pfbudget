@@ -10,12 +10,12 @@ import uuid
 import pfbudget.db.model as t
 from pfbudget.utils.converters import convert
 
-from .input import Input
+from .extract import Extract
 
 dotenv.load_dotenv()
 
 
-class NordigenInput(Input):
+class NordigenInput(Extract):
     redirect_url = "https://murta.dev"
 
     def __init__(self):

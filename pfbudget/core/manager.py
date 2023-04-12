@@ -25,8 +25,8 @@ from pfbudget.db.model import (
     Transaction,
     TransactionCategory,
 )
-from pfbudget.input.nordigen import NordigenInput
-from pfbudget.input.parsers import parse_data
+from pfbudget.extract.nordigen import NordigenInput
+from pfbudget.extract.parsers import parse_data
 
 
 class Manager:
