@@ -97,7 +97,7 @@ class Manager:
                     )
                     categories = session.get(Category)
                     tags = session.get(Tag)
-                    Categorizer().rules(uncategorized, categories, tags)
+                    Categorizer().rules(uncategorized, categories, tags, params[0])
 
             case Operation.BankMod:
                 with self.db.session() as session:

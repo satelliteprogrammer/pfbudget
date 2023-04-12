@@ -78,7 +78,10 @@ def argparser() -> argparse.ArgumentParser:
 
     # Automatic/manual categorization
     categorize = subparsers.add_parser("categorize").add_subparsers(required=True)
-    categorize.add_parser("auto").set_defaults(op=Operation.Categorize)
+    auto = categorize.add_parser("auto")
+    auto.set_defaults(op=Operation.Categorize)
+    auto.add_argument("--no-nulls", action="store_false")
+
     categorize.add_parser("manual").set_defaults(op=Operation.ManualCategorization)
 
     """

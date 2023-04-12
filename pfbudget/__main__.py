@@ -25,6 +25,12 @@ if __name__ == "__main__":
             Interactive(Manager(db, verbosity)).start()
             exit()
 
+        case Operation.Categorize:
+            keys = {"no_nulls"}
+            assert args.keys() >= keys, f"missing {args.keys() - keys}"
+
+            params = [args["no_nulls"]]
+
         case Operation.Parse:
             keys = {"path", "bank", "creditcard"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"

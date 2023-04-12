@@ -16,6 +16,7 @@ class Categorizer:
         transactions: Sequence[t.BankTransaction],
         categories: Sequence[t.Category],
         tags: Sequence[t.Tag],
+        nullify: bool = True
     ):
         """Overarching categorization tool
 
@@ -28,14 +29,16 @@ class Categorizer:
             tags (Sequence[Tag]): currently available tags
         """
 
-        try:
-            null = next(cat for cat in categories if cat.name == "null")
-            print("Nullifying")
-            self._nullify(transactions, null)
+        if nullify:
+            try:
+                null = next(cat for cat in categories if cat.name == "null")
+                print("Nullifying")
+                self._nullify(transactions, null)
 
-            categories = [cat for cat in categories if cat.name != "null"]
-        except StopIteration:
-            print("Null category not defined")
+            except StopIteration:
+                print("Null category not defined")
+
+        categories = [cat for cat in categories if cat.name != "null"]
 
         self._rule_based_categories(transactions, categories)
         self._rule_based_tags(transactions, tags)
