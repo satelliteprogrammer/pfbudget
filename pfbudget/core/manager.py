@@ -25,7 +25,7 @@ from pfbudget.db.model import (
     Transaction,
     TransactionCategory,
 )
-from pfbudget.extract.nordigen import NordigenInput
+from pfbudget.extract.psd2 import PSD2Client
 from pfbudget.extract.parsers import parse_data
 
 
@@ -72,7 +72,7 @@ class Manager:
                         session.add(sorted(transactions))
 
             case Operation.Download:
-                client = NordigenInput()
+                client = PSD2Client()
                 with self.db.session() as session:
                     if len(params[3]) == 0:
                         client.banks = session.get(Bank, Bank.nordigen)
@@ -103,7 +103,7 @@ class Manager:
                 with self.db.session() as session:
                     session.update(Bank, params)
 
-            case Operation.NordigenMod:
+            case Operation.PSD2Mod:
                 with self.db.session() as session:
                     session.update(Nordigen, params)
 
@@ -111,26 +111,26 @@ class Manager:
                 with self.db.session() as session:
                     session.remove_by_name(Bank, params)
 
-            case Operation.NordigenDel:
+            case Operation.PSD2Del:
                 with self.db.session() as session:
                     session.remove_by_name(Nordigen, params)
 
             case Operation.Token:
-                NordigenInput().token()
+                PSD2Client().token()
 
             case Operation.RequisitionId:
-                link, _ = NordigenInput().requisition(params[0], params[1])
+                link, _ = PSD2Client().requisition(params[0], params[1])
                 print(f"Opening {link} to request access to {params[0]}")
                 webbrowser.open(link)
 
-            case Operation.NordigenCountryBanks:
-                banks = NordigenInput().country_banks(params[0])
+            case Operation.PSD2CountryBanks:
+                banks = PSD2Client().country_banks(params[0])
                 print(banks)
 
             case (
                 Operation.BankAdd
                 | Operation.CategoryAdd
-                | Operation.NordigenAdd
+                | Operation.PSD2Add
                 | Operation.RuleAdd
                 | Operation.TagAdd
                 | Operation.TagRuleAdd

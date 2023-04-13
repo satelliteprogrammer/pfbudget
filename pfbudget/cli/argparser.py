@@ -126,16 +126,16 @@ def argparser() -> argparse.ArgumentParser:
     # Banks
     bank(subparsers.add_parser("bank"))
 
-    # Nordigen access token
+    # PSD2 access token
     subparsers.add_parser("token").set_defaults(op=Operation.Token)
 
-    # Nordigen requisition id
+    # PSD2 requisition id
     requisition = subparsers.add_parser("eua")
     requisition.set_defaults(op=Operation.RequisitionId)
     requisition.add_argument("id", nargs=1, type=str)
     requisition.add_argument("country", nargs=1, type=str)
 
-    # Download through the Nordigen API
+    # Download through the PSD2 API
     download = subparsers.add_parser("download", parents=[period])
     download.set_defaults(op=Operation.Download)
     download_banks = download.add_mutually_exclusive_group()
@@ -145,7 +145,7 @@ def argparser() -> argparse.ArgumentParser:
 
     # List available banks in country C
     banks = subparsers.add_parser("banks")
-    banks.set_defaults(op=Operation.NordigenCountryBanks)
+    banks.set_defaults(op=Operation.PSD2CountryBanks)
     banks.add_argument("country", nargs=1, type=str)
 
     # Categories
@@ -214,7 +214,7 @@ def bank(parser: argparse.ArgumentParser):
     mod.add_argument("--type", nargs=1, type=str, choices=[e.name for e in AccountType])
     mod.add_argument("--remove", nargs="*", default=[], type=str)
 
-    nordigen(commands.add_parser("nordigen"))
+    psd2(commands.add_parser("psd2"))
 
     export = commands.add_parser("export")
     export.set_defaults(op=Operation.ExportBanks)
@@ -225,22 +225,22 @@ def bank(parser: argparse.ArgumentParser):
     file_options(pimport)
 
 
-def nordigen(parser: argparse.ArgumentParser):
+def psd2(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
 
     add = commands.add_parser("add")
-    add.set_defaults(op=Operation.NordigenAdd)
+    add.set_defaults(op=Operation.PSD2Add)
     add.add_argument("bank", nargs=1, type=str)
     add.add_argument("--bank_id", nargs=1, type=str)
     add.add_argument("--requisition_id", nargs=1, type=str)
     add.add_argument("--invert", action="store_true")
 
     rem = commands.add_parser("del")
-    rem.set_defaults(op=Operation.NordigenDel)
+    rem.set_defaults(op=Operation.PSD2Del)
     rem.add_argument("bank", nargs="+", type=str)
 
     mod = commands.add_parser("mod")
-    mod.set_defaults(op=Operation.NordigenMod)
+    mod.set_defaults(op=Operation.PSD2Mod)
     mod.add_argument("bank", nargs=1, type=str)
     mod.add_argument("--bank_id", nargs=1, type=str)
     mod.add_argument("--requisition_id", nargs=1, type=str)

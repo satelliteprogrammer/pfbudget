@@ -83,7 +83,7 @@ if __name__ == "__main__":
             assert len(args["bank"]) > 0, "argparser ill defined"
             params = args["bank"]
 
-        case Operation.NordigenAdd:
+        case Operation.PSD2Add:
             keys = {"bank", "bank_id", "requisition_id", "invert"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                 )
             ]
 
-        case Operation.NordigenMod:
+        case Operation.PSD2Mod:
             keys = {"bank", "bank_id", "requisition_id", "invert", "remove"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
@@ -110,11 +110,11 @@ if __name__ == "__main__":
 
             params = [param]
 
-        case Operation.NordigenDel:
+        case Operation.PSD2Del:
             assert len(args["bank"]) > 0, "argparser ill defined"
             params = args["bank"]
 
-        case Operation.NordigenCountryBanks:
+        case Operation.PSD2CountryBanks:
             keys = {"country"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
@@ -149,7 +149,16 @@ if __name__ == "__main__":
             ]
 
         case Operation.RuleAdd:
-            keys = {"category", "start", "end", "description", "regex", "bank", "min", "max"}
+            keys = {
+                "category",
+                "start",
+                "end",
+                "description",
+                "regex",
+                "bank",
+                "min",
+                "max",
+            }
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
             params = [

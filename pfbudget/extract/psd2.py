@@ -15,7 +15,7 @@ from .extract import Extract
 dotenv.load_dotenv()
 
 
-class NordigenInput(Extract):
+class PSD2Client(Extract):
     redirect_url = "https://murta.dev"
 
     def __init__(self):
