@@ -141,7 +141,8 @@ ORDER BY date ASC
 """
 
 ADD_BANK = """
-INSERT INTO banks (name, bic, nordigen_id, nordigen_name, requisition_id, invert) values (?,?,?,?,?,?)
+INSERT INTO banks (name, bic, nordigen_id, nordigen_name, requisition_id, invert)
+values (?,?,?,?,?,?)
 """
 
 DELETE_BANK = """

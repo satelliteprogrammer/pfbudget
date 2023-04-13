@@ -65,7 +65,8 @@ class Interactive:
                             continue
 
                         if other.startswith("note:"):
-                            # TODO adding notes to a splitted transaction won't allow categorization
+                            # TODO adding notes to a splitted transaction won't allow
+                            # categorization
                             next.note = Note(other[len("note:") :].strip())
                         else:
                             ct = other.split(":")

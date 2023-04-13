@@ -54,7 +54,6 @@ groups = {
 
 
 def categorize_data(db: DatabaseClient):
-
     # 1st) Classifying null transactions, i.e. transfers between banks.
     # Will not overwrite previous categories
     nulls(db)
@@ -77,7 +76,8 @@ def categorize_data(db: DatabaseClient):
     # 4th) Manually update categories from the uncategorized transactions
     if transactions := db.get_uncategorized_transactions():
         print(
-            f"Still {len(transactions)} uncategorized transactions left. Type quit/exit to exit the program."
+            f"Still {len(transactions)} uncategorized transactions left. Type quit/exit"
+            "to exit the program."
         )
         for transaction in transactions:
             while True:
@@ -88,7 +88,8 @@ def categorize_data(db: DatabaseClient):
                     break
                 if category not in categories:
                     print(
-                        f"Category {category} doesn't exist. Please use one of {categories.keys()}"
+                        f"Category {category} doesn't exist. Please use one of"
+                        f"{categories.keys()}"
                     )
                 else:
                     transaction.category = category

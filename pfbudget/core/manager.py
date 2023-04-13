@@ -270,7 +270,8 @@ class Manager:
                                 row["date"], row["description"], row["amount"]
                             )
 
-                        # TODO case "split" how to match to original transaction?? also save ids?
+                        # TODO case "split" how to match to original transaction?? also
+                        # save ids?
                         case _:
                             continue
 
