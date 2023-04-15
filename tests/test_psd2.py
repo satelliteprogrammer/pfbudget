@@ -8,7 +8,8 @@ import mocks.nordigen as mock
 from pfbudget.db.model import Bank, BankTransaction, Nordigen
 from pfbudget.extract.credentials import Credentials
 from pfbudget.extract.exceptions import BankError, CredentialsError
-from pfbudget.extract.psd2 import PSD2Client
+from pfbudget.extract.nordigen import NordigenClient
+from pfbudget.extract.psd2 import PSD2Extractor
 
 
 class MockGet:
@@ -55,41 +56,37 @@ def mock_requests(monkeypatch):
 
 
 @pytest.fixture
-def client() -> PSD2Client:
+def extractor() -> NordigenClient:
     credentials = Credentials("ID", "KEY", "TOKEN")
-    return PSD2Client(credentials)
+    return PSD2Extractor(NordigenClient(credentials))
 
 
 @pytest.fixture
-def banks() -> list[Bank]:
+def bank() -> list[Bank]:
     bank = Bank("Bank#1", "", "")
     bank.nordigen = Nordigen("", "", mock.id, False)
-    return [bank]
+    return bank
 
 
 class TestExtractPSD2:
     def test_empty_credentials(self):
         cred = Credentials("", "")
         with pytest.raises(CredentialsError):
-            PSD2Client(cred)
+            NordigenClient(cred)
 
-    def test_empty_banks(self, client):
+    def test_no_psd2_bank(self, extractor):
         with pytest.raises(BankError):
-            client.extract([])
+            extractor.extract(Bank("", "", ""))
 
-    def test_no_psd2_bank(self, client):
-        with pytest.raises(BankError):
-            client.extract([Bank("", "", "")])
-
-    def test_timeout(self, monkeypatch, client, banks):
+    def test_timeout(self, monkeypatch, extractor, bank):
         monkeypatch.setattr(
             "requests.get", MockGet(mock_exception=requests.ReadTimeout)
         )
         with pytest.raises(requests.Timeout):
-            client.extract(banks)
+            extractor.extract(bank)
 
-    def test_extract(self, client, banks):
-        assert client.extract(banks) == [
+    def test_extract(self, extractor, bank):
+        assert extractor.extract(bank) == [
             BankTransaction(
                 dt.date(2023, 1, 14), "string", Decimal("328.18"), "Bank#1"
             ),

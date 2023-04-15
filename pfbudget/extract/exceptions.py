@@ -6,5 +6,13 @@ class BankError(ExtractError):
     pass
 
 
-class CredentialsError(ExtractError):
+class PSD2ClientError(ExtractError):
+    pass
+
+
+class CredentialsError(PSD2ClientError):
+    pass
+
+
+class DownloadError(PSD2ClientError):
     pass

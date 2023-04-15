@@ -28,9 +28,9 @@ from pfbudget.db.model import (
     TransactionCategory,
 )
 from pfbudget.extract.credentials import Credentials
-from pfbudget.extract.extract import Extract
-from pfbudget.extract.psd2 import PSD2Client
+from pfbudget.extract.nordigen import NordigenClient
 from pfbudget.extract.parsers import parse_data
+from pfbudget.extract.psd2 import PSD2Extractor
 
 dotenv.load_dotenv()
 
@@ -85,16 +85,18 @@ class Manager:
                     else:
                         banks = session.get(Bank, Bank.name, params[3])
                     session.expunge_all()
-                client.start = params[0]
-                client.end = params[1]
-                transactions = client.extract(banks)
+
+                extractor = PSD2Extractor(client)
+                transactions = []
+                for bank in banks:
+                    transactions.extend(extractor.extract(bank, params[0], params[1]))
 
                 # dry-run
                 if not params[2]:
                     with self.db.session() as session:
                         session.add(sorted(transactions))
                 else:
-                    print(transactions)
+                    print(sorted(transactions))
 
             case Operation.Categorize:
                 with self.db.session() as session:
@@ -419,10 +421,10 @@ class Manager:
         self._db = url
 
     @staticmethod
-    def nordigen_client() -> Extract:
+    def nordigen_client() -> NordigenClient:
         credentials = Credentials(
             os.environ.get("SECRET_ID"),
             os.environ.get("SECRET_KEY"),
             os.environ.get("TOKEN"),
         )
-        return PSD2Client(credentials)
+        return NordigenClient(credentials)
