@@ -12,21 +12,24 @@ from pfbudget.extract.psd2 import PSD2Client
 
 
 class MockGet:
-    def __init__(self, status_code: int = 200, exception=None):
-        self._ok = True if status_code == 200 else False
-        self._status_code = status_code
-        self._exception = exception
+    def __init__(self, mock_exception=None):
+        self._status_code = 200
+        self._mock_exception = mock_exception
 
     def __call__(self, *args, **kwargs):
-        if self._exception:
-            raise self._exception
+        if self._mock_exception:
+            raise self._mock_exception
+
+        self._headers = kwargs["headers"]
+        if "Authorization" not in self._headers or not self._headers["Authorization"]:
+            self._status_code = 401
 
         self.url = kwargs["url"]
         return self
 
     @property
     def ok(self):
-        return self._ok
+        return True if self._status_code < 400 else False
 
     @property
     def status_code(self):
@@ -79,7 +82,9 @@ class TestExtractPSD2:
             client.extract([Bank("", "", "")])
 
     def test_timeout(self, monkeypatch, client, banks):
-        monkeypatch.setattr("requests.get", MockGet(exception=requests.ReadTimeout))
+        monkeypatch.setattr(
+            "requests.get", MockGet(mock_exception=requests.ReadTimeout)
+        )
         with pytest.raises(requests.Timeout):
             client.extract(banks)
 

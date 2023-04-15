@@ -11,7 +11,7 @@ import pfbudget.db.model as t
 from pfbudget.utils.converters import convert
 
 from .credentials import Credentials
-from .exceptions import BankError, CredentialsError
+from .exceptions import BankError, CredentialsError, ExtractError
 from .extract import Extract
 
 
@@ -29,7 +29,7 @@ class PSD2Client(Extract):
         )
 
         if credentials.token:
-            self._token = credentials.token
+            self._client.token = credentials.token
 
         self._start = dt.date.min
         self._end = dt.date.max
@@ -46,7 +46,7 @@ class PSD2Client(Extract):
                 downloaded = self.download(bank.nordigen.requisition_id)
             except requests.HTTPError as e:
                 print(f"There was an issue downloading from {bank.name} -> {e}")
-                continue
+                raise ExtractError(e)
 
             if downloaded:
                 self.dump(bank, downloaded)
