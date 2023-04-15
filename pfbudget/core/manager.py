@@ -1,6 +1,8 @@
 import csv
+import dotenv
 from pathlib import Path
 import pickle
+import os
 import webbrowser
 
 from pfbudget.common.types import Operation
@@ -25,8 +27,12 @@ from pfbudget.db.model import (
     Transaction,
     TransactionCategory,
 )
+from pfbudget.extract.credentials import Credentials
+from pfbudget.extract.extract import Extract
 from pfbudget.extract.psd2 import PSD2Client
 from pfbudget.extract.parsers import parse_data
+
+dotenv.load_dotenv()
 
 
 class Manager:
@@ -72,16 +78,16 @@ class Manager:
                         session.add(sorted(transactions))
 
             case Operation.Download:
-                client = PSD2Client()
+                client = Manager.nordigen_client()
                 with self.db.session() as session:
                     if len(params[3]) == 0:
-                        client.banks = session.get(Bank, Bank.nordigen)
+                        banks = session.get(Bank, Bank.nordigen)
                     else:
-                        client.banks = session.get(Bank, Bank.name, params[3])
+                        banks = session.get(Bank, Bank.name, params[3])
                     session.expunge_all()
                 client.start = params[0]
                 client.end = params[1]
-                transactions = client.parse()
+                transactions = client.extract(banks)
 
                 # dry-run
                 if not params[2]:
@@ -116,15 +122,15 @@ class Manager:
                     session.remove_by_name(Nordigen, params)
 
             case Operation.Token:
-                PSD2Client().token()
+                Manager.nordigen_client().generate_token()
 
             case Operation.RequisitionId:
-                link, _ = PSD2Client().requisition(params[0], params[1])
+                link, _ = Manager.nordigen_client().requisition(params[0], params[1])
                 print(f"Opening {link} to request access to {params[0]}")
                 webbrowser.open(link)
 
             case Operation.PSD2CountryBanks:
-                banks = PSD2Client().country_banks(params[0])
+                banks = Manager.nordigen_client().country_banks(params[0])
                 print(banks)
 
             case (
@@ -411,3 +417,12 @@ class Manager:
     @db.setter
     def db(self, url: str):
         self._db = url
+
+    @staticmethod
+    def nordigen_client() -> Extract:
+        credentials = Credentials(
+            os.environ.get("SECRET_ID"),
+            os.environ.get("SECRET_KEY"),
+            os.environ.get("TOKEN"),
+        )
+        return PSD2Client(credentials)

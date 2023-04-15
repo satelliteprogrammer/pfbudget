@@ -1,75 +1,55 @@
 import datetime as dt
-import dotenv
 import json
 import nordigen
-import os
 import requests
 import time
 import uuid
 
+from typing import Sequence
+
 import pfbudget.db.model as t
 from pfbudget.utils.converters import convert
 
+from .credentials import Credentials
+from .exceptions import BankError, CredentialsError
 from .extract import Extract
-
-dotenv.load_dotenv()
 
 
 class PSD2Client(Extract):
     redirect_url = "https://murta.dev"
 
-    def __init__(self):
+    def __init__(self, credentials: Credentials):
         super().__init__()
 
-        if not (key := os.environ.get("SECRET_KEY")) or not (
-            id := os.environ.get("SECRET_ID")
-        ):
-            raise
+        if not credentials.valid():
+            raise CredentialsError
 
         self._client = nordigen.NordigenClient(
-            secret_key=key,
-            secret_id=id,
+            secret_key=credentials.key, secret_id=credentials.id, timeout=5
         )
 
-        self._client.token = self.__token()
+        if credentials.token:
+            self._token = credentials.token
+
         self._start = dt.date.min
         self._end = dt.date.max
 
-    def parse(self) -> list[t.BankTransaction]:
+    def extract(self, banks: Sequence[t.Bank]) -> list[t.BankTransaction]:
         transactions = []
-        assert len(self._banks) > 0
+        if not banks or any(not b.nordigen for b in banks):
+            raise BankError
 
-        for bank in self._banks:
-            print(f"Downloading from {bank}...")
-            requisition = self.client.requisition.get_requisition_by_id(
-                bank.nordigen.requisition_id
-            )
+        for bank in banks:
+            downloaded = None
+            try:
+                print(f"Downloading from {bank}...")
+                downloaded = self.download(bank.nordigen.requisition_id)
+            except requests.HTTPError as e:
+                print(f"There was an issue downloading from {bank.name} -> {e}")
+                continue
 
-            print(requisition)
-            for acc in requisition["accounts"]:
-                account = self._client.account_api(acc)
-
-                retries = 0
-                downloaded = {}
-                while retries < 3:
-                    try:
-                        downloaded = account.get_transactions()
-                        break
-                    except requests.ReadTimeout:
-                        retries += 1
-                        print(f"Request #{retries} timed-out, retrying in 1s")
-                        time.sleep(1)
-                    except requests.HTTPError as e:
-                        retries += 1
-                        print(f"Request #{retries} failed with {e}, retrying in 1s")
-                        time.sleep(1)
-
-                if not downloaded:
-                    print(f"Couldn't download transactions for {account}")
-                    continue
-
-                with open("json/" + bank.name + ".json", "w") as f:
-                    json.dump(downloaded, f)
+            if downloaded:
+                self.dump(bank, downloaded)
 
                 converted = [
                     convert(t, bank) for t in downloaded["transactions"]["booked"]
@@ -81,10 +61,40 @@ class PSD2Client(Extract):
 
         return sorted(transactions)
 
-    def token(self):
-        token = self._client.generate_token()
-        print(f"New access token: {token}")
-        return token
+    def download(self, requisition_id):
+        requisition = self._client.requisition.get_requisition_by_id(requisition_id)
+        print(requisition)
+
+        transactions = {}
+        for acc in requisition["accounts"]:
+            account = self._client.account_api(acc)
+
+            retries = 0
+            while retries < 3:
+                try:
+                    downloaded = account.get_transactions()
+                    break
+                except requests.ReadTimeout:
+                    retries += 1
+                    print(f"Request #{retries} timed-out, retrying in 1s")
+                    time.sleep(1)
+
+            if not downloaded:
+                print(f"Couldn't download transactions for {account}")
+                continue
+
+            transactions.update(downloaded)
+
+        return transactions
+
+    def dump(self, bank, downloaded):
+        with open("json/" + bank.name + ".json", "w") as f:
+            json.dump(downloaded, f)
+
+    def generate_token(self):
+        self.token = self._client.generate_token()
+        print(f"New access token: {self.token}")
+        return self.token
 
     def requisition(self, id: str, country: str = "PT"):
         requisition = self._client.initialize_session(
@@ -96,18 +106,6 @@ class PSD2Client(Extract):
 
     def country_banks(self, country: str):
         return self._client.institution.get_institutions(country)
-
-    @property
-    def client(self):
-        return self._client
-
-    @property
-    def banks(self):
-        return self._banks
-
-    @banks.setter
-    def banks(self, value):
-        self._banks = value
 
     @property
     def start(self):
@@ -125,10 +123,20 @@ class PSD2Client(Extract):
     def end(self, value):
         self._end = value
 
-    def __token(self):
-        if token := os.environ.get("TOKEN"):
-            return token
-        else:
-            token = self._client.generate_token()
-            print(f"New access token: {token}")
-            return token["access"]
+    # def __token(self):
+    #     if token := os.environ.get("TOKEN"):
+    #         return token
+    #     else:
+    #         token = self._client.generate_token()
+    #         print(f"New access token: {token}")
+    #         return token["access"]
+
+    @property
+    def token(self):
+        return self._token
+
+    @token.setter
+    def token(self, value):
+        if self._token:
+            print("Replacing existing token with {value}")
+        self._token = value

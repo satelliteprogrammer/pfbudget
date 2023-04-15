@@ -22,7 +22,13 @@ sqlalchemy = "^2.0.9"
 [tool.poetry.group.dev.dependencies]
 black = "^23.3.0"
 flake8 = "^6.0.0"
+pytest = "^7.3.0"
+pytest-cov = "^4.0.0"
+pytest-mock = "^3.10.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[pytest]
+mock_use_standalone_module = true
