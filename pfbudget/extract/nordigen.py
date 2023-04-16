@@ -1,17 +1,31 @@
+from dataclasses import dataclass
+import dotenv
 import json
 import nordigen
+import os
 import requests
 import time
 import uuid
 
-from .credentials import Credentials
 from .exceptions import CredentialsError, DownloadError
+
+dotenv.load_dotenv()
+
+
+@dataclass
+class NordigenCredentials:
+    id: str
+    key: str
+    token: str = ""
+
+    def valid(self) -> bool:
+        return self.id and self.key
 
 
 class NordigenClient:
     redirect_url = "https://murta.dev"
 
-    def __init__(self, credentials: Credentials):
+    def __init__(self, credentials: NordigenCredentials):
         super().__init__()
 
         if not credentials.valid():
@@ -90,3 +104,11 @@ class NordigenClient:
         if self._token:
             print("Replacing existing token with {value}")
         self._token = value
+
+
+class NordigenCredentialsManager:
+    default = NordigenCredentials(
+        os.environ.get("SECRET_ID"),
+        os.environ.get("SECRET_KEY"),
+        os.environ.get("TOKEN"),
+    )

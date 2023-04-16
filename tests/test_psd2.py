@@ -6,9 +6,8 @@ import requests
 import mocks.nordigen as mock
 
 from pfbudget.db.model import Bank, BankTransaction, Nordigen
-from pfbudget.extract.credentials import Credentials
 from pfbudget.extract.exceptions import BankError, CredentialsError
-from pfbudget.extract.nordigen import NordigenClient
+from pfbudget.extract.nordigen import NordigenClient, NordigenCredentials
 from pfbudget.extract.psd2 import PSD2Extractor
 
 
@@ -57,7 +56,7 @@ def mock_requests(monkeypatch):
 
 @pytest.fixture
 def extractor() -> NordigenClient:
-    credentials = Credentials("ID", "KEY", "TOKEN")
+    credentials = NordigenCredentials("ID", "KEY", "TOKEN")
     return PSD2Extractor(NordigenClient(credentials))
 
 
@@ -70,7 +69,7 @@ def bank() -> list[Bank]:
 
 class TestExtractPSD2:
     def test_empty_credentials(self):
-        cred = Credentials("", "")
+        cred = NordigenCredentials("", "")
         with pytest.raises(CredentialsError):
             NordigenClient(cred)
 

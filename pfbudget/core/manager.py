@@ -1,8 +1,6 @@
 import csv
-import dotenv
 from pathlib import Path
 import pickle
-import os
 import webbrowser
 
 from pfbudget.common.types import Operation
@@ -27,12 +25,9 @@ from pfbudget.db.model import (
     Transaction,
     TransactionCategory,
 )
-from pfbudget.extract.credentials import Credentials
-from pfbudget.extract.nordigen import NordigenClient
+from pfbudget.extract.nordigen import NordigenClient, NordigenCredentialsManager
 from pfbudget.extract.parsers import parse_data
 from pfbudget.extract.psd2 import PSD2Extractor
-
-dotenv.load_dotenv()
 
 
 class Manager:
@@ -422,9 +417,4 @@ class Manager:
 
     @staticmethod
     def nordigen_client() -> NordigenClient:
-        credentials = Credentials(
-            os.environ.get("SECRET_ID"),
-            os.environ.get("SECRET_KEY"),
-            os.environ.get("TOKEN"),
-        )
-        return NordigenClient(credentials)
+        return NordigenClient(NordigenCredentialsManager.default)
