@@ -4,7 +4,6 @@ import pickle
 import webbrowser
 
 from pfbudget.common.types import Operation
-from pfbudget.core.categorizer import Categorizer
 from pfbudget.db.client import DbClient
 from pfbudget.db.model import (
     Bank,
@@ -28,6 +27,7 @@ from pfbudget.db.model import (
 from pfbudget.extract.nordigen import NordigenClient, NordigenCredentialsManager
 from pfbudget.extract.parsers import parse_data
 from pfbudget.extract.psd2 import PSD2Extractor
+from pfbudget.transform.categorizer import Categorizer
 
 
 class Manager:
