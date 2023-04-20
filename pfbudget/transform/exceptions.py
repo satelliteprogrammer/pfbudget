@@ -1,0 +1,2 @@
+class MoreThanOneMatchError(Exception):
+    pass

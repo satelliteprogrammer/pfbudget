@@ -28,6 +28,7 @@ from pfbudget.extract.nordigen import NordigenClient, NordigenCredentialsManager
 from pfbudget.extract.parsers import parse_data
 from pfbudget.extract.psd2 import PSD2Extractor
 from pfbudget.transform.categorizer import Categorizer
+from pfbudget.transform.nullifier import Nullifier
 
 
 class Manager:
@@ -100,6 +101,10 @@ class Manager:
                     )
                     categories = session.get(Category)
                     tags = session.get(Tag)
+
+                    null_rules = [cat.rules for cat in categories if cat.name == "null"]
+                    Nullifier(null_rules).transform_inplace(uncategorized)
+
                     Categorizer().rules(uncategorized, categories, tags, params[0])
 
             case Operation.BankMod:

@@ -1,5 +1,4 @@
 from codetiming import Timer
-from datetime import timedelta
 from typing import Sequence
 
 import pfbudget.db.model as t
@@ -29,54 +28,10 @@ class Categorizer:
             tags (Sequence[Tag]): currently available tags
         """
 
-        if nullify:
-            try:
-                null = next(cat for cat in categories if cat.name == "null")
-                print("Nullifying")
-                self._nullify(transactions, null)
-
-            except StopIteration:
-                print("Null category not defined")
-
         categories = [cat for cat in categories if cat.name != "null"]
 
         self._rule_based_categories(transactions, categories)
         self._rule_based_tags(transactions, tags)
-
-    @Timer(name="nullify")
-    def _nullify(self, transactions: Sequence[t.BankTransaction], null: t.Category):
-        count = 0
-        matching = []
-        for transaction in transactions:
-            for cancel in (
-                cancel
-                for cancel in transactions
-                if (
-                    transaction.date - timedelta(days=self.options["null_days"])
-                    <= cancel.date
-                    <= transaction.date + timedelta(days=self.options["null_days"])
-                    and cancel != transaction
-                    and cancel.bank != transaction.bank
-                    and cancel.amount == -transaction.amount
-                    and transaction not in matching
-                    and cancel not in matching
-                    and all(r.matches(transaction) for r in null.rules)
-                    and all(r.matches(cancel) for r in null.rules)
-                )
-            ):
-                transaction.category = t.TransactionCategory(
-                    name="null",
-                    selector=t.CategorySelector(t.Selector_T.nullifier),
-                )
-                cancel.category = t.TransactionCategory(
-                    name="null",
-                    selector=t.CategorySelector(t.Selector_T.nullifier),
-                )
-                matching.extend([transaction, cancel])
-                count += 2
-                break
-
-        print(f"Nullified {count} of {len(transactions)} transactions")
 
     @Timer(name="categoryrules")
     def _rule_based_categories(
