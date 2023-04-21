@@ -29,6 +29,7 @@ from pfbudget.extract.parsers import parse_data
 from pfbudget.extract.psd2 import PSD2Extractor
 from pfbudget.transform.categorizer import Categorizer
 from pfbudget.transform.nullifier import Nullifier
+from pfbudget.transform.tagger import Tagger
 
 
 class Manager:
@@ -106,6 +107,9 @@ class Manager:
                     Nullifier(null_rules).transform_inplace(uncategorized)
 
                     Categorizer().rules(uncategorized, categories, tags, params[0])
+
+                    rules = [rule for tag in tags for rule in tag.rules]
+                    Tagger(rules).transform_inplace(uncategorized)
 
             case Operation.BankMod:
                 with self.db.session() as session:

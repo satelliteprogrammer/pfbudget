@@ -10,9 +10,11 @@ from pfbudget.db.model import (
     CategorySelector,
     Selector_T,
     TransactionCategory,
+    TransactionTag,
 )
 from pfbudget.transform.categorizer import Categorizer
 from pfbudget.transform.nullifier import Nullifier
+from pfbudget.transform.tagger import Tagger
 from pfbudget.transform.transform import Transformer
 
 
@@ -77,6 +79,20 @@ class TestTransform:
                 "null", CategorySelector(Selector_T.nullifier)
             )
 
+    def test_tagger(self):
+        transactions = [
+            BankTransaction(date(2023, 1, 1), "desc#1", Decimal("-10"), "Bank#1")
+        ]
+
+        for t in transactions:
+            assert not t.category
+
+        categorizer = Tagger(mock.tag_1.rules)
+        transactions = categorizer.transform(transactions)
+
+        for t in transactions:
+            assert TransactionTag("tag#1") in t.tags
+
     def test_categorize(self):
         transactions = [
             BankTransaction(date(2023, 1, 1), "desc#1", Decimal("-10"), "Bank#1")
@@ -86,7 +102,7 @@ class TestTransform:
             assert not t.category
 
         categorizer = Categorizer()
-        categorizer.rules(transactions, [mock.category_cat1], [])
+        categorizer.rules(transactions, [mock.category1], [])
 
         for t in transactions:
             assert t.category == TransactionCategory(

@@ -31,7 +31,6 @@ class Categorizer:
         categories = [cat for cat in categories if cat.name != "null"]
 
         self._rule_based_categories(transactions, categories)
-        self._rule_based_tags(transactions, tags)
 
     @Timer(name="categoryrules")
     def _rule_based_categories(
@@ -69,36 +68,6 @@ class Categorizer:
                         transaction.category = t.TransactionCategory(
                             category.name, t.CategorySelector(t.Selector_T.rules)
                         )
-
-                    if rule in d:
-                        d[rule] += 1
-                    else:
-                        d[rule] = 1
-
-        for k, v in d.items():
-            print(f"{v}: {k}")
-
-    @Timer(name="tagrules")
-    def _rule_based_tags(
-        self, transactions: Sequence[t.BankTransaction], tags: Sequence[t.Tag]
-    ):
-        print(f"Tagging {len(transactions)} transactions")
-        d = {}
-        for tag in [t for t in tags if len(t.rules) > 0]:
-            for rule in tag.rules:
-                # for transaction in [t for t in transactions if not t.category]:
-                for transaction in [
-                    t
-                    for t in transactions
-                    if tag.name not in [tag.tag for tag in t.tags]
-                ]:
-                    if not rule.matches(transaction):
-                        continue
-
-                    if not transaction.tags:
-                        transaction.tags = {t.TransactionTag(tag.name)}
-                    else:
-                        transaction.tags.add(t.TransactionTag(tag.name))
 
                     if rule in d:
                         d[rule] += 1
