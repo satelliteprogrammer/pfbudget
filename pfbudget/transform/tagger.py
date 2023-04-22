@@ -1,12 +1,12 @@
 from copy import deepcopy
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from pfbudget.db.model import TagRule, Transaction, TransactionTag
 from .transform import Transformer
 
 
 class Tagger(Transformer):
-    def __init__(self, rules: Sequence[TagRule]):
+    def __init__(self, rules: Iterable[TagRule]):
         self.rules = rules
 
     def transform(self, transactions: Sequence[Transaction]) -> Sequence[Transaction]:
@@ -18,7 +18,7 @@ class Tagger(Transformer):
     def transform_inplace(self, transactions: Sequence[Transaction]) -> None:
         for rule in self.rules:
             for transaction in transactions:
-                if rule.tag in transaction.tags:
+                if rule.tag in [tag.tag for tag in transaction.tags]:
                     continue
 
                 if not rule.matches(transaction):

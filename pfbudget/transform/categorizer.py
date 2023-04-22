@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Sequence
+from typing import Iterable, Sequence
 
 from pfbudget.db.model import (
     CategoryRule,
@@ -13,7 +13,7 @@ from .transform import Transformer
 
 
 class Categorizer(Transformer):
-    def __init__(self, rules: Sequence[CategoryRule]):
+    def __init__(self, rules: Iterable[CategoryRule]):
         self.rules = rules
 
     def transform(self, transactions: Sequence[Transaction]) -> Sequence[Transaction]:

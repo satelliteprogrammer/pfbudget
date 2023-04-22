@@ -1,21 +1,20 @@
-import datetime as dt
-
+from datetime import date
 from typing import Sequence
 
 from pfbudget.db.model import Bank, BankTransaction
 from pfbudget.utils.converters import convert
 
 from .exceptions import BankError, DownloadError, ExtractError
-from .extract import Extract
+from .extract import Extractor
 from .nordigen import NordigenClient
 
 
-class PSD2Extractor(Extract):
+class PSD2Extractor(Extractor):
     def __init__(self, client: NordigenClient):
         self.__client = client
 
     def extract(
-        self, bank: Bank, start=dt.date.min, end=dt.date.max
+        self, bank: Bank, start: date = date.min, end: date = date.max
     ) -> Sequence[BankTransaction]:
         if not bank.nordigen:
             raise BankError("Bank doesn't have Nordigen info")

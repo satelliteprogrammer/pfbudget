@@ -4,7 +4,6 @@ from decimal import Decimal
 import mocks.categories as mock
 
 from pfbudget.db.model import (
-    Bank,
     BankTransaction,
     CategoryRule,
     CategorySelector,
@@ -102,7 +101,7 @@ class TestTransform:
             assert not t.category
 
         categorizer: Transformer = Categorizer(mock.category1.rules)
-        transactions: Transformer = categorizer.transform(transactions)
+        transactions = categorizer.transform(transactions)
 
         for t in transactions:
             assert t.category == TransactionCategory(

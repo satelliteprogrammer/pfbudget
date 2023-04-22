@@ -1,30 +1,32 @@
 import datetime as dt
 from decimal import Decimal
+from typing import Any, Optional
 import pytest
 import requests
 
 import mocks.nordigen as mock
 
-from pfbudget.db.model import Bank, BankTransaction, Nordigen
+from pfbudget.db.model import AccountType, Bank, BankTransaction, Nordigen
 from pfbudget.extract.exceptions import BankError, CredentialsError
+from pfbudget.extract.extract import Extractor
 from pfbudget.extract.nordigen import NordigenClient, NordigenCredentials
 from pfbudget.extract.psd2 import PSD2Extractor
 
 
 class MockGet:
-    def __init__(self, mock_exception=None):
+    def __init__(self, mock_exception: Optional[Exception] = None):
         self._status_code = 200
         self._mock_exception = mock_exception
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any):
         if self._mock_exception:
             raise self._mock_exception
 
-        self._headers = kwargs["headers"]
+        self._headers: dict[str, str] = kwargs["headers"]
         if "Authorization" not in self._headers or not self._headers["Authorization"]:
             self._status_code = 401
 
-        self.url = kwargs["url"]
+        self.url: str = kwargs["url"]
         return self
 
     @property
@@ -47,7 +49,7 @@ class MockGet:
 
 
 @pytest.fixture(autouse=True)
-def mock_requests(monkeypatch):
+def mock_requests(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("requests.get", MockGet())
     monkeypatch.delattr("requests.post")
     monkeypatch.delattr("requests.put")
@@ -55,14 +57,14 @@ def mock_requests(monkeypatch):
 
 
 @pytest.fixture
-def extractor() -> NordigenClient:
+def extractor() -> Extractor:
     credentials = NordigenCredentials("ID", "KEY", "TOKEN")
     return PSD2Extractor(NordigenClient(credentials))
 
 
 @pytest.fixture
-def bank() -> list[Bank]:
-    bank = Bank("Bank#1", "", "")
+def bank() -> Bank:
+    bank = Bank("Bank#1", "", AccountType.checking)
     bank.nordigen = Nordigen("", "", mock.id, False)
     return bank
 
@@ -73,18 +75,20 @@ class TestExtractPSD2:
         with pytest.raises(CredentialsError):
             NordigenClient(cred)
 
-    def test_no_psd2_bank(self, extractor):
+    def test_no_psd2_bank(self, extractor: Extractor):
         with pytest.raises(BankError):
-            extractor.extract(Bank("", "", ""))
+            extractor.extract(Bank("", "", AccountType.checking))
 
-    def test_timeout(self, monkeypatch, extractor, bank):
+    def test_timeout(
+        self, monkeypatch: pytest.MonkeyPatch, extractor: Extractor, bank: Bank
+    ):
         monkeypatch.setattr(
-            "requests.get", MockGet(mock_exception=requests.ReadTimeout)
+            "requests.get", MockGet(mock_exception=requests.ReadTimeout())
         )
         with pytest.raises(requests.Timeout):
             extractor.extract(bank)
 
-    def test_extract(self, extractor, bank):
+    def test_extract(self, extractor: Extractor, bank: Bank):
         assert extractor.extract(bank) == [
             BankTransaction(
                 dt.date(2023, 1, 14), "string", Decimal("328.18"), "Bank#1"
