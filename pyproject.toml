@@ -12,7 +12,7 @@ python = "^3.10"
 codetiming = "^1.4.0"
 matplotlib = "^3.7.1"
 nordigen = "^1.3.1"
-psycopg2 = "^2.9.6"
+psycopg2 = {extras = ["binary"], version = "^2.9.6"}
 python-dateutil = "^2.8.2"
 python-dotenv = "^1.0.0"
 pyyaml = "^6.0"
