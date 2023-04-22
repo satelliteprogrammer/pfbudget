@@ -4,7 +4,7 @@ import pickle
 import webbrowser
 
 from pfbudget.common.types import Operation
-from pfbudget.db.client import DbClient
+from pfbudget.db.postgresql import DbClient
 from pfbudget.db.model import (
     Bank,
     BankTransaction,
