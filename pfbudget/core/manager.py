@@ -103,10 +103,11 @@ class Manager:
                     categories = session.get(Category)
                     tags = session.get(Tag)
 
-                    null_rules = [cat.rules for cat in categories if cat.name == "null"]
-                    Nullifier(null_rules).transform_inplace(uncategorized)
+                    rules = [cat.rules for cat in categories if cat.name == "null"]
+                    Nullifier(rules).transform_inplace(uncategorized)
 
-                    Categorizer().rules(uncategorized, categories, tags, params[0])
+                    rules = [rule for cat in categories for rule in cat.rules]
+                    Categorizer(rules).transform_inplace(uncategorized)
 
                     rules = [rule for tag in tags for rule in tag.rules]
                     Tagger(rules).transform_inplace(uncategorized)
