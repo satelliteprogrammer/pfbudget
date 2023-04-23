@@ -25,7 +25,7 @@ from sqlalchemy.orm import (
 
 class Base(MappedAsDataclass, DeclarativeBase):
     metadata = MetaData(
-        schema="transactions",
+        schema="pfbudget",
         naming_convention={
             "ix": "ix_%(column_0_label)s",
             "uq": "uq_%(table_name)s_%(column_0_name)s",
@@ -58,7 +58,6 @@ class Export:
 
 
 class Bank(Base, Export):
-    __table_args__ = {"schema": "bank"}
     __tablename__ = "banks"
 
     name: Mapped[str] = mapped_column(unique=True)
@@ -151,8 +150,7 @@ class SplitTransaction(Transaction):
 
 
 class CategoryGroup(Base, Export):
-    __table_args__ = {"schema": "category"}
-    __tablename__ = "groups"
+    __tablename__ = "category_groups"
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
@@ -162,8 +160,7 @@ class CategoryGroup(Base, Export):
 
 
 class Category(Base, Export):
-    __table_args__ = {"schema": "category"}
-    __tablename__ = "available"
+    __tablename__ = "categories"
 
     name: Mapped[str] = mapped_column(primary_key=True)
     group: Mapped[Optional[str]] = mapped_column(
@@ -200,7 +197,7 @@ catfk = Annotated[
 
 
 class TransactionCategory(Base, Export):
-    __tablename__ = "categorized"
+    __tablename__ = "transactions_categorized"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     name: Mapped[catfk]
@@ -222,8 +219,7 @@ class Note(Base):
 
 
 class Nordigen(Base, Export):
-    __table_args__ = {"schema": "bank"}
-    __tablename__ = "nordigen"
+    __tablename__ = "banks_nordigen"
 
     name: Mapped[bankfk] = mapped_column(primary_key=True)
     bank_id: Mapped[Optional[str]]
@@ -241,8 +237,7 @@ class Nordigen(Base, Export):
 
 
 class Tag(Base):
-    __table_args__ = {"schema": "tag"}
-    __tablename__ = "available"
+    __tablename__ = "tags"
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
@@ -252,7 +247,7 @@ class Tag(Base):
 
 
 class TransactionTag(Base, Export):
-    __tablename__ = "tagged"
+    __tablename__ = "transactions_tagged"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     tag: Mapped[str] = mapped_column(ForeignKey(Tag.name), primary_key=True)
@@ -281,7 +276,7 @@ categoryselector = Annotated[
 
 
 class CategorySelector(Base, Export):
-    __tablename__ = "selector"
+    __tablename__ = "category_selectors"
 
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -307,8 +302,7 @@ scheduleperiod = Annotated[Selector_T, mapped_column(Enum(Period, inherit_schema
 
 
 class CategorySchedule(Base, Export):
-    __table_args__ = {"schema": "category"}
-    __tablename__ = "schedules"
+    __tablename__ = "category_schedules"
 
     name: Mapped[catfk] = mapped_column(primary_key=True)
     period: Mapped[Optional[scheduleperiod]]
@@ -393,8 +387,7 @@ class Rule(Base, Export):
 
 
 class CategoryRule(Rule):
-    __table_args__ = {"schema": "category"}
-    __tablename__ = "rules"
+    __tablename__ = "category_rules"
 
     id: Mapped[int] = mapped_column(
         BigInteger,
@@ -417,8 +410,7 @@ class CategoryRule(Rule):
 
 
 class TagRule(Rule):
-    __table_args__ = {"schema": "tag"}
-    __tablename__ = "rules"
+    __tablename__ = "tag_rules"
 
     id: Mapped[int] = mapped_column(
         BigInteger,
