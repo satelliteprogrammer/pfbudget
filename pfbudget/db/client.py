@@ -8,7 +8,7 @@ from pfbudget.db.model import Transaction
 
 
 class Client:
-    def __init__(self, url: str, **kwargs: dict[str, Any]) -> None:
+    def __init__(self, url: str, **kwargs: Any) -> None:
         assert url, "Database URL is empty!"
         self._engine = create_engine(url, **kwargs)
         self._sessionmaker: Optional[sessionmaker[Session]] = None

@@ -216,7 +216,9 @@ class TransactionCategory(Base, Export):
 
     @property
     def format(self):
-        return dict(name=self.name, selector=self.selector.format)
+        return dict(
+            name=self.name, selector=self.selector.format if self.selector else None
+        )
 
 
 class Note(Base):

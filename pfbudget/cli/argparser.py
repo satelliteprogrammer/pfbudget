@@ -67,7 +67,7 @@ def argparser() -> argparse.ArgumentParser:
 
     pimport = subparsers.add_parser("import")
     pimport.set_defaults(op=Operation.Import)
-    pimport.add_argument("file", nargs=1, type=str)
+    file_options(pimport)
 
     # Parse from .csv
     parse = subparsers.add_parser("parse")
