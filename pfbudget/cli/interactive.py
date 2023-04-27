@@ -57,7 +57,7 @@ class Interactive:
 
                     case "split":
                         new = self.split(next)
-                        session.add(new)
+                        session.insert(new)
 
                     case other:
                         if not other:
@@ -84,7 +84,7 @@ class Interactive:
                             )
                             for tag in tags:
                                 if tag not in [t.name for t in self.tags]:
-                                    session.add([Tag(tag)])
+                                    session.insert([Tag(tag)])
                                     self.tags = session.get(Tag)
 
                                 next.tags.add(TransactionTag(tag))

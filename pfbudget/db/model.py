@@ -9,6 +9,7 @@ from sqlalchemy import (
     BigInteger,
     Enum,
     ForeignKey,
+    Integer,
     MetaData,
     Numeric,
     String,
@@ -78,7 +79,14 @@ class Bank(Base, Export):
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
 
-idpk = Annotated[int, mapped_column(BigInteger, primary_key=True, autoincrement=True)]
+idpk = Annotated[
+    int,
+    mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"),
+        primary_key=True,
+        autoincrement=True,
+    ),
+]
 money = Annotated[decimal.Decimal, mapped_column(Numeric(16, 2))]
 
 

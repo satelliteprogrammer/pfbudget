@@ -78,7 +78,7 @@ class DbClient:
             )
             return self.__session.scalars(stmt).all()
 
-        def add(self, rows: list):
+        def insert(self, rows: list):
             self.__session.add_all(rows)
 
         def remove_by_name(self, type, rows: list):

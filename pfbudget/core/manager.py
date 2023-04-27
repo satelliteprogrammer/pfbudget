@@ -72,7 +72,7 @@ class Manager:
                     and input(f"{transactions[:5]}\nCommit? (y/n)") == "y"
                 ):
                     with self.db.session() as session:
-                        session.add(sorted(transactions))
+                        session.insert(sorted(transactions))
 
             case Operation.Download:
                 client = Manager.nordigen_client()
@@ -91,7 +91,7 @@ class Manager:
                 # dry-run
                 if not params[2]:
                     with self.db.session() as session:
-                        session.add(sorted(transactions))
+                        session.insert(sorted(transactions))
                 else:
                     print(sorted(transactions))
 
@@ -149,7 +149,7 @@ class Manager:
                 | Operation.TagRuleAdd
             ):
                 with self.db.session() as session:
-                    session.add(params)
+                    session.insert(params)
 
             case Operation.CategoryUpdate:
                 with self.db.session() as session:
@@ -184,7 +184,7 @@ class Manager:
 
             case Operation.GroupAdd:
                 with self.db.session() as session:
-                    session.add(params)
+                    session.insert(params)
 
             case Operation.GroupRemove:
                 assert all(isinstance(param, CategoryGroup) for param in params)
@@ -217,7 +217,7 @@ class Manager:
                             link.category = original.category
 
                     tobelinked = [Link(original.id, link.id) for link in links]
-                    session.add(tobelinked)
+                    session.insert(tobelinked)
 
             case Operation.Dismantle:
                 assert all(isinstance(param, Link) for param in params)
@@ -260,7 +260,7 @@ class Manager:
                         splitted.category = t.category
                         transactions.append(splitted)
 
-                    session.add(transactions)
+                    session.insert(transactions)
 
             case Operation.Export:
                 with self.db.session() as session:
@@ -298,7 +298,7 @@ class Manager:
 
                 if self.certify(transactions):
                     with self.db.session() as session:
-                        session.add(transactions)
+                        session.insert(transactions)
 
             case Operation.ExportBanks:
                 with self.db.session() as session:
@@ -314,7 +314,7 @@ class Manager:
 
                 if self.certify(banks):
                     with self.db.session() as session:
-                        session.add(banks)
+                        session.insert(banks)
 
             case Operation.ExportCategoryRules:
                 with self.db.session() as session:
@@ -325,7 +325,7 @@ class Manager:
 
                 if self.certify(rules):
                     with self.db.session() as session:
-                        session.add(rules)
+                        session.insert(rules)
 
             case Operation.ExportTagRules:
                 with self.db.session() as session:
@@ -336,7 +336,7 @@ class Manager:
 
                 if self.certify(rules):
                     with self.db.session() as session:
-                        session.add(rules)
+                        session.insert(rules)
 
             case Operation.ExportCategories:
                 with self.db.session() as session:
@@ -360,7 +360,7 @@ class Manager:
 
                 if self.certify(categories):
                     with self.db.session() as session:
-                        session.add(categories)
+                        session.insert(categories)
 
             case Operation.ExportCategoryGroups:
                 with self.db.session() as session:
@@ -373,7 +373,7 @@ class Manager:
 
                 if self.certify(groups):
                     with self.db.session() as session:
-                        session.add(groups)
+                        session.insert(groups)
 
     def parse(self, filename: Path, args: dict):
         return parse_data(filename, args)

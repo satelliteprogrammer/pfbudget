@@ -26,7 +26,8 @@ def loader() -> Loader:
 
 class TestDatabaseLoad:
     def test_empty_url(self):
-        _ = FakeDatabaseClient("")
+        with pytest.raises(AssertionError):
+            _ = FakeDatabaseClient("")
 
     def test_insert(self, loader: Loader):
         transactions = [
