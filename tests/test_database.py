@@ -27,3 +27,16 @@ class TestDatabase:
         with client.session as session:
             client.insert(transactions, session)
             assert client.select(Transaction, session) == transactions
+
+    def test_insert_transactions_independent_sessions(self, client: Client):
+        transactions = [
+            Transaction(date(2023, 1, 1), "", Decimal("-500")),
+            Transaction(date(2023, 1, 2), "", Decimal("500")),
+        ]
+
+        client.insert(transactions)
+        result = client.select(Transaction)
+        for i, transaction in enumerate(result):
+            assert transactions[i].date == transaction.date
+            assert transactions[i].description == transaction.description
+            assert transactions[i].amount == transaction.amount

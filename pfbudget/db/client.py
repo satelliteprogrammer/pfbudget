@@ -1,8 +1,9 @@
-from sqlalchemy import Engine, create_engine, select, text
+from copy import deepcopy
+from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from typing import Any, Optional, Sequence, Type, TypeVar
-from pfbudget.db.exceptions import InsertError, SelectError
 
+from pfbudget.db.exceptions import InsertError, SelectError
 from pfbudget.db.model import Transaction
 
 
@@ -16,9 +17,10 @@ class Client:
         self, transactions: Sequence[Transaction], session: Optional[Session] = None
     ) -> None:
         if not session:
+            new = deepcopy(transactions)
             with self.session as session_:
                 try:
-                    session_.add_all(transactions)
+                    session_.add_all(new)
                 except Exception as e:
                     session_.rollback()
                     raise InsertError(e)
@@ -46,16 +48,12 @@ class Client:
                 except Exception as e:
                     session_.rollback()
                     raise SelectError(e)
-                else:
-                    session_.commit()
         else:
             try:
                 result = session.scalars(stmt).all()
             except Exception as e:
                 session.rollback()
                 raise SelectError(e)
-            else:
-                session.commit()
 
         return result
 
