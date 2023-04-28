@@ -25,8 +25,8 @@ class TestDatabase:
         ]
 
         with client.session as session:
-            client.insert(transactions, session)
-            assert client.select(Transaction, session) == transactions
+            session.insert(transactions)
+            assert session.select(Transaction) == transactions
 
     def test_insert_transactions_independent_sessions(self, client: Client):
         transactions = [
