@@ -130,12 +130,12 @@ if __name__ == "__main__":
             keys = {"category", "group"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [type.Category(cat) for cat in args["category"]]
-            params.append(args["group"])
+            params = [{"name": cat, "group": args["group"]} for cat in args["category"]]
 
         case Operation.CategoryRemove:
             assert "category" in args, "argparser ill defined"
-            params = [type.Category(cat) for cat in args["category"]]
+
+            params = args["category"]
 
         case Operation.CategorySchedule:
             keys = {"category", "period", "frequency"}
@@ -246,7 +246,7 @@ if __name__ == "__main__":
 
         case Operation.GroupRemove:
             assert "group" in args, "argparser ill defined"
-            params = [type.CategoryGroup(group) for group in args["group"]]
+            params = args["group"]
 
         case Operation.Forge | Operation.Dismantle:
             keys = {"original", "links"}

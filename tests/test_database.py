@@ -96,3 +96,54 @@ class TestDatabase:
         names = [banks[0].name, banks[1].name]
         result = client.select(Bank, lambda: Bank.name.in_(names))
         assert result == [banks[0], banks[1]]
+
+    def test_update_bank_with_session(self, client: Client, banks: list[Bank]):
+        with client.session as session:
+            name = banks[0].name
+            bank = session.select(Bank, lambda: Bank.name == name)[0]
+            bank.name = "anotherbank"
+
+        result = client.select(Bank, lambda: Bank.name == "anotherbank")
+        assert len(result) == 1
+
+    def test_update_bank(self, client: Client, banks: list[Bank]):
+        name = banks[0].name
+
+        result = client.select(Bank, lambda: Bank.name == name)
+        assert result[0].type == AccountType.checking
+
+        update = {"name": name, "type": AccountType.savings}
+        client.update(Bank, [update])
+
+        result = client.select(Bank, lambda: Bank.name == name)
+        assert result[0].type == AccountType.savings
+
+    def test_update_nordigen(self, client: Client, banks: list[Bank]):
+        name = banks[0].name
+
+        result = client.select(Nordigen, lambda: Nordigen.name == name)
+        assert result[0].requisition_id == "req"
+
+        update = {"name": name, "requisition_id": "anotherreq"}
+        client.update(Nordigen, [update])
+
+        result = client.select(Nordigen, lambda: Nordigen.name == name)
+        assert result[0].requisition_id == "anotherreq"
+
+        result = client.select(Bank, lambda: Bank.name == name)
+        assert getattr(result[0].nordigen, "requisition_id", None) == "anotherreq"
+
+    def test_remove_bank(self, client: Client, banks: list[Bank]):
+        name = banks[0].name
+
+        result = client.select(Bank)
+        assert len(result) == 3
+
+        client.delete(Bank, Bank.name, [name])
+        result = client.select(Bank)
+        assert len(result) == 2
+
+        names = [banks[1].name, banks[2].name]
+        client.delete(Bank, Bank.name, names)
+        result = client.select(Bank)
+        assert len(result) == 0

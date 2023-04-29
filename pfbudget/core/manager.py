@@ -26,7 +26,6 @@ from pfbudget.db.model import (
     Transaction,
     TransactionCategory,
 )
-from pfbudget.db.postgresql import DbClient
 from pfbudget.extract.nordigen import NordigenClient, NordigenCredentialsManager
 from pfbudget.extract.parsers import parse_data
 from pfbudget.extract.psd2 import PSD2Extractor
@@ -111,20 +110,16 @@ class Manager:
                     Tagger(rules).transform_inplace(uncategorized)
 
             case Operation.BankMod:
-                with self.db.session() as session:
-                    session.update(Bank, params)
+                self.database.update(Bank, params)
 
             case Operation.PSD2Mod:
-                with self.db.session() as session:
-                    session.update(Nordigen, params)
+                self.database.update(Nordigen, params)
 
             case Operation.BankDel:
-                with self.db.session() as session:
-                    session.remove_by_name(Bank, params)
+                self.database.delete(Bank, Bank.name, params)
 
             case Operation.PSD2Del:
-                with self.db.session() as session:
-                    session.remove_by_name(Nordigen, params)
+                self.database.delete(Nordigen, Nordigen.name, params)
 
             case Operation.Token:
                 Manager.nordigen_client().generate_token()
@@ -150,40 +145,28 @@ class Manager:
                 self.database.insert(params)
 
             case Operation.CategoryUpdate:
-                with self.db.session() as session:
-                    session.updategroup(*params)
+                self.database.update(Category, params)
 
             case Operation.CategoryRemove:
-                with self.db.session() as session:
-                    session.remove_by_name(Category, params)
+                self.database.delete(Category, Category.name, params)
 
             case Operation.CategorySchedule:
-                with self.db.session() as session:
-                    session.updateschedules(params)
+                raise NotImplementedError
 
             case Operation.RuleRemove:
-                assert all(isinstance(param, int) for param in params)
-                with self.db.session() as session:
-                    session.remove_by_id(CategoryRule, params)
+                self.database.delete(CategoryRule, CategoryRule.id, params)
 
             case Operation.TagRemove:
-                with self.db.session() as session:
-                    session.remove_by_name(Tag, params)
+                self.database.delete(Tag, Tag.name, params)
 
             case Operation.TagRuleRemove:
-                assert all(isinstance(param, int) for param in params)
-                with self.db.session() as session:
-                    session.remove_by_id(TagRule, params)
+                self.database.delete(TagRule, TagRule.id, params)
 
             case Operation.RuleModify | Operation.TagRuleModify:
-                assert all(isinstance(param, dict) for param in params)
-                with self.db.session() as session:
-                    session.update(Rule, params)
+                self.database.update(Rule, params)
 
             case Operation.GroupRemove:
-                assert all(isinstance(param, CategoryGroup) for param in params)
-                with self.db.session() as session:
-                    session.remove_by_name(CategoryGroup, params)
+                self.database.delete(CategoryGroup, CategoryGroup.name, params)
 
             case Operation.Forge:
                 if not (
@@ -192,9 +175,14 @@ class Manager:
                 ):
                     raise TypeError("f{params} are not transaction ids")
 
-                with self.db.session() as session:
-                    original = session.get(Transaction, Transaction.id, params[0])[0]
-                    links = session.get(Transaction, Transaction.id, params[1])
+                with self.database.session as session:
+                    id = params[0]
+                    original = session.select(
+                        Transaction, lambda: Transaction.id == id
+                    )[0]
+
+                    ids = params[1]
+                    links = session.select(Transaction, lambda: Transaction.id.in_(ids))
 
                     if not original.category:
                         original.category = self.askcategory(original)
@@ -214,12 +202,7 @@ class Manager:
                     session.insert(tobelinked)
 
             case Operation.Dismantle:
-                assert all(isinstance(param, Link) for param in params)
-
-                with self.db.session() as session:
-                    original = params[0].original
-                    links = [link.link for link in params]
-                    session.remove_links(original, links)
+                raise NotImplementedError
 
             case Operation.Split:
                 if len(params) < 1 and not all(
@@ -234,8 +217,10 @@ class Manager:
                         f"{original.amount}€ != {sum(v for v, _ in params[1:])}€"
                     )
 
-                with self.db.session() as session:
-                    originals = session.get(Transaction, Transaction.id, [original.id])
+                with self.database.session as session:
+                    originals = session.select(
+                        Transaction, lambda: Transaction.id == original.id
+                    )
                     assert len(originals) == 1, ">1 transactions matched {original.id}!"
 
                     originals[0].split = True
@@ -293,8 +278,7 @@ class Manager:
                     transactions.append(transaction)
 
                 if self.certify(transactions):
-                    with self.db.session() as session:
-                        session.insert(transactions)
+                    self.database.insert(transactions)
 
             case Operation.ExportBanks:
                 with self.database.session as session:
@@ -309,8 +293,7 @@ class Manager:
                     banks.append(bank)
 
                 if self.certify(banks):
-                    with self.db.session() as session:
-                        session.insert(banks)
+                    self.database.insert(banks)
 
             case Operation.ExportCategoryRules:
                 with self.database.session as session:
@@ -324,8 +307,7 @@ class Manager:
                 rules = [CategoryRule(**row) for row in self.load(params[0], params[1])]
 
                 if self.certify(rules):
-                    with self.db.session() as session:
-                        session.insert(rules)
+                    self.database.insert(rules)
 
             case Operation.ExportTagRules:
                 with self.database.session as session:
@@ -337,8 +319,7 @@ class Manager:
                 rules = [TagRule(**row) for row in self.load(params[0], params[1])]
 
                 if self.certify(rules):
-                    with self.db.session() as session:
-                        session.insert(rules)
+                    self.database.insert(rules)
 
             case Operation.ExportCategories:
                 with self.database.session as session:
@@ -363,8 +344,7 @@ class Manager:
                     categories.append(category)
 
                 if self.certify(categories):
-                    with self.db.session() as session:
-                        session.insert(categories)
+                    self.database.insert(categories)
 
             case Operation.ExportCategoryGroups:
                 with self.database.session as session:
@@ -380,8 +360,7 @@ class Manager:
                 ]
 
                 if self.certify(groups):
-                    with self.db.session() as session:
-                        session.insert(groups)
+                    self.database.insert(groups)
 
     def parse(self, filename: Path, args: dict):
         return parse_data(filename, args)
@@ -389,13 +368,12 @@ class Manager:
     def askcategory(self, transaction: Transaction):
         selector = CategorySelector(Selector_T.manual)
 
-        with self.db.session() as session:
-            categories = session.get(Category)
+        categories = self.database.select(Category)
 
-            while True:
-                category = input(f"{transaction}: ")
-                if category in [c.name for c in categories]:
-                    return TransactionCategory(category, selector)
+        while True:
+            category = input(f"{transaction}: ")
+            if category in [c.name for c in categories]:
+                return TransactionCategory(category, selector)
 
     @staticmethod
     def dump(fn, format, sequence):
@@ -429,18 +407,10 @@ class Manager:
         return False
 
     @property
-    def db(self) -> DbClient:
-        return DbClient(self._db, self._verbosity > 2)
-
-    @property
     def database(self) -> Client:
         if not self._database:
             self._database = Client(self._db, echo=self._verbosity > 2)
         return self._database
-
-    @db.setter
-    def db(self, url: str):
-        self._db = url
 
     @staticmethod
     def nordigen_client() -> NordigenClient:

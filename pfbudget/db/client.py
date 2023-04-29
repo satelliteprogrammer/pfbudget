@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 from copy import deepcopy
-from sqlalchemy import Engine, create_engine, select
+from sqlalchemy import Engine, create_engine, delete, select, update
 from sqlalchemy.orm import Session, sessionmaker
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Mapping, Optional, Type, TypeVar
 
 # from pfbudget.db.exceptions import InsertError, SelectError
 
@@ -51,6 +51,14 @@ class Client:
 
     def select(self, what: Type[T], exists: Optional[Any] = None) -> Sequence[T]:
         return self.session.select(what, exists)
+
+    def update(self, what: Type[Any], values: Sequence[Mapping[str, Any]]) -> None:
+        with self._sessionmaker() as session, session.begin():
+            session.execute(update(what), values)
+
+    def delete(self, what: Type[Any], column: Any, values: Sequence[str]) -> None:
+        with self._sessionmaker() as session, session.begin():
+            session.execute(delete(what).where(column.in_(values)))
 
     @property
     def engine(self) -> Engine:
