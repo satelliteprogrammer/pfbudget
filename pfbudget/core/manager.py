@@ -29,6 +29,7 @@ from pfbudget.db.model import (
 from pfbudget.extract.nordigen import NordigenClient, NordigenCredentialsManager
 from pfbudget.extract.parsers import parse_data
 from pfbudget.extract.psd2 import PSD2Extractor
+from pfbudget.load.database import DatabaseLoader
 from pfbudget.transform.categorizer import Categorizer
 from pfbudget.transform.nullifier import Nullifier
 from pfbudget.transform.tagger import Tagger
@@ -80,17 +81,19 @@ class Manager:
                 else:
                     banks = self.database.select(Bank, Bank.nordigen)
 
-                client = Manager.nordigen_client()
-                extractor = PSD2Extractor(client)
+                extractor = PSD2Extractor(Manager.nordigen_client())
+
                 transactions = []
                 for bank in banks:
                     transactions.extend(extractor.extract(bank, params[0], params[1]))
 
                 # dry-run
-                if not params[2]:
-                    self.database.insert(sorted(transactions))
-                else:
+                if params[2]:
                     print(sorted(transactions))
+                    return
+
+                loader = DatabaseLoader(self.database)
+                loader.load(sorted(transactions))
 
             case Operation.Categorize:
                 with self.database.session as session:
