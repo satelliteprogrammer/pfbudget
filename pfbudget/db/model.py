@@ -61,9 +61,9 @@ class Export:
 class Bank(Base, Export):
     __tablename__ = "banks"
 
-    name: Mapped[str] = mapped_column(unique=True)
-    BIC: Mapped[str] = mapped_column(String(8), primary_key=True)
-    type: Mapped[accounttype] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(primary_key=True)
+    BIC: Mapped[str] = mapped_column(String(8))
+    type: Mapped[accounttype]
 
     nordigen: Mapped[Optional[Nordigen]] = relationship(lazy="joined", init=False)
 
