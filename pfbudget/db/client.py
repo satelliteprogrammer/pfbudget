@@ -1,10 +1,10 @@
+from collections.abc import Sequence
 from copy import deepcopy
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
-from typing import Any, Optional, Sequence, Type, TypeVar
+from typing import Any, Optional, Type, TypeVar
 
 # from pfbudget.db.exceptions import InsertError, SelectError
-from pfbudget.db.model import Transaction
 
 
 class DatabaseSession:
@@ -22,15 +22,14 @@ class DatabaseSession:
             self.__session.commit()
         self.__session.close()
 
-    def insert(self, transactions: Sequence[Transaction]) -> None:
-        self.__session.add_all(transactions)
+    def insert(self, sequence: Sequence[Any]) -> None:
+        self.__session.add_all(sequence)
 
     T = TypeVar("T")
-    C = TypeVar("C")
 
-    def select(self, what: Type[T], exists: Optional[Type[C]] = None) -> Sequence[T]:
+    def select(self, what: Type[T], exists: Optional[Any] = None) -> Sequence[T]:
         if exists:
-            stmt = select(what).where(exists)
+            stmt = select(what).filter(exists)
         else:
             stmt = select(what)
 
@@ -41,17 +40,16 @@ class Client:
     def __init__(self, url: str, **kwargs: Any):
         assert url, "Database URL is empty!"
         self._engine = create_engine(url, **kwargs)
-        self._sessionmaker: Optional[sessionmaker[Session]] = None
+        self._sessionmaker = sessionmaker(self._engine)
 
-    def insert(self, transactions: Sequence[Transaction]) -> None:
-        new = deepcopy(transactions)
+    def insert(self, sequence: Sequence[Any]) -> None:
+        new = deepcopy(sequence)
         with self.session as session:
             session.insert(new)
 
     T = TypeVar("T")
-    C = TypeVar("C")
 
-    def select(self, what: Type[T], exists: Optional[Type[C]] = None) -> Sequence[T]:
+    def select(self, what: Type[T], exists: Optional[Any] = None) -> Sequence[T]:
         return self.session.select(what, exists)
 
     @property
@@ -60,7 +58,4 @@ class Client:
 
     @property
     def session(self) -> DatabaseSession:
-        if not self._sessionmaker:
-            self._sessionmaker = sessionmaker(self._engine)
-
         return DatabaseSession(self._sessionmaker())

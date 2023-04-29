@@ -72,18 +72,16 @@ class Manager:
                     len(transactions) > 0
                     and input(f"{transactions[:5]}\nCommit? (y/n)") == "y"
                 ):
-                    with self.db.session() as session:
-                        session.insert(sorted(transactions))
+                    self.database.insert(sorted(transactions))
 
             case Operation.Download:
-                client = Manager.nordigen_client()
-                with self.db.session() as session:
-                    if len(params[3]) == 0:
-                        banks = session.get(Bank, Bank.nordigen)
-                    else:
-                        banks = session.get(Bank, Bank.name, params[3])
-                    session.expunge_all()
+                if params[3]:
+                    values = params[3]
+                    banks = self.database.select(Bank, lambda: Bank.name.in_(values))
+                else:
+                    banks = self.database.select(Bank, Bank.nordigen)
 
+                client = Manager.nordigen_client()
                 extractor = PSD2Extractor(client)
                 transactions = []
                 for bank in banks:
@@ -91,18 +89,17 @@ class Manager:
 
                 # dry-run
                 if not params[2]:
-                    with self.db.session() as session:
-                        session.insert(sorted(transactions))
+                    self.database.insert(sorted(transactions))
                 else:
                     print(sorted(transactions))
 
             case Operation.Categorize:
-                with self.db.session() as session:
-                    uncategorized = session.get(
-                        BankTransaction, ~BankTransaction.category.has()
+                with self.database.session as session:
+                    uncategorized = session.select(
+                        BankTransaction, lambda: ~BankTransaction.category.has()
                     )
-                    categories = session.get(Category)
-                    tags = session.get(Tag)
+                    categories = session.select(Category)
+                    tags = session.select(Tag)
 
                     rules = [cat.rules for cat in categories if cat.name == "null"]
                     Nullifier(rules).transform_inplace(uncategorized)
@@ -144,13 +141,13 @@ class Manager:
             case (
                 Operation.BankAdd
                 | Operation.CategoryAdd
+                | Operation.GroupAdd
                 | Operation.PSD2Add
                 | Operation.RuleAdd
                 | Operation.TagAdd
                 | Operation.TagRuleAdd
             ):
-                with self.db.session() as session:
-                    session.insert(params)
+                self.database.insert(params)
 
             case Operation.CategoryUpdate:
                 with self.db.session() as session:
@@ -182,10 +179,6 @@ class Manager:
                 assert all(isinstance(param, dict) for param in params)
                 with self.db.session() as session:
                     session.update(Rule, params)
-
-            case Operation.GroupAdd:
-                with self.db.session() as session:
-                    session.insert(params)
 
             case Operation.GroupRemove:
                 assert all(isinstance(param, CategoryGroup) for param in params)
@@ -436,7 +429,7 @@ class Manager:
         return False
 
     @property
-    def db(self) -> Client:
+    def db(self) -> DbClient:
         return DbClient(self._db, self._verbosity > 2)
 
     @property

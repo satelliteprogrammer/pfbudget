@@ -53,7 +53,7 @@ if __name__ == "__main__":
             if not args["all"]:
                 params.append(args["banks"])
             else:
-                params.append([])
+                params.append(None)
 
         case Operation.BankAdd:
             keys = {"bank", "bic", "type"}
