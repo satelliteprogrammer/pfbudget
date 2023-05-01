@@ -91,9 +91,9 @@ class TestExtractPSD2:
     def test_extract(self, extractor: Extractor, bank: Bank):
         assert extractor.extract(bank) == [
             BankTransaction(
-                dt.date(2023, 1, 14), "string", Decimal("328.18"), "Bank#1"
+                dt.date(2023, 1, 14), "string", Decimal("328.18"), bank="Bank#1"
             ),
             BankTransaction(
-                dt.date(2023, 2, 14), "string", Decimal("947.26"), "Bank#1"
+                dt.date(2023, 2, 14), "string", Decimal("947.26"), bank="Bank#1"
             ),
         ]

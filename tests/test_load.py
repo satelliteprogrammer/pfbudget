@@ -31,8 +31,8 @@ class TestDatabaseLoad:
 
     def test_insert(self, loader: Loader):
         transactions = [
-            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), "Bank#1"),
-            BankTransaction(date(2023, 1, 2), "", Decimal("500"), "Bank#2"),
+            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 2), "", Decimal("500"), bank="Bank#2"),
         ]
 
         loader.load(transactions)

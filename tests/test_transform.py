@@ -20,8 +20,8 @@ from pfbudget.transform.transform import Transformer
 class TestTransform:
     def test_nullifier(self):
         transactions = [
-            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), "Bank#1"),
-            BankTransaction(date(2023, 1, 2), "", Decimal("500"), "Bank#2"),
+            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 2), "", Decimal("500"), bank="Bank#2"),
         ]
 
         for t in transactions:
@@ -37,8 +37,8 @@ class TestTransform:
 
     def test_nullifier_inplace(self):
         transactions = [
-            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), "Bank#1"),
-            BankTransaction(date(2023, 1, 2), "", Decimal("500"), "Bank#2"),
+            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 2), "", Decimal("500"), bank="Bank#2"),
         ]
 
         for t in transactions:
@@ -54,14 +54,14 @@ class TestTransform:
 
     def test_nullifier_with_rules(self):
         transactions = [
-            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), "Bank#1"),
-            BankTransaction(date(2023, 1, 2), "", Decimal("500"), "Bank#2"),
+            BankTransaction(date(2023, 1, 1), "", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 2), "", Decimal("500"), bank="Bank#2"),
         ]
 
         for t in transactions:
             assert not t.category
 
-        rules = [CategoryRule(None, None, None, None, "Bank#1", None, None, "null")]
+        rules = [CategoryRule("null", bank="Bank#1")]
 
         categorizer: Transformer = Nullifier(rules)
         transactions = categorizer.transform(transactions)
@@ -69,7 +69,7 @@ class TestTransform:
         for t in transactions:
             assert not t.category
 
-        rules.append(CategoryRule(None, None, None, None, "Bank#2", None, None, "null"))
+        rules.append(CategoryRule("null", bank="Bank#2"))
         categorizer = Nullifier(rules)
         transactions = categorizer.transform(transactions)
 
@@ -80,7 +80,7 @@ class TestTransform:
 
     def test_tagger(self):
         transactions = [
-            BankTransaction(date(2023, 1, 1), "desc#1", Decimal("-10"), "Bank#1")
+            BankTransaction(date(2023, 1, 1), "desc#1", Decimal("-10"), bank="Bank#1")
         ]
 
         for t in transactions:
@@ -94,7 +94,7 @@ class TestTransform:
 
     def test_categorize(self):
         transactions = [
-            BankTransaction(date(2023, 1, 1), "desc#1", Decimal("-10"), "Bank#1")
+            BankTransaction(date(2023, 1, 1), "desc#1", Decimal("-10"), bank="Bank#1")
         ]
 
         for t in transactions:

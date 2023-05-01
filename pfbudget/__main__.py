@@ -163,14 +163,14 @@ if __name__ == "__main__":
 
             params = [
                 type.CategoryRule(
-                    args["start"][0] if args["start"] else None,
-                    args["end"][0] if args["end"] else None,
-                    args["description"][0] if args["description"] else None,
-                    args["regex"][0] if args["regex"] else None,
-                    args["bank"][0] if args["bank"] else None,
-                    args["min"][0] if args["min"] else None,
-                    args["max"][0] if args["max"] else None,
                     cat,
+                    start=args["start"][0] if args["start"] else None,
+                    end=args["end"][0] if args["end"] else None,
+                    description=args["description"][0] if args["description"] else None,
+                    regex=args["regex"][0] if args["regex"] else None,
+                    bank=args["bank"][0] if args["bank"] else None,
+                    min=args["min"][0] if args["min"] else None,
+                    max=args["max"][0] if args["max"] else None,
                 )
                 for cat in args["category"]
             ]
@@ -215,14 +215,14 @@ if __name__ == "__main__":
 
             params = [
                 type.TagRule(
-                    args["start"][0] if args["start"] else None,
-                    args["end"][0] if args["end"] else None,
-                    args["description"][0] if args["description"] else None,
-                    args["regex"][0] if args["regex"] else None,
-                    args["bank"][0] if args["bank"] else None,
-                    args["min"][0] if args["min"] else None,
-                    args["max"][0] if args["max"] else None,
                     tag,
+                    start=args["start"][0] if args["start"] else None,
+                    end=args["end"][0] if args["end"] else None,
+                    description=args["description"][0] if args["description"] else None,
+                    regex=args["regex"][0] if args["regex"] else None,
+                    bank=args["bank"][0] if args["bank"] else None,
+                    min=args["min"][0] if args["min"] else None,
+                    max=args["max"][0] if args["max"] else None,
                 )
                 for tag in args["tag"]
             ]

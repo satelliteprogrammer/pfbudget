@@ -65,7 +65,7 @@ class Bank(Base, Export):
     BIC: Mapped[str] = mapped_column(String(8))
     type: Mapped[accounttype]
 
-    nordigen: Mapped[Optional[Nordigen]] = relationship(lazy="joined", init=False)
+    nordigen: Mapped[Optional[Nordigen]] = relationship(init=False)
 
     @property
     def format(self) -> dict[str, Any]:
@@ -98,16 +98,17 @@ class Transaction(Base, Export):
     description: Mapped[Optional[str]]
     amount: Mapped[money]
 
-    split: Mapped[bool] = mapped_column(init=False, default=False)
+    split: Mapped[bool] = mapped_column(default=False)
+
+    category: Mapped[Optional[TransactionCategory]] = relationship(
+        back_populates="transaction", default=None
+    )
+    tags: Mapped[set[TransactionTag]] = relationship(default_factory=set)
+    note: Mapped[Optional[Note]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, default=None
+    )
 
     type: Mapped[str] = mapped_column(init=False)
-
-    category: Mapped[Optional[TransactionCategory]] = relationship(init=False)
-    note: Mapped[Optional[Note]] = relationship(
-        cascade="all, delete-orphan", init=False, passive_deletes=True
-    )
-    tags: Mapped[set[TransactionTag]] = relationship(init=False)
-
     __mapper_args__ = {"polymorphic_on": "type", "polymorphic_identity": "transaction"}
 
     @property
@@ -134,7 +135,7 @@ idfk = Annotated[
 
 
 class BankTransaction(Transaction):
-    bank: Mapped[bankfk] = mapped_column(nullable=True)
+    bank: Mapped[Optional[bankfk]] = mapped_column(default=None)
 
     __mapper_args__ = {"polymorphic_identity": "bank", "polymorphic_load": "inline"}
 
@@ -148,7 +149,7 @@ class MoneyTransaction(Transaction):
 
 
 class SplitTransaction(Transaction):
-    original: Mapped[idfk] = mapped_column(nullable=True)
+    original: Mapped[Optional[idfk]] = mapped_column(default=None)
 
     __mapper_args__ = {"polymorphic_identity": "split", "polymorphic_load": "inline"}
 
@@ -204,6 +205,15 @@ catfk = Annotated[
 ]
 
 
+class Selector_T(enum.Enum):
+    unknown = enum.auto()
+    nullifier = enum.auto()
+    vacations = enum.auto()
+    rules = enum.auto()
+    algorithm = enum.auto()
+    manual = enum.auto()
+
+
 class TransactionCategory(Base, Export):
     __tablename__ = "transactions_categorized"
 
@@ -211,7 +221,11 @@ class TransactionCategory(Base, Export):
     name: Mapped[catfk]
 
     selector: Mapped[CategorySelector] = relationship(
-        cascade="all, delete-orphan", lazy="joined"
+        cascade="all, delete-orphan", default=Selector_T.unknown
+    )
+
+    transaction: Mapped[Transaction] = relationship(
+        back_populates="category", init=False, compare=False
     )
 
     @property
@@ -234,7 +248,7 @@ class Nordigen(Base, Export):
     name: Mapped[bankfk] = mapped_column(primary_key=True)
     bank_id: Mapped[Optional[str]]
     requisition_id: Mapped[Optional[str]]
-    invert: Mapped[Optional[bool]]
+    invert: Mapped[Optional[bool]] = mapped_column(default=None)
 
     @property
     def format(self) -> dict[str, Any]:
@@ -270,18 +284,9 @@ class TransactionTag(Base, Export):
         return hash(self.id)
 
 
-class Selector_T(enum.Enum):
-    unknown = enum.auto()
-    nullifier = enum.auto()
-    vacations = enum.auto()
-    rules = enum.auto()
-    algorithm = enum.auto()
-    manual = enum.auto()
-
-
 categoryselector = Annotated[
     Selector_T,
-    mapped_column(Enum(Selector_T, inherit_schema=True), default=Selector_T.unknown),
+    mapped_column(Enum(Selector_T, inherit_schema=True)),
 ]
 
 
@@ -294,7 +299,7 @@ class CategorySelector(Base, Export):
         primary_key=True,
         init=False,
     )
-    selector: Mapped[categoryselector]
+    selector: Mapped[categoryselector] = mapped_column(default=Selector_T.unknown)
 
     @property
     def format(self):
@@ -336,7 +341,7 @@ class Link(Base):
     link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
-class Rule(Base, Export):
+class Rule(Base, Export, init=False):
     __tablename__ = "rules"
 
     id: Mapped[idpk] = mapped_column(init=False)
@@ -354,6 +359,10 @@ class Rule(Base, Export):
         "polymorphic_identity": "rule",
         "polymorphic_on": "type",
     }
+
+    def __init__(self, **kwargs: Any) -> None:
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def matches(self, t: BankTransaction) -> bool:
         valid = None
@@ -415,6 +424,10 @@ class CategoryRule(Rule):
     def format(self) -> dict[str, Any]:
         return super().format | dict(name=self.name)
 
+    def __init__(self, name: str, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.name = name
+
     def __hash__(self):
         return hash(self.id)
 
@@ -437,6 +450,10 @@ class TagRule(Rule):
     @property
     def format(self) -> dict[str, Any]:
         return super().format | dict(tag=self.tag)
+
+    def __init__(self, name: str, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.tag = name
 
     def __hash__(self):
         return hash(self.id)

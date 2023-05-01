@@ -39,12 +39,16 @@ def banks(client: Client) -> list[Bank]:
 @pytest.fixture
 def transactions(client: Client) -> list[Transaction]:
     transactions = [
-        Transaction(date(2023, 1, 1), "", Decimal("-10")),
+        Transaction(
+            date(2023, 1, 1),
+            "",
+            Decimal("-10"),
+            category=TransactionCategory(
+                "category", CategorySelector(Selector_T.algorithm)
+            ),
+        ),
         Transaction(date(2023, 1, 2), "", Decimal("-50")),
     ]
-    transactions[0].category = TransactionCategory(
-        "name", CategorySelector(Selector_T.algorithm)
-    )
 
     client.insert(transactions)
     for i, transaction in enumerate(transactions):
