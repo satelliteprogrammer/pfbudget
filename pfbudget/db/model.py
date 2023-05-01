@@ -3,7 +3,7 @@ import datetime as dt
 import decimal
 import enum
 import re
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any, Callable, Optional
 
 from sqlalchemy import (
     BigInteger,
@@ -270,7 +270,7 @@ class Tag(Base):
     )
 
 
-class TransactionTag(Base, Export):
+class TransactionTag(Base, Export, unsafe_hash=True):
     __tablename__ = "transactions_tagged"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
@@ -279,9 +279,6 @@ class TransactionTag(Base, Export):
     @property
     def format(self):
         return dict(tag=self.tag)
-
-    def __hash__(self):
-        return hash(self.id)
 
 
 categoryselector = Annotated[
@@ -341,7 +338,7 @@ class Link(Base):
     link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
-class Rule(Base, Export, init=False):
+class Rule(Base, Export, init=False, unsafe_hash=True):
     __tablename__ = "rules"
 
     id: Mapped[idpk] = mapped_column(init=False)
@@ -401,7 +398,7 @@ class Rule(Base, Export, init=False):
         )
 
     @staticmethod
-    def exists(r, op) -> bool:
+    def exists(r: Optional[Any], op: Callable[[Any], bool]) -> bool:
         return op(r) if r is not None else True
 
 
@@ -428,9 +425,6 @@ class CategoryRule(Rule):
         super().__init__(**kwargs)
         self.name = name
 
-    def __hash__(self):
-        return hash(self.id)
-
 
 class TagRule(Rule):
     __tablename__ = "tag_rules"
@@ -454,6 +448,3 @@ class TagRule(Rule):
     def __init__(self, name: str, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.tag = name
-
-    def __hash__(self):
-        return hash(self.id)
