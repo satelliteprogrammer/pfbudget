@@ -53,9 +53,9 @@ def transactions(client: Client) -> list[Transaction]:
     client.insert(transactions)
     for i, transaction in enumerate(transactions):
         transaction.id = i + 1
-        transaction.split = False  # default
-    transactions[0].category.id = 1
-    transactions[0].category.selector.id = 1
+        if transaction.category:
+            transaction.category.id = 1
+            transaction.category.selector.id = 1
 
     return transactions
 
