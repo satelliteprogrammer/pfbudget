@@ -51,6 +51,12 @@ class Operation(Enum):
     ImportCategoryGroups = auto()
 
 
+class ExportFormat(Enum):
+    CSV = auto()
+    JSON = auto()
+    pickle = auto()
+
+
 class TransactionError(Exception):
     pass
 
