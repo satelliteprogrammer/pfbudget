@@ -52,7 +52,6 @@ class Operation(Enum):
 
 
 class ExportFormat(Enum):
-    CSV = auto()
     JSON = auto()
     pickle = auto()
 

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import csv
 import json
 from pathlib import Path
 import pickle
@@ -29,9 +28,6 @@ class ExportCommand(Command):
     def execute(self) -> None:
         values = self.__client.select(self.what)
         match self.format:
-            case ExportFormat.CSV:
-                with open(self.fn, "w", newline="") as f:
-                    csv.writer(f).writerows([serialize(e) for e in values])
             case ExportFormat.JSON:
                 with open(self.fn, "w", newline="") as f:
                     json.dump([serialize(e) for e in values], f, indent=4, default=str)

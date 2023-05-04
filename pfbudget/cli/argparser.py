@@ -60,11 +60,12 @@ def argparser() -> argparse.ArgumentParser:
     # init = subparsers.add_parser("init")
     # init.set_defaults(op=Operation.Init)
 
-    # Exports transactions to .csv file
+    # Exports transactions to specified format and file
     export = subparsers.add_parser("export")
     export.set_defaults(op=Operation.Export)
     file_options(export)
 
+    # Imports transactions from specified format and file
     pimport = subparsers.add_parser("import")
     pimport.set_defaults(op=Operation.Import)
     file_options(pimport)

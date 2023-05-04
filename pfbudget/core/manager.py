@@ -1,4 +1,3 @@
-import csv
 import json
 from pathlib import Path
 import pickle
@@ -363,9 +362,6 @@ class Manager:
         if format == "pickle":
             with open(fn, "wb") as f:
                 pickle.dump([e.format for e in sequence], f)
-        elif format == "csv":
-            with open(fn, "w", newline="") as f:
-                csv.writer(f).writerows([e.format.values() for e in sequence])
         elif format == "json":
             with open(fn, "w", newline="") as f:
                 json.dump([e.format for e in sequence], f, indent=4, default=str)
@@ -377,8 +373,6 @@ class Manager:
         if format == "pickle":
             with open(fn, "rb") as f:
                 return pickle.load(f)
-        elif format == "csv":
-            raise Exception("CSV import not supported")
         else:
             print("format not well specified")
             return []
