@@ -245,10 +245,7 @@ class Manager:
                     session.insert(transactions)
 
             case Operation.Export:
-                with self.database.session as session:
-                    self.dump(
-                        params[0], params[1], self.database.select(Transaction, session)
-                    )
+                self.dump(params[0], params[1], self.database.select(Transaction))
 
             case Operation.Import:
                 transactions = []
@@ -284,8 +281,7 @@ class Manager:
                     self.database.insert(transactions)
 
             case Operation.ExportBanks:
-                with self.database.session as session:
-                    self.dump(params[0], params[1], self.database.select(Bank, session))
+                self.dump(params[0], params[1], self.database.select(Bank))
 
             case Operation.ImportBanks:
                 banks = []
@@ -299,12 +295,7 @@ class Manager:
                     self.database.insert(banks)
 
             case Operation.ExportCategoryRules:
-                with self.database.session as session:
-                    self.dump(
-                        params[0],
-                        params[1],
-                        self.database.select(CategoryRule, session),
-                    )
+                self.dump(params[0], params[1], self.database.select(CategoryRule))
 
             case Operation.ImportCategoryRules:
                 rules = [CategoryRule(**row) for row in self.load(params[0], params[1])]
@@ -313,10 +304,7 @@ class Manager:
                     self.database.insert(rules)
 
             case Operation.ExportTagRules:
-                with self.database.session as session:
-                    self.dump(
-                        params[0], params[1], self.database.select(TagRule, session)
-                    )
+                self.dump(params[0], params[1], self.database.select(TagRule))
 
             case Operation.ImportTagRules:
                 rules = [TagRule(**row) for row in self.load(params[0], params[1])]
@@ -325,10 +313,7 @@ class Manager:
                     self.database.insert(rules)
 
             case Operation.ExportCategories:
-                with self.database.session as session:
-                    self.dump(
-                        params[0], params[1], self.database.select(Category, session)
-                    )
+                self.dump(params[0], params[1], self.database.select(Category))
 
             case Operation.ImportCategories:
                 # rules = [Category(**row) for row in self.load(params[0])]
@@ -350,12 +335,7 @@ class Manager:
                     self.database.insert(categories)
 
             case Operation.ExportCategoryGroups:
-                with self.database.session as session:
-                    self.dump(
-                        params[0],
-                        params[1],
-                        self.database.select(CategoryGroup, session),
-                    )
+                self.dump(params[0], params[1], self.database.select(CategoryGroup))
 
             case Operation.ImportCategoryGroups:
                 groups = [
