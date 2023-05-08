@@ -22,6 +22,9 @@ class DatabaseSession:
             self.__session.commit()
         self.__session.close()
 
+    def close(self):
+        self.__session.close()
+
     def insert(self, sequence: Sequence[Any]) -> None:
         self.__session.add_all(sequence)
 
@@ -33,7 +36,7 @@ class DatabaseSession:
         else:
             stmt = select(what)
 
-        return self.__session.scalars(stmt).all()
+        return self.__session.scalars(stmt).unique().all()
 
 
 class Client:
@@ -50,7 +53,10 @@ class Client:
     T = TypeVar("T")
 
     def select(self, what: Type[T], exists: Optional[Any] = None) -> Sequence[T]:
-        return self.session.select(what, exists)
+        session = self.session
+        result = session.select(what, exists)
+        session.close()
+        return result
 
     def update(self, what: Type[Any], values: Sequence[Mapping[str, Any]]) -> None:
         with self._sessionmaker() as session, session.begin():

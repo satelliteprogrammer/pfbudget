@@ -65,7 +65,7 @@ class Bank(Base, Export):
     BIC: Mapped[str] = mapped_column(String(8))
     type: Mapped[accounttype]
 
-    nordigen: Mapped[Optional[Nordigen]] = relationship(init=False)
+    nordigen: Mapped[Optional[Nordigen]] = relationship(init=False, lazy="joined")
 
     @property
     def format(self) -> dict[str, Any]:
@@ -101,11 +101,11 @@ class Transaction(Base, Export):
     split: Mapped[bool] = mapped_column(default=False)
 
     category: Mapped[Optional[TransactionCategory]] = relationship(
-        back_populates="transaction", default=None
+        back_populates="transaction", default=None, lazy="joined"
     )
-    tags: Mapped[set[TransactionTag]] = relationship(default_factory=set)
+    tags: Mapped[set[TransactionTag]] = relationship(default_factory=set, lazy="joined")
     note: Mapped[Optional[Note]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True, default=None
+        cascade="all, delete-orphan", passive_deletes=True, default=None, lazy="joined"
     )
 
     type: Mapped[str] = mapped_column(init=False)
@@ -221,7 +221,7 @@ class TransactionCategory(Base, Export):
     name: Mapped[catfk]
 
     selector: Mapped[CategorySelector] = relationship(
-        cascade="all, delete-orphan", default=Selector_T.unknown
+        cascade="all, delete-orphan", default=Selector_T.unknown, lazy="joined"
     )
 
     transaction: Mapped[Transaction] = relationship(
