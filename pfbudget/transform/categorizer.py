@@ -4,7 +4,6 @@ from typing import Iterable, Sequence
 from pfbudget.db.model import (
     CategoryRule,
     CategorySelector,
-    Selector_T,
     Transaction,
     TransactionCategory,
 )
@@ -32,5 +31,5 @@ class Categorizer(Transformer):
                     continue
 
                 transaction.category = TransactionCategory(
-                    rule.name, CategorySelector(Selector_T.rules)
+                    rule.name, CategorySelector.rules
                 )

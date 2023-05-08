@@ -3,9 +3,8 @@ import decimal
 from ..core.manager import Manager
 from ..db.model import (
     Category,
-    CategorySelector,
     Note,
-    Selector_T,
+    CategorySelector,
     SplitTransaction,
     Tag,
     Transaction,
@@ -16,7 +15,7 @@ from ..db.model import (
 
 class Interactive:
     help = "category(:tag)/split/note:/skip/quit"
-    selector = Selector_T.manual
+    selector = CategorySelector.manual
 
     def __init__(self, manager: Manager) -> None:
         self.manager = manager
@@ -79,9 +78,7 @@ class Interactive:
                             if len(ct) > 1:
                                 tags = ct[1:]
 
-                            next.category = TransactionCategory(
-                                category, CategorySelector(self.selector)
-                            )
+                            next.category = TransactionCategory(category, self.selector)
                             for tag in tags:
                                 if tag not in [t.name for t in self.tags]:
                                     session.insert([Tag(tag)])

@@ -7,7 +7,6 @@ from pfbudget.db.model import (
     BankTransaction,
     CategoryRule,
     CategorySelector,
-    Selector_T,
     TransactionCategory,
     TransactionTag,
 )
@@ -31,9 +30,7 @@ class TestTransform:
         transactions = categorizer.transform(transactions)
 
         for t in transactions:
-            assert t.category == TransactionCategory(
-                "null", CategorySelector(Selector_T.nullifier)
-            )
+            assert t.category == TransactionCategory("null", CategorySelector.nullifier)
 
     def test_nullifier_inplace(self):
         transactions = [
@@ -48,9 +45,7 @@ class TestTransform:
         categorizer.transform_inplace(transactions)
 
         for t in transactions:
-            assert t.category == TransactionCategory(
-                "null", CategorySelector(Selector_T.nullifier)
-            )
+            assert t.category == TransactionCategory("null", CategorySelector.nullifier)
 
     def test_nullifier_with_rules(self):
         transactions = [
@@ -74,9 +69,7 @@ class TestTransform:
         transactions = categorizer.transform(transactions)
 
         for t in transactions:
-            assert t.category == TransactionCategory(
-                "null", CategorySelector(Selector_T.nullifier)
-            )
+            assert t.category == TransactionCategory("null", CategorySelector.nullifier)
 
     def test_tagger(self):
         transactions = [
@@ -104,6 +97,4 @@ class TestTransform:
         transactions = categorizer.transform(transactions)
 
         for t in transactions:
-            assert t.category == TransactionCategory(
-                "cat#1", CategorySelector(Selector_T.rules)
-            )
+            assert t.category == TransactionCategory("cat#1", CategorySelector.rules)

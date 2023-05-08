@@ -13,12 +13,11 @@ from pfbudget.db.model import (
     CategoryGroup,
     CategoryRule,
     CategorySchedule,
-    CategorySelector,
     Link,
     MoneyTransaction,
     Nordigen,
     Rule,
-    Selector_T,
+    CategorySelector,
     SplitTransaction,
     Tag,
     TagRule,
@@ -270,8 +269,7 @@ class Manager:
 
                     if category := row.pop("category", None):
                         transaction.category = TransactionCategory(
-                            category["name"],
-                            CategorySelector(category["selector"]["selector"]),
+                            category["name"], category["selector"]["selector"]
                         )
 
                     transactions.append(transaction)
@@ -348,7 +346,7 @@ class Manager:
         return parse_data(filename, args)
 
     def askcategory(self, transaction: Transaction):
-        selector = CategorySelector(Selector_T.manual)
+        selector = CategorySelector.manual
 
         categories = self.database.select(Category)
 

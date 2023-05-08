@@ -6,7 +6,6 @@ from .exceptions import MoreThanOneMatchError
 from .transform import Transformer
 from pfbudget.db.model import (
     CategorySelector,
-    Selector_T,
     Transaction,
     TransactionCategory,
 )
@@ -89,6 +88,6 @@ class Nullifier(Transformer):
 
     def _nullify(self, transaction: Transaction) -> Transaction:
         transaction.category = TransactionCategory(
-            "null", selector=CategorySelector(Selector_T.nullifier)
+            "null", selector=CategorySelector.nullifier
         )
         return transaction

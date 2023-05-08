@@ -7,9 +7,8 @@ from pfbudget.db.model import (
     AccountType,
     Bank,
     Base,
-    CategorySelector,
     Nordigen,
-    Selector_T,
+    CategorySelector,
     Transaction,
     TransactionCategory,
 )
@@ -43,9 +42,7 @@ def transactions(client: Client) -> list[Transaction]:
             date(2023, 1, 1),
             "",
             Decimal("-10"),
-            category=TransactionCategory(
-                "category", CategorySelector(Selector_T.algorithm)
-            ),
+            category=TransactionCategory("category", CategorySelector.algorithm),
         ),
         Transaction(date(2023, 1, 2), "", Decimal("-50")),
     ]
@@ -55,7 +52,6 @@ def transactions(client: Client) -> list[Transaction]:
         transaction.id = i + 1
         if transaction.category:
             transaction.category.id = 1
-            transaction.category.selector.id = 1
 
     return transactions
 

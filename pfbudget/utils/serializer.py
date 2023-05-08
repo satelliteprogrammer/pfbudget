@@ -21,7 +21,7 @@ def _(obj: Transaction) -> Mapping[str, Any]:
     if obj.category:
         category = {
             "name": obj.category.name,
-            "selector": str(obj.category.selector.selector)
+            "selector": str(obj.category.selector)
             if obj.category.selector
             else None,
         }

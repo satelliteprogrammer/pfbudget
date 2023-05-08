@@ -36,6 +36,10 @@ class Base(MappedAsDataclass, DeclarativeBase):
         },
     )
 
+    type_annotation_map = {
+        enum.Enum: Enum(enum.Enum, create_constraint=True, inherit_schema=True),
+    }
+
 
 class AccountType(enum.Enum):
     checking = enum.auto()
@@ -205,7 +209,7 @@ catfk = Annotated[
 ]
 
 
-class Selector_T(enum.Enum):
+class CategorySelector(enum.Enum):
     unknown = enum.auto()
     nullifier = enum.auto()
     vacations = enum.auto()
@@ -220,9 +224,7 @@ class TransactionCategory(Base, Export):
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     name: Mapped[catfk]
 
-    selector: Mapped[CategorySelector] = relationship(
-        cascade="all, delete-orphan", default=Selector_T.unknown, lazy="joined"
-    )
+    selector: Mapped[CategorySelector] = mapped_column(default=CategorySelector.unknown)
 
     transaction: Mapped[Transaction] = relationship(
         back_populates="category", init=False, compare=False
@@ -231,7 +233,7 @@ class TransactionCategory(Base, Export):
     @property
     def format(self):
         return dict(
-            name=self.name, selector=self.selector.format if self.selector else None
+            name=self.name, selector=self.selector.name
         )
 
 
@@ -281,28 +283,6 @@ class TransactionTag(Base, Export, unsafe_hash=True):
         return dict(tag=self.tag)
 
 
-categoryselector = Annotated[
-    Selector_T,
-    mapped_column(Enum(Selector_T, inherit_schema=True)),
-]
-
-
-class CategorySelector(Base, Export):
-    __tablename__ = "category_selectors"
-
-    id: Mapped[int] = mapped_column(
-        BigInteger,
-        ForeignKey(TransactionCategory.id, ondelete="CASCADE"),
-        primary_key=True,
-        init=False,
-    )
-    selector: Mapped[categoryselector] = mapped_column(default=Selector_T.unknown)
-
-    @property
-    def format(self):
-        return dict(selector=self.selector)
-
-
 class Period(enum.Enum):
     daily = "daily"
     weekly = "weekly"
@@ -310,7 +290,9 @@ class Period(enum.Enum):
     yearly = "yearly"
 
 
-scheduleperiod = Annotated[Selector_T, mapped_column(Enum(Period, inherit_schema=True))]
+scheduleperiod = Annotated[
+    CategorySelector, mapped_column(Enum(Period, inherit_schema=True))
+]
 
 
 class CategorySchedule(Base, Export):
