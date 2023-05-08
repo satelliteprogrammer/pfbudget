@@ -323,7 +323,7 @@ class Manager:
                         for rule in rules:
                             del rule["type"]
 
-                        category.rules = set(CategoryRule(**rule) for rule in rules)
+                        category.rules = [CategoryRule(**rule) for rule in rules]
                     if row["schedule"]:
                         category.schedule = CategorySchedule(**row["schedule"])
                     categories.append(category)

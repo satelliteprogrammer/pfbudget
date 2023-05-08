@@ -180,8 +180,8 @@ class Category(Base, Export):
         ForeignKey(CategoryGroup.name), default=None
     )
 
-    rules: Mapped[set[CategoryRule]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True, default_factory=set
+    rules: Mapped[list[CategoryRule]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, default_factory=list
     )
     schedule: Mapped[Optional[CategorySchedule]] = relationship(
         cascade="all, delete-orphan", passive_deletes=True, default=None
@@ -267,8 +267,8 @@ class Tag(Base):
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
-    rules: Mapped[set[TagRule]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True, default_factory=set
+    rules: Mapped[list[TagRule]] = relationship(
+        cascade="all, delete-orphan", passive_deletes=True, default_factory=list
     )
 
 
@@ -320,7 +320,7 @@ class Link(Base):
     link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
-class Rule(Base, Export, init=False, unsafe_hash=True):
+class Rule(Base, Export, init=False):
     __tablename__ = "rules"
 
     id: Mapped[idpk] = mapped_column(init=False)
