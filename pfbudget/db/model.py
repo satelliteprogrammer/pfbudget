@@ -50,12 +50,6 @@ class AccountType(enum.Enum):
     MASTERCARD = enum.auto()
 
 
-accounttype = Annotated[
-    AccountType,
-    mapped_column(Enum(AccountType, inherit_schema=True)),
-]
-
-
 class Export:
     @property
     def format(self) -> dict[str, Any]:
@@ -67,7 +61,7 @@ class Bank(Base, Export):
 
     name: Mapped[str] = mapped_column(primary_key=True)
     BIC: Mapped[str] = mapped_column(String(8))
-    type: Mapped[accounttype]
+    type: Mapped[AccountType]
 
     nordigen: Mapped[Optional[Nordigen]] = relationship(init=False, lazy="joined")
 
@@ -283,23 +277,18 @@ class TransactionTag(Base, Export, unsafe_hash=True):
         return dict(tag=self.tag)
 
 
-class Period(enum.Enum):
-    daily = "daily"
-    weekly = "weekly"
-    monthly = "monthly"
-    yearly = "yearly"
-
-
-scheduleperiod = Annotated[
-    CategorySelector, mapped_column(Enum(Period, inherit_schema=True))
-]
+class SchedulePeriod(enum.Enum):
+    daily = enum.auto()
+    weekly = enum.auto()
+    monthly = enum.auto()
+    yearly = enum.auto()
 
 
 class CategorySchedule(Base, Export):
     __tablename__ = "category_schedules"
 
     name: Mapped[catfk] = mapped_column(primary_key=True)
-    period: Mapped[Optional[scheduleperiod]]
+    period: Mapped[Optional[SchedulePeriod]]
     period_multiplier: Mapped[Optional[int]]
     amount: Mapped[Optional[int]]
 

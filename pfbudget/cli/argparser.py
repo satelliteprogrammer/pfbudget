@@ -6,7 +6,7 @@ import os
 import re
 
 from pfbudget.common.types import Operation
-from pfbudget.db.model import AccountType, Period
+from pfbudget.db.model import AccountType, SchedulePeriod
 
 from pfbudget.db.sqlite import DatabaseClient
 import pfbudget.reporting.graph
@@ -269,7 +269,7 @@ def category(parser: argparse.ArgumentParser):
     schedule = commands.add_parser("schedule")
     schedule.set_defaults(op=Operation.CategorySchedule)
     schedule.add_argument("category", nargs="+", type=str)
-    schedule.add_argument("period", nargs=1, choices=[e.value for e in Period])
+    schedule.add_argument("period", nargs=1, choices=[e.value for e in SchedulePeriod])
     schedule.add_argument("--frequency", nargs=1, default=[1], type=int)
 
     rule = commands.add_parser("rule")
