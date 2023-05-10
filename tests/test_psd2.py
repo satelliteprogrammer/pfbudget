@@ -64,8 +64,7 @@ def extractor() -> Extractor:
 
 @pytest.fixture
 def bank() -> Bank:
-    bank = Bank("Bank#1", "", AccountType.checking)
-    bank.nordigen = Nordigen("", "", mock.id, False)
+    bank = Bank("Bank#1", "", AccountType.checking, Nordigen("", mock.id, False))
     return bank
 
 

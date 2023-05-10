@@ -25,11 +25,15 @@ def client() -> Client:
 @pytest.fixture
 def banks(client: Client) -> list[Bank]:
     banks = [
-        Bank("bank", "BANK", AccountType.checking),
+        Bank("bank", "BANK", AccountType.checking, Nordigen(None, "req", None)),
         Bank("broker", "BROKER", AccountType.investment),
         Bank("creditcard", "CC", AccountType.MASTERCARD),
     ]
-    banks[0].nordigen = Nordigen("bank", None, "req", None)
+
+    # fix nordigen bank names which would be generated post DB insert
+    for bank in banks:
+        if bank.nordigen:
+            bank.nordigen.name = bank.name
 
     client.insert(banks)
     return banks
@@ -48,6 +52,8 @@ def transactions(client: Client) -> list[Transaction]:
     ]
 
     client.insert(transactions)
+
+    # fix ids which would be generated post DB insert
     for i, transaction in enumerate(transactions):
         transaction.id = i + 1
         if transaction.category:

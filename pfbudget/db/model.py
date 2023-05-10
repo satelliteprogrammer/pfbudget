@@ -63,7 +63,7 @@ class Bank(Base, Export):
     BIC: Mapped[str] = mapped_column(String(8))
     type: Mapped[AccountType]
 
-    nordigen: Mapped[Optional[Nordigen]] = relationship(init=False, lazy="joined")
+    nordigen: Mapped[Optional[Nordigen]] = relationship(default=None, lazy="joined")
 
     @property
     def format(self) -> dict[str, Any]:
@@ -241,7 +241,7 @@ class Note(Base):
 class Nordigen(Base, Export):
     __tablename__ = "banks_nordigen"
 
-    name: Mapped[bankfk] = mapped_column(primary_key=True)
+    name: Mapped[bankfk] = mapped_column(primary_key=True, init=False)
     bank_id: Mapped[Optional[str]]
     requisition_id: Mapped[Optional[str]]
     invert: Mapped[Optional[bool]] = mapped_column(default=None)
