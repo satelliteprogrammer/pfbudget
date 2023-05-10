@@ -1,11 +1,20 @@
 from decimal import Decimal
 
-from pfbudget.db.model import Category, CategoryRule, Tag, TagRule
+from pfbudget.db.model import Category, CategoryGroup, CategoryRule, Tag, TagRule
 
 category_null = Category("null")
 
+categorygroup1 = CategoryGroup("group#1")
+
 category1 = Category(
     "cat#1",
+    "group#1",
+    rules=[CategoryRule("cat#1", description="desc#1", max=Decimal(0))],
+)
+
+category2 = Category(
+    "cat#2",
+    "group#1",
     rules=[CategoryRule("cat#1", description="desc#1", max=Decimal(0))],
 )
 

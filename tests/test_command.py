@@ -2,15 +2,15 @@ from collections.abc import Sequence
 import json
 from pathlib import Path
 import pickle
-from typing import Any
+import pytest
+from typing import Any, cast
 
 import mocks.transactions
 
 from pfbudget.common.types import ExportFormat
-from pfbudget.core.command import ExportCommand
+from pfbudget.core.command import ExportCommand, ImportCommand
 from pfbudget.db.client import Client
 from pfbudget.db.model import Transaction
-from pfbudget.utils.serializer import serialize
 
 
 class FakeClient(Client):
@@ -40,8 +40,13 @@ class FakeClient(Client):
         self._transactions = value
 
 
+@pytest.fixture
+def client() -> Client:
+    return FakeClient()
+
+
 class TestCommand:
-    def test_export_json(self, tmp_path: Path):
+    def test_export_json(self, tmp_path: Path, client: Client):
         client = FakeClient()
         file = tmp_path / "test.json"
         command = ExportCommand(client, Transaction, file, ExportFormat.JSON)
@@ -49,19 +54,18 @@ class TestCommand:
 
         with open(file, newline="") as f:
             result = json.load(f)
-            assert result == [serialize(t) for t in mocks.transactions.simple]
+            assert result == [t.serialize() for t in mocks.transactions.simple]
 
-        client.transactions = mocks.transactions.simple_transformed
+        cast(FakeClient, client).transactions = mocks.transactions.simple_transformed
         command.execute()
 
         with open(file, newline="") as f:
             result = json.load(f)
             assert result == [
-                serialize(t) for t in mocks.transactions.simple_transformed
+                t.serialize() for t in mocks.transactions.simple_transformed
             ]
 
-    def test_export_pickle(self, tmp_path: Path):
-        client = FakeClient()
+    def test_export_pickle(self, tmp_path: Path, client: Client):
         file = tmp_path / "test.pickle"
         command = ExportCommand(client, Transaction, file, ExportFormat.pickle)
         command.execute()
@@ -70,9 +74,22 @@ class TestCommand:
             result = pickle.load(f)
             assert result == mocks.transactions.simple
 
-        client.transactions = mocks.transactions.simple_transformed
+        cast(FakeClient, client).transactions = mocks.transactions.simple_transformed
         command.execute()
 
         with open(file, "rb") as f:
             result = pickle.load(f)
             assert result == mocks.transactions.simple_transformed
+
+    def test_import(self, tmp_path: Path, client: Client):
+        file = tmp_path / "test"
+        for format in list(ExportFormat):
+            command = ExportCommand(client, Transaction, file, format)
+            command.execute()
+
+            command = ImportCommand(client, Transaction, file, format)
+            command.execute()
+
+            transactions = cast(FakeClient, client).transactions
+            assert len(transactions) > 0
+            assert transactions == client.select(Transaction)

@@ -2,11 +2,12 @@ from datetime import date
 from decimal import Decimal
 import pytest
 
+from mocks.client import MockClient
+
 from pfbudget.db.client import Client
 from pfbudget.db.model import (
     AccountType,
     Bank,
-    Base,
     Nordigen,
     CategorySelector,
     Transaction,
@@ -16,10 +17,7 @@ from pfbudget.db.model import (
 
 @pytest.fixture
 def client() -> Client:
-    url = "sqlite://"
-    client = Client(url, execution_options={"schema_translate_map": {"pfbudget": None}})
-    Base.metadata.create_all(client.engine)
-    return client
+    return MockClient()
 
 
 @pytest.fixture

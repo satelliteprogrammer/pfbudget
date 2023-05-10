@@ -2,7 +2,10 @@ from datetime import date
 from decimal import Decimal
 
 from pfbudget.db.model import (
+    BankTransaction,
     CategorySelector,
+    MoneyTransaction,
+    SplitTransaction,
     Transaction,
     TransactionCategory,
 )
@@ -25,4 +28,23 @@ simple_transformed = [
         Decimal("-50"),
         category=TransactionCategory("category#2", CategorySelector.algorithm),
     ),
+]
+
+bank = [
+    BankTransaction(date(2023, 1, 1), "", Decimal("-10"), bank="bank#1"),
+    BankTransaction(date(2023, 1, 1), "", Decimal("-10"), bank="bank#2"),
+]
+
+money = [
+    MoneyTransaction(date(2023, 1, 1), "", Decimal("-10")),
+    MoneyTransaction(date(2023, 1, 1), "", Decimal("-10")),
+]
+
+__original = Transaction(date(2023, 1, 1), "", Decimal("-10"), split=True)
+__original.id = 1
+
+split = [
+    __original,
+    SplitTransaction(date(2023, 1, 1), "", Decimal("-5"), original=__original.id),
+    SplitTransaction(date(2023, 1, 1), "", Decimal("-5"), original=__original.id),
 ]

@@ -1,9 +1,11 @@
 from __future__ import annotations
+from collections.abc import Mapping, MutableMapping, Sequence
+from dataclasses import dataclass, fields
 import datetime as dt
 import decimal
 import enum
 import re
-from typing import Annotated, Any, Callable, Optional
+from typing import Annotated, Any, Callable, Optional, Self, cast
 
 from sqlalchemy import (
     BigInteger,
@@ -41,6 +43,16 @@ class Base(MappedAsDataclass, DeclarativeBase):
     }
 
 
+@dataclass
+class Serializable:
+    def serialize(self) -> Mapping[str, Any]:
+        return {field.name: getattr(self, field.name) for field in fields(self)}
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        return cls(**map)
+
+
 class AccountType(enum.Enum):
     checking = enum.auto()
     savings = enum.auto()
@@ -50,13 +62,7 @@ class AccountType(enum.Enum):
     MASTERCARD = enum.auto()
 
 
-class Export:
-    @property
-    def format(self) -> dict[str, Any]:
-        raise NotImplementedError
-
-
-class Bank(Base, Export):
+class Bank(Base, Serializable):
     __tablename__ = "banks"
 
     name: Mapped[str] = mapped_column(primary_key=True)
@@ -65,14 +71,28 @@ class Bank(Base, Export):
 
     nordigen: Mapped[Optional[Nordigen]] = relationship(default=None, lazy="joined")
 
-    @property
-    def format(self) -> dict[str, Any]:
+    def serialize(self) -> Mapping[str, Any]:
+        nordigen = None
+        if self.nordigen:
+            nordigen = {
+                "bank_id": self.nordigen.bank_id,
+                "requisition_id": self.nordigen.requisition_id,
+                "invert": self.nordigen.invert,
+            }
+
         return dict(
             name=self.name,
             BIC=self.BIC,
-            type=self.type,
-            nordigen=self.nordigen.format if self.nordigen else None,
+            type=self.type.name,
+            nordigen=nordigen,
         )
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        bank = cls(map["name"], map["BIC"], map["type"])
+        if map["nordigen"]:
+            bank.nordigen = Nordigen(**map["nordigen"])
+        return bank
 
 
 bankfk = Annotated[str, mapped_column(Text, ForeignKey(Bank.name))]
@@ -88,7 +108,7 @@ idpk = Annotated[
 money = Annotated[decimal.Decimal, mapped_column(Numeric(16, 2))]
 
 
-class Transaction(Base, Export):
+class Transaction(Base, Serializable):
     __tablename__ = "transactions"
 
     id: Mapped[idpk] = mapped_column(init=False)
@@ -109,18 +129,59 @@ class Transaction(Base, Export):
     type: Mapped[str] = mapped_column(init=False)
     __mapper_args__ = {"polymorphic_on": "type", "polymorphic_identity": "transaction"}
 
-    @property
-    def format(self) -> dict[str, Any]:
+    def serialize(self) -> Mapping[str, Any]:
+        category = None
+        if self.category:
+            category = {
+                "name": self.category.name,
+                "selector": self.category.selector.name,
+            }
+
         return dict(
-            id=self.id,
-            date=self.date,
+            date=self.date.isoformat(),
             description=self.description,
-            amount=self.amount,
+            amount=str(self.amount),
             split=self.split,
+            category=category if category else None,
+            tags=[{"tag": tag.tag} for tag in self.tags],
+            note=self.note,
             type=self.type,
-            category=self.category.format if self.category else None,
-            # TODO note
-            tags=[tag.format for tag in self.tags] if self.tags else None,
+        )
+
+    @classmethod
+    def deserialize(
+        cls, map: Mapping[str, Any]
+    ) -> Transaction | BankTransaction | MoneyTransaction | SplitTransaction:
+        match map["type"]:
+            case "bank":
+                return BankTransaction.deserialize(map)
+            case "money":
+                return MoneyTransaction.deserialize(map)
+            case "split":
+                raise NotImplementedError
+            case _:
+                return cls._deserialize(map)
+
+    @classmethod
+    def _deserialize(cls, map: Mapping[str, Any]) -> Self:
+        category = None
+        if map["category"]:
+            category = TransactionCategory(map["category"]["name"])
+            if map["category"]["selector"]:
+                category.selector = map["category"]["selector"]
+
+        tags: set[TransactionTag] = set()
+        if map["tags"]:
+            tags = set(t["tag"] for t in map["tags"])
+
+        return cls(
+            dt.date.fromisoformat(map["date"]),
+            map["description"],
+            map["amount"],
+            map["split"],
+            category,
+            tags,
+            map["note"],
         )
 
     def __lt__(self, other: Transaction):
@@ -132,18 +193,32 @@ idfk = Annotated[
 ]
 
 
-class BankTransaction(Transaction):
+class BankTransaction(Transaction, Serializable):
     bank: Mapped[Optional[bankfk]] = mapped_column(default=None)
 
     __mapper_args__ = {"polymorphic_identity": "bank", "polymorphic_load": "inline"}
 
-    @property
-    def format(self) -> dict[str, Any]:
-        return super().format | dict(bank=self.bank)
+    def serialize(self) -> Mapping[str, Any]:
+        map = cast(MutableMapping[str, Any], super().serialize())
+        map["bank"] = self.bank
+        return map
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        transaction = cls._deserialize(map)
+        transaction.bank = map["bank"]
+        return transaction
 
 
-class MoneyTransaction(Transaction):
+class MoneyTransaction(Transaction, Serializable):
     __mapper_args__ = {"polymorphic_identity": "money"}
+
+    def serialize(self) -> Mapping[str, Any]:
+        return super().serialize()
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        return cls._deserialize(map)
 
 
 class SplitTransaction(Transaction):
@@ -151,22 +226,14 @@ class SplitTransaction(Transaction):
 
     __mapper_args__ = {"polymorphic_identity": "split", "polymorphic_load": "inline"}
 
-    @property
-    def format(self) -> dict[str, Any]:
-        return super().format | dict(original=self.original)
 
-
-class CategoryGroup(Base, Export):
+class CategoryGroup(Base, Serializable):
     __tablename__ = "category_groups"
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
-    @property
-    def format(self) -> dict[str, Any]:
-        return dict(name=self.name)
 
-
-class Category(Base, Export):
+class Category(Base, Serializable, repr=False):
     __tablename__ = "categories"
 
     name: Mapped[str] = mapped_column(primary_key=True)
@@ -175,25 +242,60 @@ class Category(Base, Export):
     )
 
     rules: Mapped[list[CategoryRule]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True, default_factory=list
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        default_factory=list,
+        lazy="joined",
     )
     schedule: Mapped[Optional[CategorySchedule]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True, default=None
+        cascade="all, delete-orphan", passive_deletes=True, default=None, lazy="joined"
     )
+
+    def serialize(self) -> Mapping[str, Any]:
+        rules: Sequence[Mapping[str, Any]] = []
+        for rule in self.rules:
+            rules.append(
+                {
+                    "name": rule.name,
+                    "start": rule.start,
+                    "end": rule.end,
+                    "description": rule.description,
+                    "regex": rule.regex,
+                    "bank": rule.bank,
+                    "min": str(rule.min) if rule.min is not None else None,
+                    "max": str(rule.max) if rule.max is not None else None,
+                }
+            )
+
+        schedule = None
+        if self.schedule:
+            schedule = {
+                "name": self.schedule.name,
+                "period": self.schedule.period.name if self.schedule.period else None,
+                "period_multiplier": self.schedule.period_multiplier,
+                "amount": self.schedule.amount,
+            }
+
+        return dict(
+            name=self.name,
+            group=self.group,
+            rules=rules,
+            schedule=schedule,
+        )
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        return cls(
+            map["name"],
+            map["group"],
+            list(CategoryRule(**r) for r in map["rules"]),
+            CategorySchedule(**map["schedule"]) if map["schedule"] else None,
+        )
 
     def __repr__(self) -> str:
         return (
             f"Category(name={self.name}, group={self.group}, #rules={len(self.rules)},"
             f" schedule={self.schedule})"
-        )
-
-    @property
-    def format(self) -> dict[str, Any]:
-        return dict(
-            name=self.name,
-            group=self.group if self.group else None,
-            rules=[rule.format for rule in self.rules],
-            schedule=self.schedule.format if self.schedule else None,
         )
 
 
@@ -212,7 +314,7 @@ class CategorySelector(enum.Enum):
     manual = enum.auto()
 
 
-class TransactionCategory(Base, Export):
+class TransactionCategory(Base):
     __tablename__ = "transactions_categorized"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
@@ -224,12 +326,6 @@ class TransactionCategory(Base, Export):
         back_populates="category", init=False, compare=False
     )
 
-    @property
-    def format(self):
-        return dict(
-            name=self.name, selector=self.selector.name
-        )
-
 
 class Note(Base):
     __tablename__ = "notes"
@@ -238,7 +334,7 @@ class Note(Base):
     note: Mapped[str]
 
 
-class Nordigen(Base, Export):
+class Nordigen(Base):
     __tablename__ = "banks_nordigen"
 
     name: Mapped[bankfk] = mapped_column(primary_key=True, init=False)
@@ -246,35 +342,50 @@ class Nordigen(Base, Export):
     requisition_id: Mapped[Optional[str]]
     invert: Mapped[Optional[bool]] = mapped_column(default=None)
 
-    @property
-    def format(self) -> dict[str, Any]:
-        return dict(
-            name=self.name,
-            bank_id=self.bank_id,
-            requisition_id=self.requisition_id,
-            invert=self.invert,
-        )
 
-
-class Tag(Base):
+class Tag(Base, Serializable):
     __tablename__ = "tags"
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
     rules: Mapped[list[TagRule]] = relationship(
-        cascade="all, delete-orphan", passive_deletes=True, default_factory=list
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        default_factory=list,
+        lazy="joined",
     )
 
+    def serialize(self) -> Mapping[str, Any]:
+        rules: Sequence[Mapping[str, Any]] = []
+        for rule in self.rules:
+            rules.append(
+                {
+                    "name": rule.tag,
+                    "start": rule.start,
+                    "end": rule.end,
+                    "description": rule.description,
+                    "regex": rule.regex,
+                    "bank": rule.bank,
+                    "min": str(rule.min) if rule.min is not None else None,
+                    "max": str(rule.max) if rule.max is not None else None,
+                }
+            )
 
-class TransactionTag(Base, Export, unsafe_hash=True):
+        return dict(name=self.name, rules=rules)
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        return cls(
+            map["name"],
+            list(TagRule(**r) for r in map["rules"]),
+        )
+
+
+class TransactionTag(Base, unsafe_hash=True):
     __tablename__ = "transactions_tagged"
 
     id: Mapped[idfk] = mapped_column(primary_key=True, init=False)
     tag: Mapped[str] = mapped_column(ForeignKey(Tag.name), primary_key=True)
-
-    @property
-    def format(self):
-        return dict(tag=self.tag)
 
 
 class SchedulePeriod(enum.Enum):
@@ -284,22 +395,13 @@ class SchedulePeriod(enum.Enum):
     yearly = enum.auto()
 
 
-class CategorySchedule(Base, Export):
+class CategorySchedule(Base):
     __tablename__ = "category_schedules"
 
     name: Mapped[catfk] = mapped_column(primary_key=True)
     period: Mapped[Optional[SchedulePeriod]]
     period_multiplier: Mapped[Optional[int]]
     amount: Mapped[Optional[int]]
-
-    @property
-    def format(self) -> dict[str, Any]:
-        return dict(
-            name=self.name,
-            period=self.period,
-            period_multiplier=self.period_multiplier,
-            amount=self.amount,
-        )
 
 
 class Link(Base):
@@ -309,7 +411,7 @@ class Link(Base):
     link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
-class Rule(Base, Export, init=False):
+class Rule(Base, init=False):
     __tablename__ = "rules"
 
     id: Mapped[idpk] = mapped_column(init=False)
@@ -355,19 +457,6 @@ class Rule(Base, Export, init=False):
 
         return False
 
-    @property
-    def format(self) -> dict[str, Any]:
-        return dict(
-            start=self.start,
-            end=self.end,
-            description=self.description,
-            regex=self.regex,
-            bank=self.bank,
-            min=self.min,
-            max=self.max,
-            type=self.type,
-        )
-
     @staticmethod
     def exists(r: Optional[Any], op: Callable[[Any], bool]) -> bool:
         return op(r) if r is not None else True
@@ -388,10 +477,6 @@ class CategoryRule(Rule):
         "polymorphic_identity": "category_rule",
     }
 
-    @property
-    def format(self) -> dict[str, Any]:
-        return super().format | dict(name=self.name)
-
     def __init__(self, name: str, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.name = name
@@ -411,10 +496,6 @@ class TagRule(Rule):
     __mapper_args__ = {
         "polymorphic_identity": "tag_rule",
     }
-
-    @property
-    def format(self) -> dict[str, Any]:
-        return super().format | dict(tag=self.tag)
 
     def __init__(self, name: str, **kwargs: Any) -> None:
         super().__init__(**kwargs)
