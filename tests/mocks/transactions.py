@@ -5,9 +5,11 @@ from pfbudget.db.model import (
     BankTransaction,
     CategorySelector,
     MoneyTransaction,
+    Note,
     SplitTransaction,
     Transaction,
     TransactionCategory,
+    TransactionTag,
 )
 
 simple = [
@@ -47,4 +49,22 @@ split = [
     __original,
     SplitTransaction(date(2023, 1, 1), "", Decimal("-5"), original=__original.id),
     SplitTransaction(date(2023, 1, 1), "", Decimal("-5"), original=__original.id),
+]
+
+tagged = [
+    Transaction(
+        date(2023, 1, 1),
+        "",
+        Decimal("-10"),
+        tags={TransactionTag("tag#1"), TransactionTag("tag#1")},
+    )
+]
+
+noted = [
+    Transaction(
+        date(2023, 1, 1),
+        "",
+        Decimal("-10"),
+        note=Note("note#1"),
+    )
 ]

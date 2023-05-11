@@ -51,10 +51,18 @@ class ImportCommand(Command):
         match self.format:
             case ExportFormat.JSON:
                 with open(self.fn, "r") as f:
-                    values = json.load(f)
-                    values = [self.what.deserialize(v) for v in values]
+                    try:
+                        values = json.load(f)
+                        values = [self.what.deserialize(v) for v in values]
+                    except json.JSONDecodeError as e:
+                        raise ImportFailedError(e)
+
             case ExportFormat.pickle:
                 with open(self.fn, "rb") as f:
                     values = pickle.load(f)
 
         self.__client.insert(values)
+
+
+class ImportFailedError(Exception):
+    pass

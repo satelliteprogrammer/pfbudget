@@ -158,7 +158,7 @@ class Transaction(Base, Serializable):
             case "money":
                 return MoneyTransaction.deserialize(map)
             case "split":
-                raise NotImplementedError
+                return SplitTransaction.deserialize(map)
             case _:
                 return cls._deserialize(map)
 
@@ -193,7 +193,7 @@ idfk = Annotated[
 ]
 
 
-class BankTransaction(Transaction, Serializable):
+class BankTransaction(Transaction):
     bank: Mapped[Optional[bankfk]] = mapped_column(default=None)
 
     __mapper_args__ = {"polymorphic_identity": "bank", "polymorphic_load": "inline"}
@@ -210,7 +210,7 @@ class BankTransaction(Transaction, Serializable):
         return transaction
 
 
-class MoneyTransaction(Transaction, Serializable):
+class MoneyTransaction(Transaction):
     __mapper_args__ = {"polymorphic_identity": "money"}
 
     def serialize(self) -> Mapping[str, Any]:
@@ -225,6 +225,13 @@ class SplitTransaction(Transaction):
     original: Mapped[Optional[idfk]] = mapped_column(default=None)
 
     __mapper_args__ = {"polymorphic_identity": "split", "polymorphic_load": "inline"}
+
+    def serialize(self) -> Mapping[str, Any]:
+        raise AttributeError
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        raise AttributeError
 
 
 class CategoryGroup(Base, Serializable):
