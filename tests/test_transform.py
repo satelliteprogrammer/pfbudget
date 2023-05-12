@@ -56,7 +56,9 @@ class TestTransform:
         for t in transactions:
             assert not t.category
 
-        rules = [CategoryRule("null", bank="Bank#1")]
+        rule = CategoryRule(bank="Bank#1")
+        rule.name = "null"
+        rules = [rule]
 
         categorizer: Transformer = Nullifier(rules)
         transactions = categorizer.transform(transactions)
@@ -64,7 +66,9 @@ class TestTransform:
         for t in transactions:
             assert not t.category
 
-        rules.append(CategoryRule("null", bank="Bank#2"))
+        rule = CategoryRule(bank="Bank#2")
+        rule.name = "null"
+        rules.append(rule)
         categorizer = Nullifier(rules)
         transactions = categorizer.transform(transactions)
 
@@ -79,7 +83,11 @@ class TestTransform:
         for t in transactions:
             assert not t.category
 
-        categorizer: Transformer = Tagger(mock.tag_1.rules)
+        rules = mock.tag_1.rules
+        for rule in rules:
+            rule.tag = mock.tag_1.name
+
+        categorizer: Transformer = Tagger(rules)
         transactions = categorizer.transform(transactions)
 
         for t in transactions:
@@ -93,7 +101,11 @@ class TestTransform:
         for t in transactions:
             assert not t.category
 
-        categorizer: Transformer = Categorizer(mock.category1.rules)
+        rules = mock.category1.rules
+        for rule in rules:
+            rule.name = mock.category1.name
+
+        categorizer: Transformer = Categorizer(rules)
         transactions = categorizer.transform(transactions)
 
         for t in transactions:

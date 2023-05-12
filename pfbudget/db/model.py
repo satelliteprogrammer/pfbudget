@@ -263,7 +263,6 @@ class Category(Base, Serializable, repr=False):
         for rule in self.rules:
             rules.append(
                 {
-                    "name": rule.name,
                     "start": rule.start,
                     "end": rule.end,
                     "description": rule.description,
@@ -277,7 +276,6 @@ class Category(Base, Serializable, repr=False):
         schedule = None
         if self.schedule:
             schedule = {
-                "name": self.schedule.name,
                 "period": self.schedule.period.name if self.schedule.period else None,
                 "period_multiplier": self.schedule.period_multiplier,
                 "amount": self.schedule.amount,
@@ -367,7 +365,6 @@ class Tag(Base, Serializable):
         for rule in self.rules:
             rules.append(
                 {
-                    "name": rule.tag,
                     "start": rule.start,
                     "end": rule.end,
                     "description": rule.description,
@@ -405,7 +402,7 @@ class SchedulePeriod(enum.Enum):
 class CategorySchedule(Base):
     __tablename__ = "category_schedules"
 
-    name: Mapped[catfk] = mapped_column(primary_key=True)
+    name: Mapped[catfk] = mapped_column(primary_key=True, init=False)
     period: Mapped[Optional[SchedulePeriod]]
     period_multiplier: Mapped[Optional[int]]
     amount: Mapped[Optional[int]]
@@ -418,17 +415,17 @@ class Link(Base):
     link: Mapped[idfk] = mapped_column(primary_key=True)
 
 
-class Rule(Base, init=False):
+class Rule(Base):
     __tablename__ = "rules"
 
     id: Mapped[idpk] = mapped_column(init=False)
-    start: Mapped[Optional[dt.date]]
-    end: Mapped[Optional[dt.date]]
-    description: Mapped[Optional[str]]
-    regex: Mapped[Optional[str]]
-    bank: Mapped[Optional[str]]
-    min: Mapped[Optional[money]]
-    max: Mapped[Optional[money]]
+    start: Mapped[Optional[dt.date]] = mapped_column(default=None)
+    end: Mapped[Optional[dt.date]] = mapped_column(default=None)
+    description: Mapped[Optional[str]] = mapped_column(default=None)
+    regex: Mapped[Optional[str]] = mapped_column(default=None)
+    bank: Mapped[Optional[str]] = mapped_column(default=None)
+    min: Mapped[Optional[money]] = mapped_column(default=None)
+    max: Mapped[Optional[money]] = mapped_column(default=None)
 
     type: Mapped[str] = mapped_column(init=False)
 
@@ -436,10 +433,6 @@ class Rule(Base, init=False):
         "polymorphic_identity": "rule",
         "polymorphic_on": "type",
     }
-
-    def __init__(self, **kwargs: Any) -> None:
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
     def matches(self, t: BankTransaction) -> bool:
         valid = None
@@ -478,15 +471,11 @@ class CategoryRule(Rule):
         primary_key=True,
         init=False,
     )
-    name: Mapped[catfk]
+    name: Mapped[catfk] = mapped_column(init=False)
 
     __mapper_args__ = {
         "polymorphic_identity": "category_rule",
     }
-
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.name = name
 
 
 class TagRule(Rule):
@@ -498,12 +487,10 @@ class TagRule(Rule):
         primary_key=True,
         init=False,
     )
-    tag: Mapped[str] = mapped_column(ForeignKey(Tag.name, ondelete="CASCADE"))
+    tag: Mapped[str] = mapped_column(
+        ForeignKey(Tag.name, ondelete="CASCADE"), init=False
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": "tag_rule",
     }
-
-    def __init__(self, name: str, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.tag = name
