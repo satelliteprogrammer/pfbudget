@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections.abc import Mapping, MutableMapping, Sequence
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 import datetime as dt
 import decimal
 import enum
@@ -46,11 +46,11 @@ class Base(MappedAsDataclass, DeclarativeBase):
 @dataclass
 class Serializable:
     def serialize(self) -> Mapping[str, Any]:
-        return {field.name: getattr(self, field.name) for field in fields(self)}
+        return dict(class_=type(self).__name__)
 
     @classmethod
     def deserialize(cls, map: Mapping[str, Any]) -> Self:
-        return cls(**map)
+        raise NotImplementedError
 
 
 class AccountType(enum.Enum):
@@ -80,7 +80,7 @@ class Bank(Base, Serializable):
                 "invert": self.nordigen.invert,
             }
 
-        return dict(
+        return super().serialize() | dict(
             name=self.name,
             BIC=self.BIC,
             type=self.type.name,
@@ -137,7 +137,7 @@ class Transaction(Base, Serializable):
                 "selector": self.category.selector.name,
             }
 
-        return dict(
+        return super().serialize() | dict(
             id=self.id,
             date=self.date.isoformat(),
             description=self.description,
@@ -145,7 +145,7 @@ class Transaction(Base, Serializable):
             split=self.split,
             category=category if category else None,
             tags=[{"tag": tag.tag} for tag in self.tags],
-            note=self.note,
+            note={"note": self.note.note} if self.note else None,
             type=self.type,
         )
 
@@ -175,6 +175,10 @@ class Transaction(Base, Serializable):
         if map["tags"]:
             tags = set(TransactionTag(t["tag"]) for t in map["tags"])
 
+        note = None
+        if map["note"]:
+            note = Note(map["note"]["note"])
+
         result = cls(
             dt.date.fromisoformat(map["date"]),
             map["description"],
@@ -182,7 +186,7 @@ class Transaction(Base, Serializable):
             map["split"],
             category,
             tags,
-            map["note"],
+            note,
         )
 
         if map["id"]:
@@ -248,6 +252,17 @@ class CategoryGroup(Base, Serializable):
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
+    categories: Mapped[list[Category]] = relationship(
+        default_factory=list, lazy="joined"
+    )
+
+    def serialize(self) -> Mapping[str, Any]:
+        return super().serialize() | dict(name=self.name)
+
+    @classmethod
+    def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        return cls(map["name"])
+
 
 class Category(Base, Serializable, repr=False):
     __tablename__ = "categories"
@@ -290,7 +305,7 @@ class Category(Base, Serializable, repr=False):
                 "amount": self.schedule.amount,
             }
 
-        return dict(
+        return super().serialize() | dict(
             name=self.name,
             group=self.group,
             rules=rules,
@@ -398,7 +413,7 @@ class Tag(Base, Serializable):
                 }
             )
 
-        return dict(name=self.name, rules=rules)
+        return super().serialize() | dict(name=self.name, rules=rules)
 
     @classmethod
     def deserialize(cls, map: Mapping[str, Any]) -> Self:

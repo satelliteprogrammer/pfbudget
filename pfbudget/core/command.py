@@ -6,7 +6,17 @@ from typing import Type
 
 from pfbudget.common.types import ExportFormat
 from pfbudget.db.client import Client
-from pfbudget.db.model import Serializable
+from pfbudget.db.model import (
+    Bank,
+    Category,
+    CategoryGroup,
+    Serializable,
+    Tag,
+    Transaction,
+)
+
+# required for the backup import
+import pfbudget.db.model
 
 
 class Command(ABC):
@@ -68,3 +78,51 @@ class ImportCommand(Command):
 
 class ImportFailedError(Exception):
     pass
+
+
+class BackupCommand(Command):
+    def __init__(self, client: Client, fn: Path, format: ExportFormat) -> None:
+        self.__client = client
+        self.fn = fn
+        self.format = format
+
+    def execute(self) -> None:
+        banks = self.__client.select(Bank)
+        groups = self.__client.select(CategoryGroup)
+        categories = self.__client.select(Category)
+        tags = self.__client.select(Tag)
+        transactions = self.__client.select(Transaction)
+
+        values = [*banks, *groups, *categories, *tags, *transactions]
+
+        match self.format:
+            case ExportFormat.JSON:
+                with open(self.fn, "w", newline="") as f:
+                    json.dump([e.serialize() for e in values], f, indent=4)
+            case ExportFormat.pickle:
+                raise AttributeError("pickle export not working at the moment!")
+
+
+class ImportBackupCommand(Command):
+    def __init__(self, client: Client, fn: Path, format: ExportFormat) -> None:
+        self.__client = client
+        self.fn = fn
+        self.format = format
+
+    def execute(self) -> None:
+        match self.format:
+            case ExportFormat.JSON:
+                with open(self.fn, "r") as f:
+                    try:
+                        values = json.load(f)
+                        values = [
+                            getattr(pfbudget.db.model, v["class_"]).deserialize(v)
+                            for v in values
+                        ]
+                    except json.JSONDecodeError as e:
+                        raise ImportFailedError(e)
+
+            case ExportFormat.pickle:
+                raise AttributeError("pickle import not working at the moment!")
+
+        self.__client.insert(values)

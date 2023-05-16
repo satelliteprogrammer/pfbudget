@@ -43,7 +43,7 @@ money = [
 ]
 
 __original = Transaction(date(2023, 1, 1), "", Decimal("-10"), split=True)
-__original.id = 1
+__original.id = 9000
 
 split = [
     __original,

@@ -6,7 +6,13 @@ from mocks import banks, categories, transactions
 from mocks.client import MockClient
 
 from pfbudget.common.types import ExportFormat
-from pfbudget.core.command import ExportCommand, ImportCommand, ImportFailedError
+from pfbudget.core.command import (
+    BackupCommand,
+    ExportCommand,
+    ImportBackupCommand,
+    ImportCommand,
+    ImportFailedError,
+)
 from pfbudget.db.client import Client
 from pfbudget.db.model import (
     Bank,
@@ -87,7 +93,6 @@ class TestBackup:
         with pytest.raises(AttributeError):
             command.execute()
 
-
     @pytest.mark.parametrize("input, what", not_serializable)
     def test_try_backup_not_serializable(
         self, tmp_path: Path, input: Sequence[Any], what: Type[Any]
@@ -112,3 +117,23 @@ class TestBackup:
 
         imported = other.select(what)
         assert not imported
+
+    def test_full_backup(self, tmp_path: Path):
+        file = tmp_path / "test.json"
+
+        client = MockClient()
+        client.insert([e for t in params for e in t[0]])
+        originals = client.select(Transaction)
+
+        assert originals
+
+        command = BackupCommand(client, file, ExportFormat.JSON)
+        command.execute()
+
+        other = MockClient()
+        command = ImportBackupCommand(other, file, ExportFormat.JSON)
+        command.execute()
+
+        imported = other.select(Transaction)
+
+        assert originals == imported
