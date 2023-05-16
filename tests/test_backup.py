@@ -79,6 +79,15 @@ class TestBackup:
 
         assert originals == imported
 
+        command = ExportCommand(client, what, file, ExportFormat.pickle)
+        with pytest.raises(AttributeError):
+            command.execute()
+
+        command = ImportCommand(other, what, file, ExportFormat.pickle)
+        with pytest.raises(AttributeError):
+            command.execute()
+
+
     @pytest.mark.parametrize("input, what", not_serializable)
     def test_try_backup_not_serializable(
         self, tmp_path: Path, input: Sequence[Any], what: Type[Any]

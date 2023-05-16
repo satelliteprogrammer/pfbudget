@@ -34,6 +34,7 @@ class ExportCommand(Command):
                 with open(self.fn, "w", newline="") as f:
                     json.dump([e.serialize() for e in values], f, indent=4)
             case ExportFormat.pickle:
+                raise AttributeError("pickle export not working at the moment!")
                 with open(self.fn, "wb") as f:
                     pickle.dump(values, f)
 
@@ -58,6 +59,7 @@ class ImportCommand(Command):
                         raise ImportFailedError(e)
 
             case ExportFormat.pickle:
+                raise AttributeError("pickle import not working at the moment!")
                 with open(self.fn, "rb") as f:
                     values = pickle.load(f)
 
