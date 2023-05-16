@@ -138,6 +138,7 @@ class Transaction(Base, Serializable):
             }
 
         return dict(
+            id=self.id,
             date=self.date.isoformat(),
             description=self.description,
             amount=str(self.amount),
@@ -172,9 +173,9 @@ class Transaction(Base, Serializable):
 
         tags: set[TransactionTag] = set()
         if map["tags"]:
-            tags = set(t["tag"] for t in map["tags"])
+            tags = set(TransactionTag(t["tag"]) for t in map["tags"])
 
-        return cls(
+        result = cls(
             dt.date.fromisoformat(map["date"]),
             map["description"],
             map["amount"],
@@ -183,6 +184,10 @@ class Transaction(Base, Serializable):
             tags,
             map["note"],
         )
+
+        if map["id"]:
+            result.id = map["id"]
+        return result
 
     def __lt__(self, other: Transaction):
         return self.date < other.date
@@ -227,11 +232,15 @@ class SplitTransaction(Transaction):
     __mapper_args__ = {"polymorphic_identity": "split", "polymorphic_load": "inline"}
 
     def serialize(self) -> Mapping[str, Any]:
-        raise AttributeError
+        map = cast(MutableMapping[str, Any], super().serialize())
+        map["original"] = self.original
+        return map
 
     @classmethod
     def deserialize(cls, map: Mapping[str, Any]) -> Self:
-        raise AttributeError
+        transaction = cls._deserialize(map)
+        transaction.original = map["original"]
+        return transaction
 
 
 class CategoryGroup(Base, Serializable):
@@ -263,8 +272,8 @@ class Category(Base, Serializable, repr=False):
         for rule in self.rules:
             rules.append(
                 {
-                    "start": rule.start,
-                    "end": rule.end,
+                    "start": rule.start.isoformat() if rule.start else None,
+                    "end": rule.end.isoformat() if rule.end else None,
                     "description": rule.description,
                     "regex": rule.regex,
                     "bank": rule.bank,
@@ -290,10 +299,24 @@ class Category(Base, Serializable, repr=False):
 
     @classmethod
     def deserialize(cls, map: Mapping[str, Any]) -> Self:
+        rules: list[CategoryRule] = []
+        for rule in map["rules"]:
+            rules.append(
+                CategoryRule(
+                    dt.date.fromisoformat(rule["start"]) if rule["start"] else None,
+                    dt.date.fromisoformat(rule["end"]) if rule["end"] else None,
+                    rule["description"],
+                    rule["regex"],
+                    rule["bank"],
+                    rule["min"],
+                    rule["max"],
+                )
+            )
+
         return cls(
             map["name"],
             map["group"],
-            list(CategoryRule(**r) for r in map["rules"]),
+            rules,
             CategorySchedule(**map["schedule"]) if map["schedule"] else None,
         )
 
@@ -379,10 +402,21 @@ class Tag(Base, Serializable):
 
     @classmethod
     def deserialize(cls, map: Mapping[str, Any]) -> Self:
-        return cls(
-            map["name"],
-            list(TagRule(**r) for r in map["rules"]),
-        )
+        rules: list[TagRule] = []
+        for rule in map["rules"]:
+            rules.append(
+                TagRule(
+                    dt.date.fromisoformat(rule["start"]) if rule["start"] else None,
+                    dt.date.fromisoformat(rule["end"]) if rule["end"] else None,
+                    rule["description"],
+                    rule["regex"],
+                    rule["bank"],
+                    rule["min"],
+                    rule["max"],
+                )
+            )
+
+        return cls(map["name"], rules)
 
 
 class TransactionTag(Base, unsafe_hash=True):

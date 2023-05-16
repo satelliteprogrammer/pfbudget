@@ -35,6 +35,7 @@ params = [
     (transactions.bank, BankTransaction),
     (transactions.money, Transaction),
     (transactions.money, MoneyTransaction),
+    (transactions.split, SplitTransaction),
     ([banks.checking, banks.cc], Bank),
     ([categories.category_null, categories.category1, categories.category2], Category),
     (
@@ -50,7 +51,6 @@ params = [
 ]
 
 not_serializable = [
-    (transactions.split, SplitTransaction),
     (transactions.simple_transformed, TransactionCategory),
     (transactions.tagged, TransactionTag),
     (transactions.noted, Note),
