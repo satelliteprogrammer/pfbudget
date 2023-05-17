@@ -17,6 +17,7 @@ from pfbudget.db.client import Client
 from pfbudget.db.model import (
     Bank,
     BankTransaction,
+    Base,
     Category,
     CategoryGroup,
     MoneyTransaction,
@@ -123,9 +124,6 @@ class TestBackup:
 
         client = MockClient()
         client.insert([e for t in params for e in t[0]])
-        originals = client.select(Transaction)
-
-        assert originals
 
         command = BackupCommand(client, file, ExportFormat.JSON)
         command.execute()
@@ -134,6 +132,13 @@ class TestBackup:
         command = ImportBackupCommand(other, file, ExportFormat.JSON)
         command.execute()
 
-        imported = other.select(Transaction)
+        def subclasses(cls: Type[Any]) -> set[Type[Any]]:
+            return set(cls.__subclasses__()) | {
+                s for c in cls.__subclasses__() for s in subclasses(c)
+            }
 
-        assert originals == imported
+        for t in [cls for cls in subclasses(Base)]:
+            originals = client.select(t)
+            imported = other.select(t)
+
+            assert originals == imported, f"{t}"

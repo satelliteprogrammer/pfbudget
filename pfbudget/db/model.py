@@ -252,10 +252,6 @@ class CategoryGroup(Base, Serializable):
 
     name: Mapped[str] = mapped_column(primary_key=True)
 
-    categories: Mapped[list[Category]] = relationship(
-        default_factory=list, lazy="joined"
-    )
-
     def serialize(self) -> Mapping[str, Any]:
         return super().serialize() | dict(name=self.name)
 
@@ -524,6 +520,7 @@ class CategoryRule(Rule):
 
     __mapper_args__ = {
         "polymorphic_identity": "category_rule",
+        "polymorphic_load": "selectin",
     }
 
 
@@ -542,4 +539,5 @@ class TagRule(Rule):
 
     __mapper_args__ = {
         "polymorphic_identity": "tag_rule",
+        "polymorphic_load": "selectin",
     }
