@@ -6,7 +6,7 @@ import requests
 
 import mocks.nordigen as mock
 
-from pfbudget.db.model import AccountType, Bank, BankTransaction, Nordigen
+from pfbudget.db.model import AccountType, Bank, BankTransaction, NordigenBank
 from pfbudget.extract.exceptions import BankError, CredentialsError
 from pfbudget.extract.extract import Extractor
 from pfbudget.extract.nordigen import NordigenClient, NordigenCredentials
@@ -64,7 +64,7 @@ def extractor() -> Extractor:
 
 @pytest.fixture
 def bank() -> Bank:
-    bank = Bank("Bank#1", "", AccountType.checking, Nordigen("", mock.id, False))
+    bank = Bank("Bank#1", "", AccountType.checking, NordigenBank("", mock.id, False))
     return bank
 
 

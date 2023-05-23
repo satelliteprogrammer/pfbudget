@@ -71,10 +71,11 @@ class NordigenClient:
         with open("json/" + bank.name + ".json", "w") as f:
             json.dump(downloaded, f)
 
-    def generate_token(self):
-        self.token = self._client.generate_token()
-        print(f"New access token: {self.token}")
-        return self.token
+    def new_token(self):
+        return self._client.generate_token()
+
+    def refresh_token(self, token: str):
+        return self._client.exchange_token(token)
 
     def requisition(self, id: str, country: str = "PT"):
         requisition = self._client.initialize_session(
@@ -97,13 +98,11 @@ class NordigenClient:
 
     @property
     def token(self):
-        return self._token
+        return self._client.token
 
     @token.setter
-    def token(self, value):
-        if self._token:
-            print("Replacing existing token with {value}")
-        self._token = value
+    def token(self, value: str):
+        self._client.token = value
 
 
 class NordigenCredentialsManager:

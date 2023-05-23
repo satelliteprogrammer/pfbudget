@@ -15,7 +15,7 @@ from pfbudget.db.model import (
     CategorySchedule,
     Link,
     MoneyTransaction,
-    Nordigen,
+    NordigenBank,
     Rule,
     CategorySelector,
     SplitTransaction,
@@ -114,16 +114,16 @@ class Manager:
                 self.database.update(Bank, params)
 
             case Operation.PSD2Mod:
-                self.database.update(Nordigen, params)
+                self.database.update(NordigenBank, params)
 
             case Operation.BankDel:
                 self.database.delete(Bank, Bank.name, params)
 
             case Operation.PSD2Del:
-                self.database.delete(Nordigen, Nordigen.name, params)
+                self.database.delete(NordigenBank, NordigenBank.name, params)
 
             case Operation.Token:
-                Manager.nordigen_client().generate_token()
+                Manager.nordigen_client().new_token()
 
             case Operation.RequisitionId:
                 link, _ = Manager.nordigen_client().requisition(params[0], params[1])
@@ -285,7 +285,7 @@ class Manager:
                 for row in self.load(params[0], params[1]):
                     bank = Bank(row["name"], row["BIC"], row["type"])
                     if row["nordigen"]:
-                        bank.nordigen = Nordigen(**row["nordigen"])
+                        bank.nordigen = NordigenBank(**row["nordigen"])
                     banks.append(bank)
 
                 if self.certify(banks):

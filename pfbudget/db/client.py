@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 from copy import deepcopy
 from sqlalchemy import Engine, create_engine, delete, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 from typing import Any, Mapping, Optional, Type, TypeVar
 
-# from pfbudget.db.exceptions import InsertError, SelectError
+from pfbudget.db.exceptions import InsertError
 
 
 class DatabaseSession:
@@ -16,11 +17,15 @@ class DatabaseSession:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
-        if exc_type:
-            self.__session.rollback()
-        else:
-            self.__session.commit()
-        self.__session.close()
+        try:
+            if exc_type:
+                self.__session.rollback()
+            else:
+                self.__session.commit()
+        except IntegrityError as e:
+            raise InsertError() from e
+        finally:
+            self.__session.close()
 
     def close(self):
         self.__session.close()
@@ -37,6 +42,9 @@ class DatabaseSession:
             stmt = select(what)
 
         return self.__session.scalars(stmt).unique().all()
+
+    def delete(self, obj: Any) -> None:
+        self.__session.delete(obj)
 
 
 class Client:
@@ -62,7 +70,7 @@ class Client:
         with self._sessionmaker() as session, session.begin():
             session.execute(update(what), values)
 
-    def delete(self, what: Type[Any], column: Any, values: Sequence[str]) -> None:
+    def delete(self, what: Type[Any], column: Any, values: Sequence[Any]) -> None:
         with self._sessionmaker() as session, session.begin():
             session.execute(delete(what).where(column.in_(values)))
 

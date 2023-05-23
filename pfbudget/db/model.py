@@ -69,7 +69,7 @@ class Bank(Base, Serializable):
     BIC: Mapped[str] = mapped_column(String(8))
     type: Mapped[AccountType]
 
-    nordigen: Mapped[Optional[Nordigen]] = relationship(default=None, lazy="joined")
+    nordigen: Mapped[Optional[NordigenBank]] = relationship(default=None, lazy="joined")
 
     def serialize(self) -> Mapping[str, Any]:
         nordigen = None
@@ -91,7 +91,7 @@ class Bank(Base, Serializable):
     def deserialize(cls, map: Mapping[str, Any]) -> Self:
         bank = cls(map["name"], map["BIC"], map["type"])
         if map["nordigen"]:
-            bank.nordigen = Nordigen(**map["nordigen"])
+            bank.nordigen = NordigenBank(**map["nordigen"])
         return bank
 
 
@@ -373,7 +373,7 @@ class Note(Base):
     note: Mapped[str]
 
 
-class Nordigen(Base):
+class NordigenBank(Base):
     __tablename__ = "banks_nordigen"
 
     name: Mapped[bankfk] = mapped_column(primary_key=True, init=False)
@@ -541,3 +541,11 @@ class TagRule(Rule):
         "polymorphic_identity": "tag_rule",
         "polymorphic_load": "selectin",
     }
+
+
+class Nordigen(Base):
+    __tablename__ = "nordigen"
+
+    type: Mapped[str] = mapped_column(primary_key=True)
+    token: Mapped[str]
+    expires: Mapped[dt.datetime]

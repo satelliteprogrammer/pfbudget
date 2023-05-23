@@ -8,7 +8,7 @@ from pfbudget.db.client import Client
 from pfbudget.db.model import (
     AccountType,
     Bank,
-    Nordigen,
+    NordigenBank,
     CategorySelector,
     Transaction,
     TransactionCategory,
@@ -23,7 +23,7 @@ def client() -> Client:
 @pytest.fixture
 def banks(client: Client) -> list[Bank]:
     banks = [
-        Bank("bank", "BANK", AccountType.checking, Nordigen(None, "req", None)),
+        Bank("bank", "BANK", AccountType.checking, NordigenBank(None, "req", None)),
         Bank("broker", "BROKER", AccountType.investment),
         Bank("creditcard", "CC", AccountType.MASTERCARD),
     ]
@@ -125,13 +125,13 @@ class TestDatabase:
     def test_update_nordigen(self, client: Client, banks: list[Bank]):
         name = banks[0].name
 
-        result = client.select(Nordigen, lambda: Nordigen.name == name)
+        result = client.select(NordigenBank, lambda: NordigenBank.name == name)
         assert result[0].requisition_id == "req"
 
         update = {"name": name, "requisition_id": "anotherreq"}
-        client.update(Nordigen, [update])
+        client.update(NordigenBank, [update])
 
-        result = client.select(Nordigen, lambda: Nordigen.name == name)
+        result = client.select(NordigenBank, lambda: NordigenBank.name == name)
         assert result[0].requisition_id == "anotherreq"
 
         result = client.select(Bank, lambda: Bank.name == name)
