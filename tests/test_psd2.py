@@ -4,6 +4,7 @@ from typing import Any, Optional
 import pytest
 import requests
 
+from mocks.client import MockClient
 import mocks.nordigen as mock
 
 from pfbudget.db.model import AccountType, Bank, BankTransaction, NordigenBank
@@ -58,8 +59,8 @@ def mock_requests(monkeypatch: pytest.MonkeyPatch):
 
 @pytest.fixture
 def extractor() -> Extractor:
-    credentials = NordigenCredentials("ID", "KEY", "TOKEN")
-    return PSD2Extractor(NordigenClient(credentials))
+    credentials = NordigenCredentials("ID", "KEY")
+    return PSD2Extractor(NordigenClient(credentials, MockClient()))
 
 
 @pytest.fixture
@@ -72,7 +73,7 @@ class TestExtractPSD2:
     def test_empty_credentials(self):
         cred = NordigenCredentials("", "")
         with pytest.raises(CredentialsError):
-            NordigenClient(cred)
+            NordigenClient(cred, MockClient())
 
     def test_no_psd2_bank(self, extractor: Extractor):
         with pytest.raises(BankError):

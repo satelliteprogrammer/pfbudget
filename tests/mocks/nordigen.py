@@ -1,3 +1,8 @@
+from typing import Any, Dict, List, Optional
+import nordigen
+from nordigen.types.http_enums import HTTPMethod
+from nordigen.types.types import RequisitionDto, TokenType
+
 from pfbudget.extract.nordigen import NordigenCredentials
 
 
@@ -13,6 +18,7 @@ accounts_id = {
     "owner_name": "string",
 }
 
+# The downloaded transactions match the simple and simple_transformed mocks
 accounts_id_transactions = {
     "transactions": {
         "booked": [
@@ -84,4 +90,57 @@ requisitions_id = {
     "redirect_immediate": False,
 }
 
-credentials = NordigenCredentials("ID", "KEY", "TOKEN")
+credentials = NordigenCredentials("ID", "KEY")
+
+
+class MockNordigenClient(nordigen.NordigenClient):
+    def __init__(
+        self,
+        secret_key: str = "ID",
+        secret_id: str = "KEY",
+        timeout: int = 10,
+        base_url: str = "https://ob.nordigen.com/api/v2",
+    ) -> None:
+        super().__init__(secret_key, secret_id, timeout, base_url)
+
+    def generate_token(self) -> TokenType:
+        return {
+            "access": "access_token",
+            "refresh": "refresh_token",
+            "access_expires": 86400,
+            "refresh_expires": 2592000,
+        }
+
+    def exchange_token(self, refresh_token: str) -> TokenType:
+        assert len(refresh_token) > 0, "invalid refresh token"
+        return {
+            "access": "access_token",
+            "refresh": "refresh_token",
+            "access_expires": 86400,
+            "refresh_expires": 2592000,
+        }
+
+    def request(
+        self,
+        method: HTTPMethod,
+        endpoint: str,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        if endpoint == "requisitions/" + "requisition_id" + "/":
+            return requisitions_id
+        elif endpoint == "accounts/" + id + "/transactions/":
+            return accounts_id_transactions
+        else:
+            raise NotImplementedError(endpoint)
+
+    def initialize_session(
+        self,
+        redirect_uri: str,
+        institution_id: str,
+        reference_id: str,
+        max_historical_days: int = 90,
+        access_valid_for_days: int = 90,
+        access_scope: List[str] | None = None,
+    ) -> RequisitionDto:
+        return RequisitionDto("http://random", "requisition_id")

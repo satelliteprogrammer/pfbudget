@@ -79,7 +79,7 @@ class Manager:
                 else:
                     banks = self.database.select(Bank, Bank.nordigen)
 
-                extractor = PSD2Extractor(Manager.nordigen_client())
+                extractor = PSD2Extractor(self.nordigen_client())
 
                 transactions = []
                 for bank in banks:
@@ -122,16 +122,26 @@ class Manager:
             case Operation.PSD2Del:
                 self.database.delete(NordigenBank, NordigenBank.name, params)
 
-            case Operation.Token:
-                Manager.nordigen_client().new_token()
-
             case Operation.RequisitionId:
-                link, _ = Manager.nordigen_client().requisition(params[0], params[1])
-                print(f"Opening {link} to request access to {params[0]}")
+                bank_name = params[0]
+                bank = self.database.select(Bank, (lambda: Bank.name == bank_name))[0]
+
+                if not bank.nordigen or not bank.nordigen.bank_id:
+                    raise ValueError(f"{bank} doesn't have a Nordigen ID")
+
+                link, req_id = self.nordigen_client().new_requisition(
+                    bank.nordigen.bank_id
+                )
+
+                self.database.update(
+                    NordigenBank,
+                    [{"name": bank.nordigen.name, "requisition_id": req_id}],
+                )
+
                 webbrowser.open(link)
 
             case Operation.PSD2CountryBanks:
-                banks = Manager.nordigen_client().country_banks(params[0])
+                banks = self.nordigen_client().country_banks(params[0])
                 print(banks)
 
             case (
@@ -387,6 +397,5 @@ class Manager:
             self._database = Client(self._db, echo=self._verbosity > 2)
         return self._database
 
-    @staticmethod
-    def nordigen_client() -> NordigenClient:
-        return NordigenClient(NordigenCredentialsManager.default)
+    def nordigen_client(self) -> NordigenClient:
+        return NordigenClient(NordigenCredentialsManager.default, self.database)

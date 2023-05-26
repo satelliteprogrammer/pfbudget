@@ -12,22 +12,25 @@ from pfbudget.db.model import (
     TransactionTag,
 )
 
+# The simple and simple_transformed match the nordigen mocks
 simple = [
-    Transaction(date(2023, 1, 1), "", Decimal("-10")),
-    Transaction(date(2023, 1, 2), "", Decimal("-50")),
+    BankTransaction(date(2023, 1, 14), "string", Decimal("328.18"), bank="bank"),
+    BankTransaction(date(2023, 2, 14), "string", Decimal("947.26"), bank="bank"),
 ]
 
 simple_transformed = [
-    Transaction(
-        date(2023, 1, 1),
+    BankTransaction(
+        date(2023, 1, 14),
         "",
-        Decimal("-10"),
+        Decimal("328.18"),
+        bank="bank",
         category=TransactionCategory("category#1", CategorySelector.algorithm),
     ),
-    Transaction(
-        date(2023, 1, 2),
+    BankTransaction(
+        date(2023, 2, 14),
         "",
-        Decimal("-50"),
+        Decimal("947.26"),
+        bank="bank",
         category=TransactionCategory("category#2", CategorySelector.algorithm),
     ),
 ]

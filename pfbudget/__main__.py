@@ -38,10 +38,10 @@ if __name__ == "__main__":
             params = [args["path"], args["bank"], args["creditcard"]]
 
         case Operation.RequisitionId:
-            keys = {"name", "country"}
+            keys = {"bank"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [args["name"][0], args["country"][0]]
+            params = [args["bank"][0]]
 
         case Operation.Download:
             keys = {"all", "banks", "interval", "start", "end", "year", "dry_run"}

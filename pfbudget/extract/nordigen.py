@@ -1,11 +1,16 @@
 from dataclasses import dataclass
+import datetime as dt
 import dotenv
 import json
 import nordigen
 import os
 import requests
 import time
+from typing import Optional, Tuple
 import uuid
+
+from pfbudget.db.client import Client
+from pfbudget.db.model import Nordigen
 
 from .exceptions import CredentialsError, DownloadError
 
@@ -16,38 +21,35 @@ dotenv.load_dotenv()
 class NordigenCredentials:
     id: str
     key: str
-    token: str = ""
 
     def valid(self) -> bool:
-        return self.id and self.key
+        return len(self.id) != 0 and len(self.key) != 0
 
 
 class NordigenClient:
     redirect_url = "https://murta.dev"
 
-    def __init__(self, credentials: NordigenCredentials):
-        super().__init__()
-
+    def __init__(self, credentials: NordigenCredentials, client: Client):
         if not credentials.valid():
             raise CredentialsError
 
-        self._client = nordigen.NordigenClient(
+        self.__client = nordigen.NordigenClient(
             secret_key=credentials.key, secret_id=credentials.id, timeout=5
         )
-
-        if credentials.token:
-            self._client.token = credentials.token
+        self.__client.token = self.__token(client)
 
     def download(self, requisition_id):
         try:
-            requisition = self._client.requisition.get_requisition_by_id(requisition_id)
+            requisition = self.__client.requisition.get_requisition_by_id(
+                requisition_id
+            )
             print(requisition)
         except requests.HTTPError as e:
             raise DownloadError(e)
 
         transactions = {}
         for acc in requisition["accounts"]:
-            account = self._client.account_api(acc)
+            account = self.__client.account_api(acc)
 
             retries = 0
             while retries < 3:
@@ -71,43 +73,75 @@ class NordigenClient:
         with open("json/" + bank.name + ".json", "w") as f:
             json.dump(downloaded, f)
 
-    def new_token(self):
-        return self._client.generate_token()
+    def new_requisition(
+        self,
+        institution_id: str,
+        max_historical_days: Optional[int] = None,
+        access_valid_for_days: Optional[int] = None,
+    ) -> Tuple[str, str]:
+        kwargs = {
+            "max_historical_days": max_historical_days,
+            "access_valid_for_days": access_valid_for_days,
+        }
+        kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
-    def refresh_token(self, token: str):
-        return self._client.exchange_token(token)
-
-    def requisition(self, id: str, country: str = "PT"):
-        requisition = self._client.initialize_session(
-            redirect_uri=self.redirect_url,
-            institution_id=id,
-            reference_id=str(uuid.uuid4()),
+        req = self.__client.initialize_session(
+            self.redirect_url, institution_id, str(uuid.uuid4()), **kwargs
         )
-        return requisition.link, requisition.requisition_id
+        return req.link, req.requisition_id
 
     def country_banks(self, country: str):
-        return self._client.institution.get_institutions(country)
+        return self.__client.institution.get_institutions(country)
 
-    # def __token(self):
-    #     if token := os.environ.get("TOKEN"):
-    #         return token
-    #     else:
-    #         token = self._client.generate_token()
-    #         print(f"New access token: {token}")
-    #         return token["access"]
+    def __token(self, client: Client) -> str:
+        with client.session as session:
+            token = session.select(Nordigen)
 
-    @property
-    def token(self):
-        return self._client.token
+            def datetime(seconds: int) -> dt.datetime:
+                return dt.datetime.now() + dt.timedelta(seconds=seconds)
 
-    @token.setter
-    def token(self, value: str):
-        self._client.token = value
+            if not len(token):
+                print("First time nordigen token setup")
+                new = self.__client.generate_token()
+                session.insert(
+                    [
+                        Nordigen(
+                            "access",
+                            new["access"],
+                            datetime(new["access_expires"]),
+                        ),
+                        Nordigen(
+                            "refresh",
+                            new["refresh"],
+                            datetime(new["refresh_expires"]),
+                        ),
+                    ]
+                )
+
+                return new["access"]
+
+            else:
+                access = next(t for t in token if t.type == "access")
+                refresh = next(t for t in token if t.type == "refresh")
+
+                if access.expires > dt.datetime.now():
+                    pass
+                elif refresh.expires > dt.datetime.now():
+                    new = self.__client.exchange_token(refresh.token)
+                    access.token = new["access"]
+                    access.expires = datetime(new["access_expires"])
+                else:
+                    new = self.__client.generate_token()
+                    access.token = new["access"]
+                    access.expires = datetime(new["access_expires"])
+                    refresh.token = new["refresh"]
+                    refresh.expires = datetime(new["refresh_expires"])
+
+                return access.token
 
 
 class NordigenCredentialsManager:
     default = NordigenCredentials(
-        os.environ.get("SECRET_ID"),
-        os.environ.get("SECRET_KEY"),
-        os.environ.get("TOKEN"),
+        os.environ.get("SECRET_ID", ""),
+        os.environ.get("SECRET_KEY", ""),
     )
