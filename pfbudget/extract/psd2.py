@@ -35,4 +35,4 @@ class PSD2Extractor(Extractor):
         ]
 
     def convert(self, bank, downloaded, start, end):
-        return [convert(t, bank) for t in downloaded["transactions"]["booked"]]
+        return [convert(t, bank) for t in downloaded]

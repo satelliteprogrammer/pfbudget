@@ -6,7 +6,7 @@ import nordigen
 import os
 import requests
 import time
-from typing import Optional, Tuple
+from typing import Any, Optional, Sequence, Tuple
 import uuid
 
 from pfbudget.db.client import Client
@@ -38,7 +38,7 @@ class NordigenClient:
         )
         self.__client.token = self.__token(client)
 
-    def download(self, requisition_id):
+    def download(self, requisition_id) -> Sequence[dict[str, Any]]:
         try:
             requisition = self.__client.requisition.get_requisition_by_id(
                 requisition_id
@@ -47,11 +47,12 @@ class NordigenClient:
         except requests.HTTPError as e:
             raise DownloadError(e)
 
-        transactions = {}
+        transactions = []
         for acc in requisition["accounts"]:
             account = self.__client.account_api(acc)
 
             retries = 0
+            downloaded = None
             while retries < 3:
                 try:
                     downloaded = account.get_transactions()
@@ -62,10 +63,17 @@ class NordigenClient:
                     time.sleep(1)
 
             if not downloaded:
-                print(f"Couldn't download transactions for {account}")
+                print(f"Couldn't download transactions for {account.get_metadata()}")
                 continue
 
-            transactions.update(downloaded)
+            if (
+                "transactions" not in downloaded
+                or "booked" not in downloaded["transactions"]
+            ):
+                print(f"{account} doesn't have transactions")
+                continue
+
+            transactions.extend(downloaded["transactions"]["booked"])
 
         return transactions
 
