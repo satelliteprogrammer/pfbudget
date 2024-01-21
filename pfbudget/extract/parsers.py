@@ -132,17 +132,25 @@ class Parser:
         line = line_.rstrip().split(options.separator)
         index = Parser.index(line, options)
 
-        date = dt.datetime.strptime(line[index.date].strip(), options.date_fmt).date()
-        text = line[index.text]
-        value = utils.parse_decimal(line[index.value])
-        if index.negate:
-            value = -value
+        try:
+            date_str = line[index.date].strip()
+            date = dt.datetime.strptime(date_str, options.date_fmt).date()
 
-        transaction = BankTransaction(date, text, value, bank=bank)
+            text = line[index.text]
 
-        if options.additional_parser:
-            func(transaction)
-        return transaction
+            value = utils.parse_decimal(line[index.value])
+            if index.negate:
+                value = -value
+
+            transaction = BankTransaction(date, text, value, bank=bank)
+
+            if options.additional_parser:
+                func(transaction)
+
+            return transaction
+
+        except IndexError:
+            raise IndexError(line_)
 
 
 class Bank1(Parser):
