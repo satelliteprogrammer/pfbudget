@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import datetime as dt
 import dotenv
-import json
 import nordigen
 import os
 import requests
@@ -78,8 +77,8 @@ class NordigenClient:
         return transactions
 
     def dump(self, bank, downloaded):
-        with open("json/" + bank.name + ".json", "w") as f:
-            json.dump(downloaded, f)
+        # @TODO log received JSON
+        pass
 
     def new_requisition(
         self,
