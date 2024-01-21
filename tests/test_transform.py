@@ -5,6 +5,7 @@ import mocks.categories as mock
 
 from pfbudget.db.model import (
     BankTransaction,
+    Category,
     CategoryRule,
     CategorySelector,
     TransactionCategory,
@@ -110,3 +111,17 @@ class TestTransform:
 
         for t in transactions:
             assert t.category == TransactionCategory("cat#1", CategorySelector.rules)
+
+    def test_rule_limits(self):
+        transactions = [
+            BankTransaction(date.today(), "", Decimal("-60"), bank="Bank#1"),
+            BankTransaction(date.today(), "", Decimal("-120"), bank="Bank#1"),
+        ]
+
+        cat = Category("cat")
+        cat.rules = [CategoryRule(min=-120, max=-60)]
+        for r in cat.rules:
+            r.name = cat.name
+
+        transactions = Categorizer(cat.rules).transform(transactions)
+        assert all(t.category.name == cat.name for t in transactions)

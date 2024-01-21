@@ -485,16 +485,16 @@ class Rule(Base):
             valid = re.compile(self.regex, re.IGNORECASE)
 
         ops = (
-            Rule.exists(self.start, lambda r: r < t.date),
-            Rule.exists(self.end, lambda r: r > t.date),
+            Rule.exists(self.start, lambda r: t.date >= r),
+            Rule.exists(self.end, lambda r: t.date <= r),
             Rule.exists(self.description, lambda r: r == t.description),
             Rule.exists(
                 valid,
                 lambda r: r.search(t.description) if t.description else False,
             ),
             Rule.exists(self.bank, lambda r: r == t.bank),
-            Rule.exists(self.min, lambda r: r < t.amount),
-            Rule.exists(self.max, lambda r: r > t.amount),
+            Rule.exists(self.min, lambda r: t.amount >= r),
+            Rule.exists(self.max, lambda r: t.amount <= r),
         )
 
         if all(ops):
