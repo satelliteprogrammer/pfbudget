@@ -20,10 +20,8 @@ class Interactive:
     def __init__(self, manager: Manager) -> None:
         self.manager = manager
 
-        with self.manager.db.session() as session:
-            self.categories = session.get(Category)
-            self.tags = session.get(Tag)
-            session.expunge_all()
+        self.categories = self.manager.database.select(Category)
+        self.tags = self.manager.database.select(Tag)
 
     def intro(self) -> None:
         print(
@@ -34,28 +32,34 @@ class Interactive:
     def start(self) -> None:
         self.intro()
 
-        with self.manager.db.session() as session:
-            uncategorized = session.uncategorized()
+        with self.manager.database.session as session:
+            uncategorized = session.select(
+                Transaction, lambda: ~Transaction.category.has()
+            )
+            uncategorized.sort()
             n = len(uncategorized)
             print(f"{n} left to categorize")
 
             i = 0
             new = []
-            next = uncategorized[i]
-            print(next)
-            while (command := input("$ ")) != "quit":
+
+            while (command := input("$ ")) != "quit" and i < len(uncategorized):
+                current = uncategorized[i] if len(new) == 0 else new.pop()
+                print(current)
+
                 match command:
                     case "help":
                         print(self.help)
 
                     case "skip":
-                        i += 1
+                        if len(uncategorized) == 0:
+                            i += 1
 
                     case "quit":
                         break
 
                     case "split":
-                        new = self.split(next)
+                        new = self.split(current)
                         session.insert(new)
 
                     case other:
@@ -66,32 +70,31 @@ class Interactive:
                         if other.startswith("note:"):
                             # TODO adding notes to a splitted transaction won't allow
                             # categorization
-                            next.note = Note(other[len("note:") :].strip())
+                            current.note = Note(other[len("note:") :].strip())
                         else:
                             ct = other.split(":")
                             if (category := ct[0]) not in [
                                 c.name for c in self.categories
                             ]:
                                 print(self.help, self.categories)
+                                continue
 
                             tags = []
                             if len(ct) > 1:
                                 tags = ct[1:]
 
-                            next.category = TransactionCategory(category, self.selector)
+                            current.category = TransactionCategory(
+                                category, self.selector
+                            )
                             for tag in tags:
                                 if tag not in [t.name for t in self.tags]:
                                     session.insert([Tag(tag)])
                                     self.tags = session.get(Tag)
 
-                                next.tags.add(TransactionTag(tag))
+                                current.tags.add(TransactionTag(tag))
 
-                            i += 1
-
-                        session.commit()
-
-                next = uncategorized[i] if len(new) == 0 else new.pop()
-                print(next)
+                            if len(new) == 0:
+                                i += 1
 
     def split(self, original: Transaction) -> list[SplitTransaction]:
         total = original.amount
