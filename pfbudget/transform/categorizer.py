@@ -6,8 +6,8 @@ from pfbudget.db.model import (
     CategorySelector,
     Transaction,
     TransactionCategory,
+    TransactionTag,
 )
-from .exceptions import TransactionCategorizedError
 from .transform import Transformer
 
 
@@ -24,12 +24,15 @@ class Categorizer(Transformer):
     def transform_inplace(self, transactions: Sequence[Transaction]) -> None:
         for rule in self.rules:
             for transaction in transactions:
-                if transaction.category:
-                    raise TransactionCategorizedError(transaction)
-
                 if not rule.matches(transaction):
                     continue
 
-                transaction.category = TransactionCategory(
-                    rule.name, CategorySelector.rules
-                )
+                if not transaction.category:
+                    transaction.category = TransactionCategory(
+                        rule.name, CategorySelector.rules
+                    )
+                else:
+                    if not transaction.tags:
+                        transaction.tags = {TransactionTag(rule.name)}
+                    else:
+                        transaction.tags.add(TransactionTag(rule.name))
