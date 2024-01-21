@@ -15,7 +15,7 @@ class Nullifier(Transformer):
     NULL_DAYS = 4
 
     def __init__(self, rules=None):
-        self.rules = rules
+        self.rules = rules if rules else []
 
     def transform(self, transactions: Sequence[Transaction]) -> Sequence[Transaction]:
         """transform

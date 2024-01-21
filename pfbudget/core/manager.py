@@ -101,10 +101,20 @@ class Manager:
                     categories = session.select(Category)
                     tags = session.select(Tag)
 
-                    rules = [cat.rules for cat in categories if cat.name == "null"]
+                    rules = [
+                        rule
+                        for cat in categories
+                        if cat.name == "null"
+                        for rule in cat.rules
+                    ]
                     Nullifier(rules).transform_inplace(uncategorized)
 
-                    rules = [rule for cat in categories for rule in cat.rules]
+                    rules = [
+                        rule
+                        for cat in categories
+                        if cat.name != "null"
+                        for rule in cat.rules
+                    ]
                     Categorizer(rules).transform_inplace(uncategorized)
 
                     rules = [rule for tag in tags for rule in tag.rules]
