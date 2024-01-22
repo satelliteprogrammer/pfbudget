@@ -30,7 +30,7 @@ class ExportCommand(Command):
         match self.format:
             case ExportFormat.JSON:
                 with open(self.fn, "w", newline="") as f:
-                    json.dump([serialize(e) for e in values], f, indent=4, default=str)
+                    json.dump([serialize(e) for e in values], f, indent=4)
             case ExportFormat.pickle:
                 with open(self.fn, "wb") as f:
-                    pickle.dump([serialize(e) for e in values], f)
+                    pickle.dump(values, f)

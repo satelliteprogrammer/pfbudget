@@ -1,0 +1,78 @@
+from collections.abc import Sequence
+import json
+from pathlib import Path
+import pickle
+from typing import Any
+
+import mocks.transactions
+
+from pfbudget.common.types import ExportFormat
+from pfbudget.core.command import ExportCommand
+from pfbudget.db.client import Client
+from pfbudget.db.model import Transaction
+from pfbudget.utils.serializer import serialize
+
+
+class FakeClient(Client):
+    def __init__(self):
+        self._transactions = mocks.transactions.simple
+
+    def select(self, what: Any, *_) -> Sequence[Any]:
+        if what == Transaction:
+            return self.transactions
+        return []
+
+    def insert(self, *_):
+        pass
+
+    def update(self, *_):
+        pass
+
+    def delete(self, *_):
+        pass
+
+    @property
+    def transactions(self):
+        return self._transactions
+
+    @transactions.setter
+    def transactions(self, value: Sequence[Transaction]):
+        self._transactions = value
+
+
+class TestCommand:
+    def test_export_json(self, tmp_path: Path):
+        client = FakeClient()
+        file = tmp_path / "test.json"
+        command = ExportCommand(client, Transaction, file, ExportFormat.JSON)
+        command.execute()
+
+        with open(file, newline="") as f:
+            result = json.load(f)
+            assert result == [serialize(t) for t in mocks.transactions.simple]
+
+        client.transactions = mocks.transactions.simple_transformed
+        command.execute()
+
+        with open(file, newline="") as f:
+            result = json.load(f)
+            assert result == [
+                serialize(t) for t in mocks.transactions.simple_transformed
+            ]
+
+    def test_export_pickle(self, tmp_path: Path):
+        client = FakeClient()
+        file = tmp_path / "test.pickle"
+        command = ExportCommand(client, Transaction, file, ExportFormat.pickle)
+        command.execute()
+
+        with open(file, "rb") as f:
+            result = pickle.load(f)
+            assert result == mocks.transactions.simple
+
+        client.transactions = mocks.transactions.simple_transformed
+        command.execute()
+
+        with open(file, "rb") as f:
+            result = pickle.load(f)
+            assert result == mocks.transactions.simple_transformed

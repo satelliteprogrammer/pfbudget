@@ -88,7 +88,12 @@ class TestExtractPSD2:
         with pytest.raises(requests.Timeout):
             extractor.extract(bank)
 
-    def test_extract(self, extractor: Extractor, bank: Bank):
+    def test_extract(
+        self, monkeypatch: pytest.MonkeyPatch, extractor: Extractor, bank: Bank
+    ):
+        monkeypatch.setattr(
+            "pfbudget.extract.nordigen.NordigenClient.dump", lambda *args: None
+        )
         assert extractor.extract(bank) == [
             BankTransaction(
                 dt.date(2023, 1, 14), "string", Decimal("328.18"), bank="Bank#1"
