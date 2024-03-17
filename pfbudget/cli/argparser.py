@@ -8,11 +8,6 @@ import re
 from pfbudget.common.types import Operation
 from pfbudget.db.model import AccountType, SchedulePeriod
 
-from pfbudget.db.sqlite import DatabaseClient
-import pfbudget.reporting.graph
-import pfbudget.reporting.report
-import pfbudget.utils.utils
-
 load_dotenv()
 
 DEFAULT_DB = os.environ.get("DEFAULT_DB")
@@ -56,10 +51,6 @@ def argparser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(required=True)
 
-    # TODO Init
-    # init = subparsers.add_parser("init")
-    # init.set_defaults(op=Operation.Init)
-
     # Exports transactions to specified format and file
     export = subparsers.add_parser("export")
     export.set_defaults(op=Operation.Export)
@@ -84,45 +75,6 @@ def argparser() -> argparse.ArgumentParser:
     auto.add_argument("--no-nulls", action="store_false")
 
     categorize.add_parser("manual").set_defaults(op=Operation.ManualCategorization)
-
-    """
-    Graph
-    """
-    p_graph = subparsers.add_parser(
-        "graph",
-        description="Graph of the transactions",
-        parents=[universal, period],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_graph.add_argument(
-        "option",
-        type=str,
-        choices=["monthly", "discrete", "networth"],
-        nargs="?",
-        default="monthly",
-        help="graph option help",
-    )
-    p_graph.add_argument("--save", action="store_true")
-    p_graph.set_defaults(func=graph)
-
-    """
-    Report
-    """
-    p_report = subparsers.add_parser(
-        "report",
-        description="Prints report of transaction groups",
-        parents=[universal, period],
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    p_report.add_argument(
-        "option",
-        type=str,
-        choices=["net", "detailed"],
-        nargs="?",
-        default="net",
-        help="report option help",
-    )
-    p_report.set_defaults(func=report)
 
     # Banks
     bank(subparsers.add_parser("bank"))
@@ -158,41 +110,6 @@ def argparser() -> argparse.ArgumentParser:
     link(subparsers.add_parser("link"))
 
     return parser
-
-
-def graph(args):
-    """Plots the transactions over a period of time.
-
-    Args:
-        args (dict): argparse variables
-    """
-    start, end = pfbudget.utils.utils.parse_args_period(args)
-    if args.option == "monthly":
-        pfbudget.reporting.graph.monthly(
-            DatabaseClient(args.database), vars(args), start, end
-        )
-    elif args.option == "discrete":
-        pfbudget.reporting.graph.discrete(
-            DatabaseClient(args.database), vars(args), start, end
-        )
-    elif args.option == "networth":
-        pfbudget.reporting.graph.networth(
-            DatabaseClient(args.database), vars(args), start, end
-        )
-
-
-def report(args):
-    """Prints a detailed report of the transactions over a period of time.
-
-    Args:
-        args (dict): argparse variables
-    """
-    start, end = pfbudget.utils.utils.parse_args_period(args)
-    if args.option == "net":
-        pfbudget.reporting.report.net(DatabaseClient(args.database), start, end)
-    elif args.option == "detailed":
-        pfbudget.reporting.report.detailed(DatabaseClient(args.database), start, end)
-
 
 def bank(parser: argparse.ArgumentParser):
     commands = parser.add_subparsers(required=True)
