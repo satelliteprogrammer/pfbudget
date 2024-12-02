@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+import pytest
 
 import mocks.categories as mock
 
@@ -12,6 +13,7 @@ from pfbudget.db.model import (
     TransactionTag,
 )
 from pfbudget.transform.categorizer import Categorizer
+from pfbudget.transform.exceptions import MoreThanOneMatchError
 from pfbudget.transform.nullifier import Nullifier
 from pfbudget.transform.tagger import Tagger
 from pfbudget.transform.transform import Transformer
@@ -47,6 +49,36 @@ class TestTransform:
 
         for t in transactions:
             assert t.category == TransactionCategory("null", CategorySelector.nullifier)
+
+    def test_nullifier_inplace_unordered(self):
+        transactions = [
+            BankTransaction(date(2023, 1, 2), "A2", Decimal("500"), bank="Bank#2"),
+            BankTransaction(date(2023, 1, 2), "B1", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 1), "A1", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 2), "B2", Decimal("500"), bank="Bank#2"),
+        ]
+
+        for t in transactions:
+            assert not t.category
+
+        categorizer: Transformer = Nullifier()
+        with pytest.raises(MoreThanOneMatchError):
+            categorizer.transform_inplace(transactions)
+
+    def test_nullifier_inplace_repeated(self):
+        transactions = [
+            BankTransaction(date(2023, 1, 2), "A1", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 2), "A2", Decimal("500"), bank="Bank#2"),
+            BankTransaction(date(2023, 1, 2), "B1", Decimal("-500"), bank="Bank#1"),
+            BankTransaction(date(2023, 1, 2), "B2", Decimal("500"), bank="Bank#2"),
+        ]
+
+        for t in transactions:
+            assert not t.category
+
+        categorizer: Transformer = Nullifier()
+        with pytest.raises(MoreThanOneMatchError):
+            categorizer.transform_inplace(transactions)
 
     def test_nullifier_with_rules(self):
         transactions = [
