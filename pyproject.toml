@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "pf-budget"
 version = "0.2.0"
-description = "This is an application for budgeting nerds who need control and want to account for every aspect of their financials lifes."
+description = "A budgeting tool for those who want full control and transparency over their finances."
 authors = ["Luís Murta <luis@murta.dev>"]
 license = "GPL-3.0-or-later"
 readme = "README.md"

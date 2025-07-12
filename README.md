@@ -1,37 +1,115 @@
-# Personal Finance Budget (pfbudget)
+# Personal Finance Budget (`pfbudget`)
 
-parse -> categorize -> analyze (predict) -> present
+A budgeting tool for those who want full control and transparency over their finances.
 
-## Parse
-Parses bank extracts, based on parsers.yaml, to a SQLite database.
+## Features
 
-## Categorize
-Categorizes transactions based on categories.yaml configuration.
+- **Bank Data Ingestion:**
+  - Download transactions directly from banks via a PSD2 aggregator (using the GoCardless API).
+  - Or, parse CSV bank extracts using configurable YAML-based parsers (parsers.yaml).
+- **Database Storage:**
+  - All transactions and categorization rules are stored in a PostgreSQL database.
+- **Rules-Based Categorization:**
+  - Automatically categorize transactions using rules stored in the database.
+  - Interactive mode for manual categorization of remaining transactions.
 
-### Reserved categories and groups
-There is 1 special category and 2 reserved groups.
+> **Note:** Graphical reporting is currently broken. For now, you can run SQL queries directly on the database for custom reports.
 
-The `Null` category represent transactions performed between banks/credit cards, that would otherwise appear in the reports and graph. This way, these transactions, while real, are shadowed from the information presented. The net effect of these transaction, if performed in the same month would be moot anyway, since they cancel each other, but could introduce visual pollution when separated for a few days, especial when spawning through different months. The `Null` category then present a placeholder category for these transactions, as well as a way to preserve them out of side.
-ToDo: As a side bonus, whenever these don't cancel eachother, a warning could be shown.
+## Quick Start
 
-The 2 reserved groups are `income` and `investment`.
-The `income` is used for all income categories. These are the ones that will have a net effect on the overall balance of the individual, and are normally expected to be shown against expenses.
-The `investment` group is separated from the remaining expenses, has these might not only present in absolute terms much higher values than other categories, but will also be subject to a different treatment when market predictions are incorporated.
+### 1. Install dependencies
 
-## Analyze (ToDo)
-Analyzes previous transaction and predicts future expenses.
+This project uses [Poetry](https://python-poetry.org/):
 
-## Present
-Create graphs and reports
-1. Monthly spending from everyday purchases
-2. Networth with big expenses tagged in (ToDo)
-3. Future trajectory with predictable costs included (ToDo)
+```sh
+poetry install
+```
 
-## ToDo
-- [ ] Support regular transactions from fixed group in categories
-- [ ] Add one table for user inputed transactions and other for fixes
-- [ ] Predicting future expenses
-- [ ] Finish writing the README.md
-- [ ] Implement undo/redo feature in sqlite3 database
-- [ ] Allow for the possibility to create a new parser during runtime by guessing from transaction list/user input
-- [ ] Allow for transaction to be passed as argument to main.py
+### 2. Configure
+
+- **Database:**
+  Set up a PostgreSQL database and configure your connection through a `.env` file.
+- **GoCardless credentials:**
+  Create an account with GoCardless (previously Nordigen) and save them on the `.env` file.
+- **Bank Parsers:**
+  For CSV parsing, edit `parsers.yaml` to match your bank’s CSV format.
+  If the CSV is more complex than the basic rules can handle, you can enable `additional_parser: true` and implement a parser class in `pfbudget/extract/parsers.py`. The `Bank1` is an example implementation.
+
+### 3. Run
+
+You can run the app as a module:
+
+```sh
+poetry run python3 -m pfbudget [options]
+```
+
+#### Example workflows
+
+- **Download from bank aggregator:**
+  First step is to accept an End User Agreement with the bank in question to get access to your own data:
+  ```sh
+  poetry run python3 -m pfbudget eua your_bank
+  ```
+  ```sh
+  poetry run python3 -m pfbudget download --banks your_bank
+  ```
+- **Parse CSV:**
+  ```sh
+  poetry run python3 -m pfbudget parse --bank your_bank export.csv
+  ```
+
+- **Automatic categorization:**
+  ```sh
+  poetry run python3 -m pfbudget categorize auto
+  ```
+
+- **Interactive categorization:**
+  ```sh
+  poetry run python3 -m pfbudget categorize manual
+  ```
+
+## Available Commands
+
+The CLI supports a variety of operations. Here are the main commands:
+
+- **export**: Export transactions to a specified file and format.
+- **import**: Import transactions from a specified file and format.
+- **parse**: Parse transactions from CSV files (with optional bank and credit card arguments).
+- **categorize**
+  - `auto`: Automatically categorize transactions using rules.
+  - `manual`: Manually categorize uncategorized transactions.
+- **bank**
+  - `add`, `del`, `mod`: Manage bank definitions.
+  - `psd2`: Manage PSD2 bank connections.
+  - `export`, `import`: Export/import bank definitions.
+- **token**: Manage PSD2 access tokens.
+- **eua**: Manage PSD2 requisition IDs.
+- **download**: Download transactions from banks via PSD2 API.
+- **banks**: List available banks in a country.
+- **category**
+  - `add`, `remove`, `update`, `schedule`: Manage categories.
+  - `rule`: Manage categorization rules (add, remove, modify, export, import).
+  - `group`: Manage category groups (add, remove, export, import).
+  - `export`, `import`: Export/import categories.
+- **tag**
+  - `add`, `remove`: Manage tags.
+  - `rule`: Manage tag rules (add, remove, modify, export, import).
+- **link**
+  - `forge`, `dismantle`: Link or unlink transactions.
+
+Each command may have additional options and subcommands. For details, run:
+
+```sh
+poetry run python3 -m pfbudget --help
+```
+
+or for a specific command:
+
+```sh
+poetry run python3 -m pfbudget <command> --help
+```
+
+---
+
+**License:** GPL-3.0-or-later
+**Author:** Luís Murta <luis@murta.dev>
