@@ -161,9 +161,9 @@ if __name__ == "__main__":
             }
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [
-                type.CategoryRule(
-                    cat,
+            params = []
+            for cat in args["category"]:
+                rule = type.CategoryRule(
                     start=args["start"][0] if args["start"] else None,
                     end=args["end"][0] if args["end"] else None,
                     description=args["description"][0] if args["description"] else None,
@@ -172,8 +172,9 @@ if __name__ == "__main__":
                     min=args["min"][0] if args["min"] else None,
                     max=args["max"][0] if args["max"] else None,
                 )
-                for cat in args["category"]
-            ]
+                # associate the rule to the category name (mapped col has init=False)
+                rule.name = cat
+                params.append(rule)
 
         case Operation.RuleRemove | Operation.TagRuleRemove:
             keys = {"id"}
@@ -213,9 +214,9 @@ if __name__ == "__main__":
             keys = {"tag", "start", "end", "description", "regex", "bank", "min", "max"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [
-                type.TagRule(
-                    tag,
+            params = []
+            for tag in args["tag"]:
+                rule = type.TagRule(
                     start=args["start"][0] if args["start"] else None,
                     end=args["end"][0] if args["end"] else None,
                     description=args["description"][0] if args["description"] else None,
@@ -224,8 +225,9 @@ if __name__ == "__main__":
                     min=args["min"][0] if args["min"] else None,
                     max=args["max"][0] if args["max"] else None,
                 )
-                for tag in args["tag"]
-            ]
+                # associate the rule to the tag name (mapped col has init=False)
+                rule.tag = tag
+                params.append(rule)
 
         case Operation.TagRuleModify:
             keys = {"id", "tag", "date", "description", "bank", "min", "max", "remove"}
