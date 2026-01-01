@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import datetime as dt
 import dotenv
+import json
 import nordigen
 import os
 import requests
@@ -64,6 +65,13 @@ class NordigenClient:
             if not downloaded:
                 print(f"Couldn't download transactions for {account.get_metadata()}")
                 continue
+
+            with open(
+                f"logs/{dt.datetime.now().isoformat()}_{requisition_id}.json",
+                "w",
+                encoding="utf-8",
+            ) as f:
+                json.dump(downloaded, f, ensure_ascii=False, indent=4)
 
             if (
                 "transactions" not in downloaded
