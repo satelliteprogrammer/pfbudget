@@ -61,6 +61,21 @@ class NordigenClient:
                     retries += 1
                     print(f"Request #{retries} timed-out, retrying in 1s")
                     time.sleep(1)
+                except requests.HTTPError as e:
+                    if (
+                        e.response.status_code == 409
+                        and e.response.type == "AccountProcessing"
+                    ):
+                        timeout = 1
+                        while account.get_metadata()["status"] != "READY":
+                            print(f"Waiting for status ready, retrying in {timeout}s")
+                            time.sleep(timeout)
+                            timeout *= 2
+                    elif e.response.status_code == 429:
+                        print("Rate limit exceeded for today, aborting")
+                        break
+                    else:
+                        raise DownloadError(e)
 
             if not downloaded:
                 print(f"Couldn't download transactions for {account.get_metadata()}")
