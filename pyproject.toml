@@ -27,7 +27,7 @@ pytest = "^7.3.0"
 pytest-cov = "^4.0.0"
 pytest-mock = "^3.10.0"
 sqlalchemy = {extras = ["mypy"], version = "^2.0.9"}
-ruff = "^0.0.267"
+ruff = "^0.11.2"
 
 [build-system]
 requires = ["poetry-core"]
