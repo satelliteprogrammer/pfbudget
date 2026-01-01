@@ -36,24 +36,24 @@ class Interactive:
             uncategorized = session.select(
                 Transaction, lambda: ~Transaction.category.has()
             )
-            uncategorized.sort()
+            list(uncategorized).sort()
             n = len(uncategorized)
             print(f"{n} left to categorize")
 
             i = 0
             new = []
 
-            while (command := input("$ ")) != "quit" and i < len(uncategorized):
+            while i < len(uncategorized):
                 current = uncategorized[i] if len(new) == 0 else new.pop()
                 print(current)
+                command = input("$ ")
 
                 match command:
                     case "help":
                         print(self.help)
 
                     case "skip":
-                        if len(uncategorized) == 0:
-                            i += 1
+                        i += 1
 
                     case "quit":
                         break
@@ -89,7 +89,7 @@ class Interactive:
                             for tag in tags:
                                 if tag not in [t.name for t in self.tags]:
                                     session.insert([Tag(tag)])
-                                    self.tags = session.get(Tag)
+                                    self.tags = session.select(Tag)
 
                                 current.tags.add(TransactionTag(tag))
 
@@ -98,7 +98,7 @@ class Interactive:
 
     def split(self, original: Transaction) -> list[SplitTransaction]:
         total = original.amount
-        new = []
+        new: list[SplitTransaction] = []
 
         done = False
         while not done:
@@ -114,7 +114,7 @@ class Interactive:
             amount = decimal.Decimal(input("amount: "))
             new.append(
                 SplitTransaction(
-                    original.date, original.description, amount, original.id
+                    original.date, original.description, amount, original=original.id
                 )
             )
 
