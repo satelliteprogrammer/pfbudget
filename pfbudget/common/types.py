@@ -49,6 +49,7 @@ class Operation(Enum):
     ImportCategories = auto()
     ExportCategoryGroups = auto()
     ImportCategoryGroups = auto()
+    ExportOFX = auto()
 
 
 class ExportFormat(Enum):

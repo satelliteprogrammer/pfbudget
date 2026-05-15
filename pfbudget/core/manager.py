@@ -24,6 +24,7 @@ from pfbudget.db.model import (
     Transaction,
     TransactionCategory,
 )
+from pfbudget.export.ofx import export as export_ofx
 from pfbudget.extract.nordigen import NordigenClient, NordigenCredentialsManager
 from pfbudget.extract.parsers import parse_data
 from pfbudget.extract.psd2 import PSD2Extractor
@@ -261,6 +262,9 @@ class Manager:
                         transactions.append(splitted)
 
                     session.insert(transactions)
+
+            case Operation.ExportOFX:
+                export_ofx(self.database.select(Transaction), Path(params[0]), params[1])
 
             case Operation.Export:
                 self.dump(params[0], params[1], self.database.select(Transaction))
