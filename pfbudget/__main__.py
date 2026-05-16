@@ -257,10 +257,10 @@ if __name__ == "__main__":
             params = [args["original"][0], args["links"]]
 
         case Operation.ExportOFX:
-            keys = {"file", "account_id"}
+            keys = {"file", "account_id", "bank"}
             assert args.keys() >= keys, f"missing {args.keys() - keys}"
 
-            params = [args["file"][0], args["account_id"] or ""]
+            params = [args["file"][0], args["account_id"] or "", args["bank"] or []]
 
         case (
             Operation.Export

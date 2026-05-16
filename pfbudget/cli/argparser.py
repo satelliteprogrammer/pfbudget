@@ -61,6 +61,7 @@ def argparser() -> argparse.ArgumentParser:
     export_ofx.set_defaults(op=Operation.ExportOFX)
     export_ofx.add_argument("file", nargs=1, type=str)
     export_ofx.add_argument("--account-id", nargs="?", default="", type=str)
+    export_ofx.add_argument("--bank", nargs="+", type=str)
 
     # Imports transactions from specified format and file
     pimport = subparsers.add_parser("import")

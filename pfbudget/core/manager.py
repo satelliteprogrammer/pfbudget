@@ -264,7 +264,7 @@ class Manager:
                     session.insert(transactions)
 
             case Operation.ExportOFX:
-                export_ofx(self.database.select(Transaction), Path(params[0]), params[1])
+                export_ofx(self.database.select(Transaction), Path(params[0]), params[1], params[2])
 
             case Operation.Export:
                 self.dump(params[0], params[1], self.database.select(Transaction))
