@@ -10,6 +10,10 @@ from pfbudget.db.model import (
     Bank,
     NordigenBank,
     CategorySelector,
+    CategoryRule,
+    TagRule,
+    Category,
+    Tag,
     Transaction,
     TransactionCategory,
 )
@@ -151,3 +155,90 @@ class TestDatabase:
         client.delete(Bank, Bank.name, names)
         result = client.select(Bank)
         assert len(result) == 0
+
+
+def test_category_rule_construction_and_name_assignment():
+    # Construct rule similarly to the CLI: keyword args then assign name
+    rule = CategoryRule(
+        start=date(2025, 4, 1),
+        end=None,
+        description="desc",
+        regex="abc",
+        bank=None,
+        min=Decimal("-30"),
+        max=None,
+    )
+    rule.name = "eating out"
+
+    assert rule.start == date(2025, 4, 1)
+    assert rule.description == "desc"
+    assert rule.min == Decimal("-30")
+    assert rule.name == "eating out"
+
+
+def test_tag_rule_construction_and_tag_assignment():
+    # Construct rule similarly to the CLI: keyword args then assign tag
+    rule = TagRule(
+        start=None,
+        end=None,
+        description=None,
+        regex=None,
+        bank=None,
+        min=None,
+        max=None,
+    )
+    rule.tag = "groceries"
+
+    assert rule.start is None
+    assert rule.tag == "groceries"
+
+
+@pytest.fixture
+def rules(client: Client) -> list:
+    # create required Category and Tag
+    cat = Category("eating out", None)
+    tag = Tag("groceries")
+
+    # create rules and associate with category/tag
+    cr = CategoryRule(
+        start=date(2025, 4, 1),
+        end=None,
+        description="desc",
+        regex="abc",
+        bank=None,
+        min=Decimal("-30"),
+        max=None,
+    )
+    cr.name = cat.name
+
+    tr = TagRule(
+        start=None,
+        end=None,
+        description=None,
+        regex=None,
+        bank=None,
+        min=None,
+        max=None,
+    )
+    tr.tag = tag.name
+
+    # insert category, tag and rules
+    client.insert([cat, tag, cr, tr])
+
+    return [cr, tr]
+
+
+def test_rules_insert_select_delete(client: Client, rules: list):
+    # after fixture insertion, we should be able to select the rules
+    cats = client.select(CategoryRule)
+    tags = client.select(TagRule)
+
+    assert any(r.name == "eating out" for r in cats)
+    assert any(r.tag == "groceries" for r in tags)
+
+    # delete the rules by id
+    ids = [r.id for r in cats]
+    if ids:
+        client.delete(CategoryRule, CategoryRule.id, ids)
+
+    assert client.select(CategoryRule) == []

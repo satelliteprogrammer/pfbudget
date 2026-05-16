@@ -51,7 +51,7 @@ class Client:
     def __init__(self, url: str, **kwargs: Any):
         assert url, "Database URL is empty!"
         self._engine = create_engine(url, **kwargs)
-        self._sessionmaker = sessionmaker(self._engine)
+        self._sessionmaker = sessionmaker(self.engine, autoflush=True)
 
     def insert(self, sequence: Sequence[Any]) -> None:
         new = deepcopy(sequence)
