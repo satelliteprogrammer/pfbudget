@@ -144,11 +144,13 @@ class Manager:
                     bank.nordigen.bank_id
                 )
 
+                print(f"Storing req_id: {req_id} for bank {bank_name}")
                 self.database.update(
                     NordigenBank,
                     [{"name": bank.nordigen.name, "requisition_id": req_id}],
                 )
 
+                print(f"Opening {link}")
                 webbrowser.open(link)
 
             case Operation.PSD2CountryBanks:
@@ -412,4 +414,8 @@ class Manager:
         return self._database
 
     def nordigen_client(self) -> NordigenClient:
-        return NordigenClient(NordigenCredentialsManager.default, self.database)
+        return NordigenClient(
+            NordigenCredentialsManager.default,
+            self.database,
+            verbose=self._verbosity > 0,
+        )

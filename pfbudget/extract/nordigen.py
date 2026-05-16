@@ -29,7 +29,7 @@ class NordigenCredentials:
 class NordigenClient:
     redirect_url = "https://murta.dev"
 
-    def __init__(self, credentials: NordigenCredentials, client: Client):
+    def __init__(self, credentials: NordigenCredentials, client: Client, verbose: bool = False):
         if not credentials.valid():
             raise CredentialsError
 
@@ -37,6 +37,7 @@ class NordigenClient:
             secret_key=credentials.key, secret_id=credentials.id, timeout=5
         )
         self.__client.token = self.__token(client)
+        self._verbose = verbose
 
     def download(self, requisition_id) -> Sequence[dict[str, Any]]:
         try:
@@ -51,13 +52,18 @@ class NordigenClient:
         for acc in requisition["accounts"]:
             account = self.__client.account_api(acc)
 
+            timeout_retries = 0
             retries = 0
             downloaded = None
-            while retries < 3:
+            while timeout_retries < 3 and retries < 10:
                 try:
                     downloaded = account.get_transactions()
                     break
                 except requests.ReadTimeout:
+                    timeout_retries += 1
+                    print(f"Request #{timeout_retries} timed-out, retrying in 5s")
+                    time.sleep(5)
+                except requests.HTTPError as e:
                     retries += 1
                     print(f"Request #{retries} timed-out, retrying in 1s")
                     time.sleep(1)
@@ -81,12 +87,13 @@ class NordigenClient:
                 print(f"Couldn't download transactions for {account.get_metadata()}")
                 continue
 
-            with open(
-                f"logs/{dt.datetime.now().isoformat()}_{requisition_id}.json",
-                "w",
-                encoding="utf-8",
-            ) as f:
-                json.dump(downloaded, f, ensure_ascii=False, indent=4)
+            if self._verbose:
+                with open(
+                    f"logs/{dt.datetime.now().isoformat()}_{requisition_id}.json",
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    json.dump(downloaded, f, ensure_ascii=False, indent=4)
 
             if (
                 "transactions" not in downloaded
@@ -131,7 +138,7 @@ class NordigenClient:
                 return dt.datetime.now() + dt.timedelta(seconds=seconds)
 
             if not len(token):
-                print("First time nordigen token setup")
+                print("requesting tokens for the 1st time")
                 new = self.__client.generate_token()
                 session.insert(
                     [
@@ -155,12 +162,15 @@ class NordigenClient:
                 refresh = next(t for t in token if t.type == "refresh")
 
                 if access.expires > dt.datetime.now():
+                    print("access token still valid")
                     pass
                 elif refresh.expires > dt.datetime.now():
+                    print("access token expired, refreshing")
                     new = self.__client.exchange_token(refresh.token)
                     access.token = new["access"]
                     access.expires = datetime(new["access_expires"])
                 else:
+                    print("refresh token expired, requesting new ones")
                     new = self.__client.generate_token()
                     access.token = new["access"]
                     access.expires = datetime(new["access_expires"])
